@@ -113,7 +113,7 @@ export const CartDrawer = () => {
           style={{
             flexGrow: 1,
             overflowY: 'auto',
-            padding: '1.5rem',
+            padding: 'clamp(1rem, 3vw, 1.5rem)',
             display: 'flex',
             flexDirection: 'column',
             gap: '1.25rem'
@@ -128,7 +128,7 @@ export const CartDrawer = () => {
                 justifyContent: 'center',
                 height: '100%',
                 textAlign: 'center',
-                padding: '2rem'
+                padding: '2rem 1rem'
               }}
             >
               <div
@@ -146,7 +146,7 @@ export const CartDrawer = () => {
               >
                 <ShoppingBag size={28} />
               </div>
-              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.6rem', color: '#4B3024', marginBottom: '0.5rem' }}>
+              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', color: '#4B3024', marginBottom: '0.5rem' }}>
                 Your Bag is Empty
               </h3>
               <p style={{ fontSize: '0.88rem', color: '#8F7263', marginBottom: '1.5rem', maxWidth: '280px' }}>
@@ -168,16 +168,16 @@ export const CartDrawer = () => {
                 key={item.product.id}
                 style={{
                   display: 'flex',
-                  gap: '1rem',
-                  paddingBottom: '1.25rem',
+                  gap: '0.85rem',
+                  paddingBottom: '1.15rem',
                   borderBottom: '1px solid rgba(75, 48, 36, 0.08)'
                 }}
               >
                 {/* Item Thumbnail */}
                 <div
                   style={{
-                    width: '85px',
-                    height: '110px',
+                    width: 'clamp(70px, 18vw, 85px)',
+                    height: 'clamp(92px, 24vw, 110px)',
                     flexShrink: 0,
                     overflow: 'hidden',
                     backgroundColor: '#F4ECE1',
@@ -196,15 +196,17 @@ export const CartDrawer = () => {
                 </div>
 
                 {/* Details */}
-                <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ flexGrow: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.35rem' }}>
                     <h4
                       style={{
                         fontFamily: 'var(--font-serif)',
-                        fontSize: '1.05rem',
+                        fontSize: '1rem',
                         fontWeight: 600,
                         color: '#4B3024',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        lineHeight: 1.25,
+                        margin: 0
                       }}
                       onClick={() => {
                         setIsCartOpen(false);
@@ -216,7 +218,7 @@ export const CartDrawer = () => {
                     <button
                       onClick={() => removeFromCart(item.product.id)}
                       aria-label="Remove item"
-                      style={{ color: '#8F7263', padding: '0.2rem' }}
+                      style={{ color: '#8F7263', padding: '0.35rem', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
                       onMouseEnter={(e) => (e.currentTarget.style.color = '#C98278')}
                       onMouseLeave={(e) => (e.currentTarget.style.color = '#8F7263')}
                     >
@@ -224,11 +226,11 @@ export const CartDrawer = () => {
                     </button>
                   </div>
 
-                  <span style={{ fontSize: '0.74rem', color: '#B88D4A', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                  <span style={{ fontSize: '0.72rem', color: '#B88D4A', fontWeight: 600, textTransform: 'uppercase', margin: '0.25rem 0 0.5rem' }}>
                     {item.product.craft}
                   </span>
 
-                  <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
                     {/* Quantity Selector */}
                     <div
                       style={{
@@ -240,7 +242,7 @@ export const CartDrawer = () => {
                     >
                       <button
                         onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                        style={{ padding: '0.3rem 0.6rem', color: '#4B3024' }}
+                        style={{ padding: '0.35rem 0.65rem', color: '#4B3024', background: 'none', border: 'none', cursor: 'pointer' }}
                         aria-label="Decrease quantity"
                       >
                         <Minus size={12} />
@@ -250,7 +252,7 @@ export const CartDrawer = () => {
                       </span>
                       <button
                         onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                        style={{ padding: '0.3rem 0.6rem', color: '#4B3024' }}
+                        style={{ padding: '0.35rem 0.65rem', color: '#4B3024', background: 'none', border: 'none', cursor: 'pointer' }}
                         aria-label="Increase quantity"
                       >
                         <Plus size={12} />
@@ -258,7 +260,7 @@ export const CartDrawer = () => {
                     </div>
 
                     {/* Item Price */}
-                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.15rem', fontWeight: 600, color: '#4B3024' }}>
+                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', fontWeight: 600, color: '#4B3024' }}>
                       ₹{(item.product.price * item.quantity).toLocaleString('en-IN')}
                     </span>
                   </div>
@@ -272,7 +274,8 @@ export const CartDrawer = () => {
         {cart.length > 0 && (
           <div
             style={{
-              padding: '1.5rem',
+              padding: 'clamp(1rem, 3vw, 1.35rem)',
+              paddingBottom: 'calc(clamp(1rem, 3vw, 1.35rem) + env(safe-area-inset-bottom, 0px))',
               backgroundColor: '#FFFDF9',
               borderTop: '1px solid rgba(75, 48, 36, 0.12)'
             }}
@@ -282,10 +285,10 @@ export const CartDrawer = () => {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.65rem',
-                fontSize: '0.82rem',
+                gap: '0.55rem',
+                fontSize: '0.8rem',
                 color: '#4B3024',
-                marginBottom: '1rem',
+                marginBottom: '0.85rem',
                 cursor: 'pointer'
               }}
             >
@@ -299,16 +302,19 @@ export const CartDrawer = () => {
             </label>
 
             {/* Promo Code Input */}
-            <form onSubmit={handleApplyCoupon} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+            <form onSubmit={handleApplyCoupon} style={{ display: 'flex', gap: '0.5rem', marginBottom: couponError ? '0.35rem' : '1rem' }}>
               <div style={{ position: 'relative', flexGrow: 1 }}>
                 <input
                   type="text"
                   placeholder="Promo code (e.g. WOVEN10)"
                   value={couponInput}
-                  onChange={(e) => setCouponInput(e.target.value)}
+                  onChange={(e) => {
+                    setCouponInput(e.target.value);
+                    if (couponError) setCouponError('');
+                  }}
                   style={{
                     width: '100%',
-                    padding: '0.65rem 0.85rem',
+                    padding: '0.6rem 0.75rem',
                     fontSize: '0.82rem',
                     border: '1px solid rgba(75, 48, 36, 0.2)',
                     backgroundColor: '#FAF6EE'
@@ -318,18 +324,24 @@ export const CartDrawer = () => {
               <button
                 type="submit"
                 style={{
-                  padding: '0.65rem 1rem',
+                  padding: '0.6rem 0.9rem',
                   backgroundColor: '#4B3024',
                   color: '#FAF6EE',
-                  fontSize: '0.78rem',
+                  fontSize: '0.76rem',
                   fontWeight: 600,
                   letterSpacing: '0.08em',
-                  textTransform: 'uppercase'
+                  textTransform: 'uppercase',
+                  border: 'none',
+                  cursor: 'pointer',
+                  minHeight: '40px'
                 }}
               >
                 Apply
               </button>
             </form>
+            {couponError && (
+              <p style={{ color: '#C98278', fontSize: '0.74rem', margin: '0 0 0.85rem 0' }}>{couponError}</p>
+            )}
 
             {/* Applied Coupon Tag */}
             {appliedCoupon && (
@@ -338,25 +350,25 @@ export const CartDrawer = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '0.45rem 0.75rem',
+                  padding: '0.4rem 0.65rem',
                   backgroundColor: 'rgba(184, 141, 74, 0.15)',
-                  fontSize: '0.78rem',
+                  fontSize: '0.76rem',
                   color: '#4B3024',
-                  marginBottom: '1rem'
+                  marginBottom: '0.85rem'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <Tag size={13} color="#B88D4A" />
                   <span><strong>{appliedCoupon.code}</strong> ({appliedCoupon.percent}% Off)</span>
                 </div>
-                <button onClick={removeCoupon} style={{ color: '#8F7263', fontSize: '0.75rem' }}>
+                <button onClick={removeCoupon} style={{ color: '#8F7263', fontSize: '0.74rem', background: 'none', border: 'none', cursor: 'pointer' }}>
                   Remove
                 </button>
               </div>
             )}
 
             {/* Financial Breakdown */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.82rem', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6F4E3E' }}>
                 <span>Subtotal</span>
                 <span>₹{subtotal.toLocaleString('en-IN')}</span>
@@ -385,13 +397,13 @@ export const CartDrawer = () => {
                 style={{
                   display: 'flex',
                   justifyContent: 'space-between',
-                  fontSize: '1.25rem',
+                  fontSize: '1.2rem',
                   fontWeight: 600,
                   fontFamily: 'var(--font-serif)',
                   color: '#4B3024',
                   borderTop: '1px solid rgba(75, 48, 36, 0.12)',
-                  paddingTop: '0.75rem',
-                  marginTop: '0.25rem'
+                  paddingTop: '0.65rem',
+                  marginTop: '0.2rem'
                 }}
               >
                 <span>Total</span>
@@ -406,7 +418,7 @@ export const CartDrawer = () => {
             <button
               onClick={handleCheckoutClick}
               className="btn btn-primary"
-              style={{ width: '100%', padding: '1.1rem' }}
+              style={{ width: '100%', padding: '0.95rem', minHeight: '48px' }}
             >
               <span>Proceed to Checkout</span>
               <ArrowRight size={16} />

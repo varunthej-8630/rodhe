@@ -94,10 +94,10 @@ export const BrandStoryPage = () => {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: 'clamp(2.5rem, 5vw, 5rem)',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
+            gap: 'clamp(2rem, 4vw, 5rem)',
             alignItems: 'center',
-            marginBottom: '6rem'
+            marginBottom: 'clamp(3.5rem, 6vw, 6rem)'
           }}
         >
           <div>
@@ -105,7 +105,7 @@ export const BrandStoryPage = () => {
             <h2
               style={{
                 fontFamily: 'var(--font-serif)',
-                fontSize: 'clamp(2rem, 3.5vw, 3rem)',
+                fontSize: 'clamp(1.85rem, 3.5vw, 3rem)',
                 color: '#4B3024',
                 lineHeight: 1.2,
                 marginBottom: '1.25rem'
@@ -113,10 +113,10 @@ export const BrandStoryPage = () => {
             >
               Every Thread Begins in the Soil
             </h2>
-            <p style={{ fontSize: '0.96rem', color: '#6F4E3E', lineHeight: 1.8, marginBottom: '1.25rem' }}>
+            <p style={{ fontSize: '0.94rem', color: '#6F4E3E', lineHeight: 1.8, marginBottom: '1.25rem' }}>
               We believe a garment touches your body closer than almost anything else you invite into your day. That is why our mulmul and cotton-silk yarns originate in pesticide-free, rain-fed soils nurtured through organic crop rotation.
             </p>
-            <p style={{ fontSize: '0.96rem', color: '#6F4E3E', lineHeight: 1.8 }}>
+            <p style={{ fontSize: '0.94rem', color: '#6F4E3E', lineHeight: 1.8 }}>
               No chemical defoliants, no synthetic bleach. The pale ivory of a RODHE saree is the unadulterated tone of natural Indian sunshine.
             </p>
           </div>
@@ -141,10 +141,10 @@ export const BrandStoryPage = () => {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: 'clamp(2.5rem, 5vw, 5rem)',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
+            gap: 'clamp(2rem, 4vw, 5rem)',
             alignItems: 'center',
-            marginBottom: '6rem'
+            marginBottom: 'clamp(3.5rem, 6vw, 6rem)'
           }}
         >
           <div
@@ -152,10 +152,8 @@ export const BrandStoryPage = () => {
               aspectRatio: '4 / 3',
               overflow: 'hidden',
               border: '1px solid rgba(184, 141, 74, 0.3)',
-              boxShadow: '0 16px 40px rgba(75, 48, 36, 0.12)',
-              order: 2
+              boxShadow: '0 16px 40px rgba(75, 48, 36, 0.12)'
             }}
-            className="order-md-1"
           >
             <img
               src="/assets/Handcrafted Indigo Block Printing.png"
@@ -164,12 +162,12 @@ export const BrandStoryPage = () => {
             />
           </div>
 
-          <div style={{ order: 1 }} className="order-md-2">
+          <div>
             <div className="eyebrow" style={{ justifyContent: 'flex-start' }}>Living Pigments</div>
             <h2
               style={{
                 fontFamily: 'var(--font-serif)',
-                fontSize: 'clamp(2rem, 3.5vw, 3rem)',
+                fontSize: 'clamp(1.85rem, 3.5vw, 3rem)',
                 color: '#4B3024',
                 lineHeight: 1.2,
                 marginBottom: '1.25rem'
@@ -177,10 +175,10 @@ export const BrandStoryPage = () => {
             >
               The Living Fermentation of Indigo & Madder
             </h2>
-            <p style={{ fontSize: '0.96rem', color: '#6F4E3E', lineHeight: 1.8, marginBottom: '1.25rem' }}>
+            <p style={{ fontSize: '0.94rem', color: '#6F4E3E', lineHeight: 1.8, marginBottom: '1.25rem' }}>
               Unlike industrial synthetic dyes that coat thread in plastic polymers, natural botanical pigments bond into the fiber core through natural fermentation.
             </p>
-            <p style={{ fontSize: '0.96rem', color: '#6F4E3E', lineHeight: 1.8 }}>
+            <p style={{ fontSize: '0.94rem', color: '#6F4E3E', lineHeight: 1.8 }}>
               Our blue is genuine <em>Indigofera tinctoria</em>; our terracotta reds are coaxed from crushed madder root; our earthy greens emerge from wild pomegranate rinds. When you wear a natural dye saree, the colors age gracefully like fine parchment.
             </p>
           </div>
@@ -190,10 +188,10 @@ export const BrandStoryPage = () => {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: 'clamp(2.5rem, 5vw, 5rem)',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
+            gap: 'clamp(2rem, 4vw, 5rem)',
             alignItems: 'center',
-            marginBottom: '6rem'
+            marginBottom: 'clamp(3.5rem, 6vw, 6rem)'
           }}
         >
           <div>
@@ -201,7 +199,7 @@ export const BrandStoryPage = () => {
             <h2
               style={{
                 fontFamily: 'var(--font-serif)',
-                fontSize: 'clamp(2rem, 3.5vw, 3rem)',
+                fontSize: 'clamp(1.85rem, 3.5vw, 3rem)',
                 color: '#4B3024',
                 lineHeight: 1.2,
                 marginBottom: '1.25rem'
@@ -209,10 +207,10 @@ export const BrandStoryPage = () => {
             >
               The Meaning of “Woven with Trust”
             </h2>
-            <p style={{ fontSize: '0.96rem', color: '#6F4E3E', lineHeight: 1.8, marginBottom: '1.25rem' }}>
+            <p style={{ fontSize: '0.94rem', color: '#6F4E3E', lineHeight: 1.8, marginBottom: '1.25rem' }}>
               Trust is a covenant. It means the artisan receives dignified remuneration and respect for their generational heritage. It means our customers receive 100% genuine craftsmanship, without fabricated polyester blends or deceptive labeling.
             </p>
-            <p style={{ fontSize: '0.96rem', color: '#6F4E3E', lineHeight: 1.8 }}>
+            <p style={{ fontSize: '0.94rem', color: '#6F4E3E', lineHeight: 1.8 }}>
               When a saree takes three days of meticulous block printing or sixty hours on a pit loom, every drape carries the dignity of its creators.
             </p>
           </div>
@@ -237,24 +235,24 @@ export const BrandStoryPage = () => {
         <div
           style={{
             backgroundColor: '#F4ECE1',
-            padding: '3.5rem 2rem',
+            padding: 'clamp(2rem, 5vw, 3.5rem) clamp(1rem, 3vw, 2rem)',
             border: '1px solid rgba(184, 141, 74, 0.25)',
             textAlign: 'center',
-            marginBottom: '5rem'
+            marginBottom: 'clamp(3.5rem, 5vw, 5rem)'
           }}
         >
           <div className="eyebrow">Brand Heritage</div>
           <h3
             style={{
               fontFamily: 'var(--font-serif)',
-              fontSize: '2.4rem',
+              fontSize: 'clamp(1.8rem, 3.5vw, 2.4rem)',
               color: '#4B3024',
               marginBottom: '1rem'
             }}
           >
             The Official RODHE Atelier
           </h3>
-          <p style={{ fontSize: '0.94rem', color: '#6F4E3E', maxWidth: '600px', margin: '0 auto 2.5rem' }}>
+          <p style={{ fontSize: '0.94rem', color: '#6F4E3E', maxWidth: '600px', margin: '0 auto 2rem' }}>
             Rooted in India, recognized by textile connoisseurs worldwide.
           </p>
 
@@ -263,19 +261,19 @@ export const BrandStoryPage = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '2rem',
+              gap: '1.5rem',
               flexWrap: 'wrap'
             }}
           >
             <img
               src="/assets/VC-F.png"
               alt="RODHE Official Identity"
-              style={{ maxHeight: '200px', boxShadow: '0 12px 30px rgba(0,0,0,0.15)', border: '1px solid rgba(75, 48, 36, 0.15)' }}
+              style={{ maxHeight: '180px', maxWidth: '100%', width: 'auto', height: 'auto', boxShadow: '0 12px 30px rgba(0,0,0,0.15)', border: '1px solid rgba(75, 48, 36, 0.15)' }}
             />
             <img
               src="/assets/VC-B.png"
               alt="RODHE Woven with Trust Card"
-              style={{ maxHeight: '200px', boxShadow: '0 12px 30px rgba(0,0,0,0.15)', border: '1px solid rgba(75, 48, 36, 0.15)' }}
+              style={{ maxHeight: '180px', maxWidth: '100%', width: 'auto', height: 'auto', boxShadow: '0 12px 30px rgba(0,0,0,0.15)', border: '1px solid rgba(75, 48, 36, 0.15)' }}
             />
           </div>
         </div>

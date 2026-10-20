@@ -68,39 +68,39 @@ export const ContactConciergePage = () => {
         </div>
       </div>
 
-      <div className="container" style={{ paddingTop: '3.5rem' }}>
+      <div className="container" style={{ paddingTop: 'clamp(2rem, 4vw, 3.5rem)' }}>
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: 'clamp(2.5rem, 5vw, 4.5rem)',
-            marginBottom: '5rem'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
+            gap: 'clamp(2rem, 4vw, 4.5rem)',
+            marginBottom: 'clamp(3.5rem, 5vw, 5rem)'
           }}
         >
           {/* Left: Contact Info & Touchpoints */}
-          <div>
-            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', color: '#4B3024', marginBottom: '1.25rem' }}>
+          <div style={{ minWidth: 0 }}>
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(1.75rem, 3.5vw, 2rem)', color: '#4B3024', marginBottom: '1.25rem' }}>
               Connect with Our Stylists
             </h2>
             <p style={{ fontSize: '0.94rem', color: '#6F4E3E', lineHeight: 1.7, marginBottom: '2rem' }}>
               Have questions about saree drape weight, blouse tailoring pairing, or wedding trousseau curation? Our personal stylists are available via phone, email, or WhatsApp.
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '2.5rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '2.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ width: '42px', height: '42px', backgroundColor: '#F4ECE1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B88D4A' }}>
+                <div style={{ width: '42px', height: '42px', backgroundColor: '#F4ECE1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B88D4A', flexShrink: 0 }}>
                   <Mail size={20} />
                 </div>
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: '0.74rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8F7263', fontWeight: 600 }}>Email</div>
-                  <a href="mailto:concierge@rodhe.in" style={{ fontSize: '0.95rem', fontWeight: 600, color: '#4B3024' }}>
+                  <a href="mailto:concierge@rodhe.in" style={{ fontSize: '0.95rem', fontWeight: 600, color: '#4B3024', wordBreak: 'break-word' }}>
                     concierge@rodhe.in
                   </a>
                 </div>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ width: '42px', height: '42px', backgroundColor: '#F4ECE1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B88D4A' }}>
+                <div style={{ width: '42px', height: '42px', backgroundColor: '#F4ECE1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B88D4A', flexShrink: 0 }}>
                   <Phone size={20} />
                 </div>
                 <div>
@@ -112,12 +112,12 @@ export const ContactConciergePage = () => {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ width: '42px', height: '42px', backgroundColor: '#F4ECE1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B88D4A' }}>
+                <div style={{ width: '42px', height: '42px', backgroundColor: '#F4ECE1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B88D4A', flexShrink: 0 }}>
                   <Clock size={20} />
                 </div>
                 <div>
                   <div style={{ fontSize: '0.74rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8F7263', fontWeight: 600 }}>Concierge Hours</div>
-                  <span style={{ fontSize: '0.95rem', color: '#4B3024' }}>
+                  <span style={{ fontSize: '0.92rem', color: '#4B3024' }}>
                     Monday – Saturday, 10:00 AM – 7:00 PM IST
                   </span>
                 </div>
@@ -129,7 +129,7 @@ export const ContactConciergePage = () => {
               <div style={{ fontSize: '0.74rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#B88D4A', fontWeight: 700, marginBottom: '0.4rem' }}>
                 RODHE Quality Promise
               </div>
-              <p style={{ fontSize: '0.84rem', color: '#6F4E3E', lineHeight: 1.5 }}>
+              <p style={{ fontSize: '0.84rem', color: '#6F4E3E', lineHeight: 1.5, margin: 0 }}>
                 Every inquiry is addressed personally by our textile curators in India. No automated chat bots.
               </p>
             </div>
@@ -139,9 +139,10 @@ export const ContactConciergePage = () => {
           <div
             style={{
               backgroundColor: '#FFFDF9',
-              padding: '2.5rem 2rem',
+              padding: 'clamp(1.5rem, 4vw, 2.5rem) clamp(1rem, 3vw, 2rem)',
               border: '1px solid rgba(75, 48, 36, 0.12)',
-              boxShadow: '0 12px 35px rgba(75, 48, 36, 0.05)'
+              boxShadow: '0 12px 35px rgba(75, 48, 36, 0.05)',
+              minWidth: 0
             }}
           >
             <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.6rem', color: '#4B3024', marginBottom: '1.25rem' }}>
@@ -168,6 +169,7 @@ export const ContactConciergePage = () => {
                   <input
                     type="text"
                     required
+                    autoComplete="name"
                     className="form-input"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -175,12 +177,13 @@ export const ContactConciergePage = () => {
                   />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '0.85rem' }}>
                   <div className="form-group">
                     <label className="form-label">Email</label>
                     <input
                       type="email"
                       required
+                      autoComplete="email"
                       className="form-input"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -191,6 +194,8 @@ export const ContactConciergePage = () => {
                     <label className="form-label">Phone</label>
                     <input
                       type="tel"
+                      inputMode="numeric"
+                      autoComplete="tel"
                       className="form-input"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
@@ -229,7 +234,7 @@ export const ContactConciergePage = () => {
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  style={{ width: '100%', padding: '0.95rem' }}
+                  style={{ width: '100%', padding: '0.95rem', minHeight: '48px' }}
                 >
                   <span>Dispatch Message</span>
                   <Send size={15} />

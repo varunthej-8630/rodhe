@@ -17,8 +17,8 @@ export const CustomerReviewsSection = () => {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '2rem'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+            gap: 'clamp(1rem, 3vw, 2rem)'
           }}
         >
           {TESTIMONIALS.map((t) => (
@@ -26,12 +26,13 @@ export const CustomerReviewsSection = () => {
               key={t.id}
               style={{
                 backgroundColor: '#FFFDF9',
-                padding: '2.25rem 2rem',
+                padding: 'clamp(1.35rem, 3.5vw, 2.25rem) clamp(1rem, 3vw, 2rem)',
                 border: '1px solid rgba(75, 48, 36, 0.1)',
                 display: 'flex',
                 flexDirection: 'column',
                 position: 'relative',
-                transition: 'transform 0.3s ease, box-shadow 0.3s ease'
+                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                minWidth: 0
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-4px)';

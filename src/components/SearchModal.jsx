@@ -65,7 +65,7 @@ export const SearchModal = () => {
     <div className="modal-backdrop" onClick={() => setIsSearchOpen(false)}>
       <div
         style={{
-          width: 'min(640px, 92vw)',
+          width: 'min(640px, 94vw)',
           backgroundColor: '#FFFDF9',
           border: '1px solid rgba(184, 141, 74, 0.3)',
           boxShadow: '0 25px 60px rgba(42, 26, 19, 0.25)',
@@ -79,32 +79,33 @@ export const SearchModal = () => {
           style={{
             display: 'flex',
             alignItems: 'center',
-            padding: '1.25rem 1.5rem',
+            padding: '0.95rem clamp(0.85rem, 3vw, 1.5rem)',
             borderBottom: '1px solid rgba(75, 48, 36, 0.12)',
-            gap: '1rem'
+            gap: '0.75rem'
           }}
         >
-          <Search size={22} color="#B88D4A" />
+          <Search size={20} color="#B88D4A" style={{ flexShrink: 0 }} />
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search by craft, colour, or saree name..."
+            placeholder="Search craft, colour, or saree..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             style={{
               flexGrow: 1,
               border: 'none',
               outline: 'none',
-              fontSize: '1.1rem',
+              fontSize: '1rem',
               fontFamily: 'var(--font-serif)',
               color: '#4B3024',
-              backgroundColor: 'transparent'
+              backgroundColor: 'transparent',
+              minWidth: 0
             }}
           />
           {query && (
             <button
               onClick={() => setQuery('')}
-              style={{ color: '#8F7263', padding: '0.25rem' }}
+              style={{ color: '#8F7263', padding: '0.35rem', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
               aria-label="Clear search input"
             >
               <X size={18} />
@@ -112,33 +113,41 @@ export const SearchModal = () => {
           )}
           <button
             onClick={() => setIsSearchOpen(false)}
+            aria-label="Close search"
             style={{
-              fontSize: '0.75rem',
-              letterSpacing: '0.1em',
+              fontSize: '0.74rem',
+              letterSpacing: '0.08em',
               textTransform: 'uppercase',
               color: '#8F7263',
               padding: '0.35rem 0.65rem',
-              border: '1px solid rgba(75, 48, 36, 0.15)'
+              border: '1px solid rgba(75, 48, 36, 0.15)',
+              backgroundColor: 'transparent',
+              cursor: 'pointer',
+              flexShrink: 0,
+              minHeight: '34px',
+              display: 'flex',
+              alignItems: 'center'
             }}
           >
-            ESC
+            <span className="search-esc-text">ESC</span>
+            <X size={16} className="search-close-icon" />
           </button>
         </div>
 
         {/* Quick Tag Recommendations */}
         <div
           style={{
-            padding: '1rem 1.5rem',
+            padding: '0.75rem clamp(0.85rem, 3vw, 1.5rem)',
             backgroundColor: '#FAF6EE',
             borderBottom: '1px solid rgba(75, 48, 36, 0.08)',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
+            gap: '0.45rem',
             flexWrap: 'wrap'
           }}
         >
-          <span style={{ fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#B88D4A', fontWeight: 600 }}>
-            Trending Searches:
+          <span style={{ fontSize: '0.72rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#B88D4A', fontWeight: 600 }}>
+            Trending:
           </span>
           {quickTags.map((tag) => (
             <button
@@ -167,7 +176,7 @@ export const SearchModal = () => {
         </div>
 
         {/* Results Area */}
-        <div style={{ maxHeight: '380px', overflowY: 'auto', padding: '1rem 1.5rem' }}>
+        <div style={{ maxHeight: '380px', overflowY: 'auto', padding: '0.85rem clamp(0.85rem, 3vw, 1.5rem)' }}>
           {query.trim() === '' ? (
             <div style={{ padding: '2rem 1rem', textAlign: 'center', color: '#8F7263' }}>
               <p style={{ fontSize: '0.88rem' }}>Type to discover handcrafted sarees by craft, colour, or fabric.</p>
@@ -190,7 +199,7 @@ export const SearchModal = () => {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '1rem',
+                    gap: '0.85rem',
                     padding: '0.75rem',
                     border: '1px solid rgba(75, 48, 36, 0.08)',
                     cursor: 'pointer',
@@ -208,25 +217,42 @@ export const SearchModal = () => {
                   <img
                     src={product.primaryImage}
                     alt={product.name}
-                    style={{ width: '50px', height: '65px', objectFit: 'cover' }}
+                    style={{ width: '48px', height: '62px', objectFit: 'cover', flexShrink: 0 }}
                   />
-                  <div style={{ flexGrow: 1 }}>
+                  <div style={{ flexGrow: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '0.7rem', color: '#B88D4A', textTransform: 'uppercase', fontWeight: 600 }}>
                       {product.craft} • {product.color}
                     </div>
-                    <h5 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.05rem', color: '#4B3024' }}>
+                    <h5 style={{ fontFamily: 'var(--font-serif)', fontSize: '1rem', color: '#4B3024', margin: '0.15rem 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {product.name}
                     </h5>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#4B3024' }}>
+                    <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#4B3024' }}>
                       ₹{product.price.toLocaleString('en-IN')}
                     </span>
                   </div>
-                  <ArrowRight size={16} color="#B88D4A" />
+                  <ArrowRight size={16} color="#B88D4A" style={{ flexShrink: 0 }} />
                 </div>
               ))}
             </div>
           )}
         </div>
+
+        <style>{`
+          .search-close-icon {
+            display: inline-block;
+          }
+          .search-esc-text {
+            display: none;
+          }
+          @media (min-width: 640px) {
+            .search-close-icon {
+              display: none;
+            }
+            .search-esc-text {
+              display: inline-block;
+            }
+          }
+        `}</style>
       </div>
     </div>
   );

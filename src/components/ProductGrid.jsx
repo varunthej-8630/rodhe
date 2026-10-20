@@ -43,9 +43,10 @@ export const ProductGrid = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '1rem',
-            marginBottom: '3rem',
-            flexWrap: 'wrap'
+            gap: 'clamp(0.4rem, 1.5vw, 0.85rem)',
+            marginBottom: 'clamp(2rem, 4vw, 3rem)',
+            flexWrap: 'wrap',
+            maxWidth: '100%'
           }}
         >
           {tabs.map((tab) => (
@@ -53,15 +54,16 @@ export const ProductGrid = () => {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               style={{
-                padding: '0.6rem 1.4rem',
-                fontSize: '0.8rem',
+                padding: 'clamp(0.45rem, 1.5vw, 0.6rem) clamp(0.85rem, 2.5vw, 1.4rem)',
+                fontSize: 'clamp(0.72rem, 1.4vw, 0.8rem)',
                 fontWeight: 600,
-                letterSpacing: '0.12em',
+                letterSpacing: '0.1em',
                 textTransform: 'uppercase',
                 backgroundColor: activeTab === tab.id ? '#4B3024' : 'transparent',
                 color: activeTab === tab.id ? '#FAF6EE' : '#6F4E3E',
                 border: activeTab === tab.id ? '1px solid #4B3024' : '1px solid rgba(75, 48, 36, 0.15)',
-                transition: 'all 0.25s ease'
+                transition: 'all 0.25s ease',
+                whiteSpace: 'nowrap'
               }}
             >
               {tab.label}
@@ -77,10 +79,11 @@ export const ProductGrid = () => {
         </div>
 
         {/* View All CTA */}
-        <div style={{ textAlign: 'center', marginTop: '4rem' }}>
+        <div style={{ textAlign: 'center', marginTop: 'clamp(2.5rem, 5vw, 4rem)' }}>
           <button
             onClick={() => navigateTo('shop')}
             className="btn btn-outline btn-lg"
+            style={{ maxWidth: '100%', boxSizing: 'border-box' }}
           >
             <span>Explore All Sarees with Filters</span>
             <ArrowRight size={16} />

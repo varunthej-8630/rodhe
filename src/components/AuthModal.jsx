@@ -33,11 +33,12 @@ export const AuthModal = () => {
     <div className="modal-backdrop" onClick={() => setIsAuthOpen(false)}>
       <div
         style={{
-          width: 'min(440px, 92vw)',
+          width: 'min(440px, 94vw)',
           backgroundColor: '#FFFDF9',
           border: '1px solid rgba(184, 141, 74, 0.3)',
           boxShadow: '0 25px 60px rgba(42, 26, 19, 0.25)',
-          overflow: 'hidden',
+          overflowY: 'auto',
+          maxHeight: '92vh',
           animation: 'slideUp 0.3s ease'
         }}
         onClick={(e) => e.stopPropagation()}
@@ -45,7 +46,7 @@ export const AuthModal = () => {
         {/* Header */}
         <div
           style={{
-            padding: '1.5rem',
+            padding: '1.25rem clamp(1rem, 3vw, 1.5rem)',
             borderBottom: '1px solid rgba(75, 48, 36, 0.1)',
             display: 'flex',
             alignItems: 'center',
@@ -53,10 +54,10 @@ export const AuthModal = () => {
           }}
         >
           <div>
-            <div style={{ fontSize: '0.72rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#B88D4A', fontWeight: 700 }}>
+            <div style={{ fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#B88D4A', fontWeight: 700 }}>
               RODHE Patron Portal
             </div>
-            <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.45rem', color: '#4B3024' }}>
+            <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(1.25rem, 3.5vw, 1.45rem)', color: '#4B3024', margin: '0.2rem 0 0' }}>
               {tab === 'login' ? 'Sign In to Your Account' : 'Join the RODHE Guild'}
             </h3>
           </div>
@@ -104,7 +105,7 @@ export const AuthModal = () => {
         </div>
 
         {/* Form Body */}
-        <div style={{ padding: '1.75rem 1.5rem' }}>
+        <div style={{ padding: 'clamp(1.25rem, 3.5vw, 1.75rem) clamp(1rem, 3vw, 1.5rem)' }}>
           {isSubmitted ? (
             <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
               <CheckCircle2 size={42} color="#B88D4A" style={{ margin: '0 auto 1rem' }} />
@@ -123,6 +124,7 @@ export const AuthModal = () => {
                   <input
                     type="text"
                     required
+                    autoComplete="name"
                     className="form-input"
                     placeholder="e.g. Parvathi Sharma"
                     value={formData.name}
@@ -136,6 +138,7 @@ export const AuthModal = () => {
                 <input
                   type="email"
                   required
+                  autoComplete="email"
                   className="form-input"
                   placeholder="patron@domain.com"
                   value={formData.email}
@@ -149,6 +152,8 @@ export const AuthModal = () => {
                   <input
                     type="tel"
                     required
+                    inputMode="numeric"
+                    autoComplete="tel"
                     className="form-input"
                     placeholder="+91 98765 43210"
                     value={formData.phone}
@@ -162,6 +167,7 @@ export const AuthModal = () => {
                 <input
                   type="password"
                   required
+                  autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
                   className="form-input"
                   placeholder="••••••••"
                   value={formData.password}
@@ -172,7 +178,7 @@ export const AuthModal = () => {
               <button
                 type="submit"
                 className="btn btn-primary"
-                style={{ width: '100%', padding: '0.95rem', marginTop: '0.5rem' }}
+                style={{ width: '100%', padding: '0.95rem', marginTop: '0.5rem', minHeight: '48px' }}
               >
                 <span>{tab === 'login' ? 'Sign In to RODHE' : 'Create Patron Account'}</span>
                 <ArrowRight size={15} />

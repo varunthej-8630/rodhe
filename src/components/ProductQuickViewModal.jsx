@@ -34,22 +34,21 @@ export const ProductQuickViewModal = () => {
   return (
     <div className="modal-backdrop" onClick={() => setQuickViewProduct(null)}>
       <div
+        className="quickview-modal-content"
         style={{
           width: 'min(900px, 94vw)',
           backgroundColor: '#FFFDF9',
           border: '1px solid rgba(184, 141, 74, 0.3)',
           boxShadow: '0 25px 60px rgba(42, 26, 19, 0.25)',
-          overflow: 'hidden',
+          overflowY: 'auto',
           animation: 'slideUp 0.3s ease',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
           maxHeight: '90vh'
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Left Gallery */}
-        <div style={{ backgroundColor: '#F4ECE1', position: 'relative', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ flexGrow: 1, position: 'relative', minHeight: '380px' }}>
+        <div style={{ backgroundColor: '#F4ECE1', position: 'relative', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <div style={{ flexGrow: 1, position: 'relative', minHeight: 'clamp(240px, 40vh, 420px)' }}>
             <img
               src={images[activeImageIndex] || product.primaryImage}
               alt={product.name}
@@ -95,10 +94,11 @@ export const ProductQuickViewModal = () => {
         {/* Right Info */}
         <div
           style={{
-            padding: '2rem',
+            padding: 'clamp(1.25rem, 3.5vw, 2rem)',
             overflowY: 'auto',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            minWidth: 0
           }}
         >
           {/* Close button top right */}
@@ -109,17 +109,17 @@ export const ProductQuickViewModal = () => {
             <button
               onClick={() => setQuickViewProduct(null)}
               aria-label="Close modal"
-              style={{ color: '#8F7263', padding: '0.2rem' }}
+              style={{ color: '#8F7263', padding: '0.35rem', background: 'none', border: 'none', cursor: 'pointer' }}
             >
               <X size={20} />
             </button>
           </div>
 
-          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.85rem', color: '#4B3024', lineHeight: 1.2, marginBottom: '0.5rem' }}>
+          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(1.5rem, 3vw, 1.85rem)', color: '#4B3024', lineHeight: 1.2, marginBottom: '0.5rem' }}>
             {product.name}
           </h2>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', gap: '0.15rem' }}>
               {[...Array(5)].map((_, i) => (
                 <Star key={i} size={14} fill="#B88D4A" color="#B88D4A" />
@@ -129,8 +129,8 @@ export const ProductQuickViewModal = () => {
           </div>
 
           {/* Price */}
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', marginBottom: '1.25rem' }}>
-            <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.75rem', fontWeight: 600, color: '#4B3024' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+            <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.65rem', fontWeight: 600, color: '#4B3024' }}>
               ₹{product.price.toLocaleString('en-IN')}
             </span>
             {product.originalPrice && (
@@ -143,7 +143,7 @@ export const ProductQuickViewModal = () => {
             </span>
           </div>
 
-          <p style={{ fontSize: '0.9rem', color: '#6F4E3E', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+          <p style={{ fontSize: '0.88rem', color: '#6F4E3E', lineHeight: 1.6, marginBottom: '1.25rem' }}>
             {product.description}
           </p>
 
@@ -152,12 +152,12 @@ export const ProductQuickViewModal = () => {
             style={{
               display: 'flex',
               flexDirection: 'column',
-              gap: '0.5rem',
-              padding: '1rem',
+              gap: '0.45rem',
+              padding: '0.85rem',
               backgroundColor: '#FAF6EE',
               border: '1px solid rgba(75, 48, 36, 0.08)',
               fontSize: '0.8rem',
-              marginBottom: '1.5rem'
+              marginBottom: '1.25rem'
             }}
           >
             <div><strong>Fabric:</strong> {product.fabric}</div>
@@ -166,19 +166,21 @@ export const ProductQuickViewModal = () => {
           </div>
 
           {/* Action Row */}
-          <div style={{ display: 'flex', gap: '1rem', marginTop: 'auto', paddingTop: '1rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: 'auto', paddingTop: '0.85rem', flexWrap: 'wrap' }}>
             {/* Quantity */}
-            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid rgba(75, 48, 36, 0.2)', backgroundColor: '#FFFDF9' }}>
+            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid rgba(75, 48, 36, 0.2)', backgroundColor: '#FFFDF9', height: '44px' }}>
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                style={{ padding: '0.6rem 0.85rem' }}
+                style={{ padding: '0 0.75rem', height: '100%', background: 'none', border: 'none', cursor: 'pointer' }}
+                aria-label="Decrease quantity"
               >
                 -
               </button>
-              <span style={{ padding: '0 0.65rem', fontWeight: 600 }}>{quantity}</span>
+              <span style={{ padding: '0 0.5rem', fontWeight: 600, minWidth: '20px', textAlign: 'center' }}>{quantity}</span>
               <button
                 onClick={() => setQuantity(quantity + 1)}
-                style={{ padding: '0.6rem 0.85rem' }}
+                style={{ padding: '0 0.75rem', height: '100%', background: 'none', border: 'none', cursor: 'pointer' }}
+                aria-label="Increase quantity"
               >
                 +
               </button>
@@ -187,7 +189,7 @@ export const ProductQuickViewModal = () => {
             <button
               onClick={handleAddToCart}
               className="btn btn-primary"
-              style={{ flexGrow: 1 }}
+              style={{ flexGrow: 1, minHeight: '44px' }}
             >
               <ShoppingBag size={16} />
               <span>Add to Bag</span>
@@ -196,13 +198,15 @@ export const ProductQuickViewModal = () => {
             <button
               onClick={() => toggleWishlist(product.id)}
               style={{
-                width: '48px',
-                height: '48px',
+                width: '44px',
+                height: '44px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 border: '1px solid rgba(75, 48, 36, 0.2)',
-                color: isFavorited ? '#C98278' : '#4B3024'
+                backgroundColor: '#FFFDF9',
+                color: isFavorited ? '#C98278' : '#4B3024',
+                cursor: 'pointer'
               }}
               aria-label="Wishlist"
             >
@@ -217,19 +221,35 @@ export const ProductQuickViewModal = () => {
               textAlign: 'center',
               fontSize: '0.78rem',
               fontWeight: 600,
-              letterSpacing: '0.1em',
+              letterSpacing: '0.08em',
               textTransform: 'uppercase',
               color: '#B88D4A',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '0.35rem'
+              gap: '0.35rem',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '0.35rem 0'
             }}
           >
-            <span>View Complete Textile Story & Drape Guide</span>
+            <span>View Complete Textile Story</span>
             <ArrowRight size={13} />
           </button>
         </div>
+
+        <style>{`
+          .quickview-modal-content {
+            display: grid;
+            grid-template-columns: 1fr;
+          }
+          @media (min-width: 768px) {
+            .quickview-modal-content {
+              grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+            }
+          }
+        `}</style>
       </div>
     </div>
   );

@@ -23,13 +23,7 @@ export const EditorialLookbookSection = () => {
           </p>
         </div>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-            gap: '1rem'
-          }}
-        >
+        <div className="lookbook-grid">
           {gallery.map((item, idx) => (
             <div
               key={idx}
@@ -81,10 +75,28 @@ export const EditorialLookbookSection = () => {
       </div>
 
       <style>{`
+        .lookbook-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 0.65rem;
+        }
+        @media (min-width: 560px) {
+          .lookbook-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.85rem;
+          }
+        }
+        @media (min-width: 992px) {
+          .lookbook-grid {
+            grid-template-columns: repeat(6, 1fr);
+            gap: 1rem;
+          }
+        }
         .lookbook-item:hover img {
           transform: scale(1.08);
         }
-        .lookbook-item:hover .lookbook-overlay {
+        .lookbook-item:hover .lookbook-overlay,
+        .lookbook-item:active .lookbook-overlay {
           opacity: 1 !important;
         }
       `}</style>

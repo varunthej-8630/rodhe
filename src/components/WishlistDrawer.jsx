@@ -49,7 +49,8 @@ export const WishlistDrawer = () => {
           style={{
             flexGrow: 1,
             overflowY: 'auto',
-            padding: '1.5rem',
+            padding: 'clamp(1rem, 3vw, 1.5rem)',
+            paddingBottom: 'calc(clamp(1rem, 3vw, 1.5rem) + env(safe-area-inset-bottom, 0px))',
             display: 'flex',
             flexDirection: 'column',
             gap: '1.25rem'
@@ -64,7 +65,7 @@ export const WishlistDrawer = () => {
                 justifyContent: 'center',
                 height: '100%',
                 textAlign: 'center',
-                padding: '2rem'
+                padding: '2rem 1rem'
               }}
             >
               <div
@@ -82,7 +83,7 @@ export const WishlistDrawer = () => {
               >
                 <Heart size={28} />
               </div>
-              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.6rem', color: '#4B3024', marginBottom: '0.5rem' }}>
+              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', color: '#4B3024', marginBottom: '0.5rem' }}>
                 Your Wishlist is Empty
               </h3>
               <p style={{ fontSize: '0.88rem', color: '#8F7263', marginBottom: '1.5rem', maxWidth: '280px' }}>
@@ -104,16 +105,16 @@ export const WishlistDrawer = () => {
                 key={product.id}
                 style={{
                   display: 'flex',
-                  gap: '1rem',
-                  paddingBottom: '1.25rem',
+                  gap: '0.85rem',
+                  paddingBottom: '1.15rem',
                   borderBottom: '1px solid rgba(75, 48, 36, 0.08)'
                 }}
               >
                 {/* Product Thumbnail */}
                 <div
                   style={{
-                    width: '85px',
-                    height: '110px',
+                    width: 'clamp(70px, 18vw, 85px)',
+                    height: 'clamp(92px, 24vw, 110px)',
                     flexShrink: 0,
                     overflow: 'hidden',
                     backgroundColor: '#F4ECE1',
@@ -132,15 +133,17 @@ export const WishlistDrawer = () => {
                 </div>
 
                 {/* Info & Actions */}
-                <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ flexGrow: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.35rem' }}>
                     <h4
                       style={{
                         fontFamily: 'var(--font-serif)',
-                        fontSize: '1.05rem',
+                        fontSize: '1rem',
                         fontWeight: 600,
                         color: '#4B3024',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        lineHeight: 1.25,
+                        margin: 0
                       }}
                       onClick={() => {
                         setIsWishlistOpen(false);
@@ -152,7 +155,7 @@ export const WishlistDrawer = () => {
                     <button
                       onClick={() => toggleWishlist(product.id)}
                       aria-label="Remove from wishlist"
-                      style={{ color: '#8F7263', padding: '0.2rem' }}
+                      style={{ color: '#8F7263', padding: '0.35rem', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
                       onMouseEnter={(e) => (e.currentTarget.style.color = '#C98278')}
                       onMouseLeave={(e) => (e.currentTarget.style.color = '#8F7263')}
                     >
@@ -160,12 +163,12 @@ export const WishlistDrawer = () => {
                     </button>
                   </div>
 
-                  <span style={{ fontSize: '0.74rem', color: '#B88D4A', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                  <span style={{ fontSize: '0.72rem', color: '#B88D4A', fontWeight: 600, textTransform: 'uppercase', margin: '0.25rem 0 0.5rem' }}>
                     {product.craft}
                   </span>
 
-                  <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.15rem', fontWeight: 600, color: '#4B3024' }}>
+                  <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', fontWeight: 600, color: '#4B3024' }}>
                       ₹{product.price.toLocaleString('en-IN')}
                     </span>
 
@@ -184,7 +187,10 @@ export const WishlistDrawer = () => {
                         fontSize: '0.74rem',
                         fontWeight: 600,
                         letterSpacing: '0.08em',
-                        textTransform: 'uppercase'
+                        textTransform: 'uppercase',
+                        border: 'none',
+                        cursor: 'pointer',
+                        minHeight: '38px'
                       }}
                     >
                       <ShoppingBag size={13} />

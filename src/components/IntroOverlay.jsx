@@ -60,16 +60,17 @@ export const IntroOverlay = () => {
       <div
         style={{
           position: 'absolute',
-          top: '2.5rem',
+          top: 'calc(1.5rem + env(safe-area-inset-top, 0px))',
           left: 0,
           right: 0,
           textAlign: 'center',
-          letterSpacing: '0.28em',
+          letterSpacing: '0.24em',
           textTransform: 'uppercase',
-          fontSize: '0.78rem',
+          fontSize: '0.74rem',
           fontWeight: 600,
           color: '#4B3024',
-          opacity: 0.85
+          opacity: 0.85,
+          padding: '0 1rem'
         }}
       >
         RODHE • Woven with Trust
@@ -79,8 +80,7 @@ export const IntroOverlay = () => {
       <div
         style={{
           position: 'relative',
-          width: '90%',
-          maxWidth: '840px',
+          width: 'min(92%, 840px)',
           aspectRatio: '16 / 9',
           borderRadius: '4px',
           overflow: 'hidden',
@@ -118,16 +118,16 @@ export const IntroOverlay = () => {
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: '#EADAB5',
-              padding: '2rem',
+              padding: '1.5rem',
               textAlign: 'center'
             }}
           >
             <img
               src="/assets/RODHE Woven Luxury Wordmark.png"
               alt="RODHE — Woven with Trust"
-              style={{ maxHeight: '90px', marginBottom: '1rem' }}
+              style={{ maxHeight: '70px', maxWidth: '80%', objectFit: 'contain', marginBottom: '1rem' }}
             />
-            <p style={{ color: '#4B3024', fontSize: '0.9rem', fontStyle: 'italic' }}>
+            <p style={{ color: '#4B3024', fontSize: '0.88rem', fontStyle: 'italic', margin: 0 }}>
               Woven with Trust • Entering Experience...
             </p>
           </div>
@@ -138,11 +138,13 @@ export const IntroOverlay = () => {
       <div
         style={{
           position: 'absolute',
-          bottom: '3rem',
+          bottom: 'calc(1.75rem + env(safe-area-inset-bottom, 0px))',
           display: 'flex',
           alignItems: 'center',
-          gap: '1.5rem',
-          zIndex: 10
+          gap: 'clamp(0.65rem, 3vw, 1.25rem)',
+          zIndex: 10,
+          flexWrap: 'wrap',
+          justifyContent: 'center'
         }}
       >
         <button
@@ -152,15 +154,16 @@ export const IntroOverlay = () => {
             display: 'flex',
             alignItems: 'center',
             gap: '0.4rem',
-            padding: '0.6rem 1.1rem',
-            backgroundColor: 'rgba(255, 253, 249, 0.8)',
+            padding: '0.65rem 1rem',
+            backgroundColor: 'rgba(255, 253, 249, 0.85)',
             border: '1px solid rgba(75, 48, 36, 0.2)',
             color: '#4B3024',
-            fontSize: '0.75rem',
-            letterSpacing: '0.1em',
+            fontSize: '0.74rem',
+            letterSpacing: '0.08em',
             textTransform: 'uppercase',
             cursor: 'pointer',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            minHeight: '40px'
           }}
         >
           {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
@@ -172,17 +175,18 @@ export const IntroOverlay = () => {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.6rem 1.35rem',
+            gap: '0.45rem',
+            padding: '0.65rem 1.25rem',
             backgroundColor: '#4B3024',
             border: '1px solid #4B3024',
             color: '#FAF6EE',
-            fontSize: '0.75rem',
+            fontSize: '0.74rem',
             fontWeight: 600,
-            letterSpacing: '0.12em',
+            letterSpacing: '0.1em',
             textTransform: 'uppercase',
             cursor: 'pointer',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            minHeight: '40px'
           }}
         >
           <span>Enter Store</span>

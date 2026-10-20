@@ -118,37 +118,39 @@ export const CollectionPage = () => {
           }}
         >
           {/* Left: Product count & Mobile filter trigger */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
             <button
               onClick={() => setIsMobileFilterOpen(true)}
-              className="btn btn-outline btn-sm d-md-none"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+              className="btn btn-outline btn-sm mobile-filter-btn"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', minHeight: '38px', padding: '0.4rem 0.85rem' }}
             >
               <SlidersHorizontal size={14} />
               <span>Filters {hasActiveFilters && '•'}</span>
             </button>
 
-            <span style={{ fontSize: '0.86rem', color: '#6F4E3E' }}>
+            <span style={{ fontSize: '0.84rem', color: '#6F4E3E' }}>
               Showing <strong>{sortedProducts.length}</strong> handcrafted {sortedProducts.length === 1 ? 'saree' : 'sarees'}
             </span>
           </div>
 
           {/* Right: Sorting Selector */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <label style={{ fontSize: '0.78rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8F7263', fontWeight: 600 }}>
-              Sort By:
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: 'auto' }}>
+            <label style={{ fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8F7263', fontWeight: 600 }}>
+              Sort:
             </label>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
               style={{
-                padding: '0.5rem 0.85rem',
+                padding: '0.45rem 0.75rem',
                 backgroundColor: '#FFFDF9',
                 border: '1px solid rgba(75, 48, 36, 0.2)',
-                fontSize: '0.84rem',
+                fontSize: '0.82rem',
                 color: '#4B3024',
                 outline: 'none',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                borderRadius: 0,
+                minHeight: '38px'
               }}
             >
               <option value="featured">Featured Collection</option>
@@ -166,16 +168,16 @@ export const CollectionPage = () => {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.65rem',
+              gap: '0.5rem',
               flexWrap: 'wrap',
-              marginBottom: '2rem',
-              padding: '0.75rem 1rem',
+              marginBottom: '1.75rem',
+              padding: '0.65rem 0.85rem',
               backgroundColor: '#F4ECE1',
               border: '1px solid rgba(184, 141, 74, 0.2)'
             }}
           >
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#B88D4A' }}>
-              Active Filters:
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#B88D4A' }}>
+              Active:
             </span>
 
             {selectedCraft !== 'all' && (
@@ -184,9 +186,9 @@ export const CollectionPage = () => {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.35rem',
-                  padding: '0.25rem 0.65rem',
+                  padding: '0.25rem 0.55rem',
                   backgroundColor: '#FFFDF9',
-                  fontSize: '0.75rem',
+                  fontSize: '0.74rem',
                   border: '1px solid rgba(75, 48, 36, 0.15)'
                 }}
               >
@@ -201,9 +203,9 @@ export const CollectionPage = () => {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.35rem',
-                  padding: '0.25rem 0.65rem',
+                  padding: '0.25rem 0.55rem',
                   backgroundColor: '#FFFDF9',
-                  fontSize: '0.75rem',
+                  fontSize: '0.74rem',
                   border: '1px solid rgba(75, 48, 36, 0.15)'
                 }}
               >
@@ -218,9 +220,9 @@ export const CollectionPage = () => {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.35rem',
-                  padding: '0.25rem 0.65rem',
+                  padding: '0.25rem 0.55rem',
                   backgroundColor: '#FFFDF9',
-                  fontSize: '0.75rem',
+                  fontSize: '0.74rem',
                   border: '1px solid rgba(75, 48, 36, 0.15)'
                 }}
               >
@@ -235,9 +237,9 @@ export const CollectionPage = () => {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.35rem',
-                  padding: '0.25rem 0.65rem',
+                  padding: '0.25rem 0.55rem',
                   backgroundColor: '#FFFDF9',
-                  fontSize: '0.75rem',
+                  fontSize: '0.74rem',
                   border: '1px solid rgba(75, 48, 36, 0.15)'
                 }}
               >
@@ -250,12 +252,13 @@ export const CollectionPage = () => {
               onClick={resetFilters}
               style={{
                 marginLeft: 'auto',
-                fontSize: '0.75rem',
+                fontSize: '0.74rem',
                 color: '#C98278',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.25rem',
-                fontWeight: 600
+                fontWeight: 600,
+                padding: '0.25rem'
               }}
             >
               <RotateCcw size={12} /> Reset All
@@ -264,7 +267,7 @@ export const CollectionPage = () => {
         )}
 
         {/* Layout: Sidebar + Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '3rem', alignItems: 'flex-start' }} className="collection-layout">
+        <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 'clamp(1.5rem, 3vw, 3rem)', alignItems: 'flex-start' }} className="collection-layout">
           {/* Desktop Filter Sidebar */}
           <aside
             style={{
@@ -441,41 +444,148 @@ export const CollectionPage = () => {
           <div
             className="drawer-content"
             onClick={(e) => e.stopPropagation()}
-            style={{ padding: '1.5rem', overflowY: 'auto' }}
+            style={{
+              padding: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              maxHeight: '100dvh',
+              overflow: 'hidden'
+            }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.4rem', color: '#4B3024' }}>
-                Filters
-              </h3>
-              <button onClick={() => setIsMobileFilterOpen(false)}>
-                <X size={20} />
+            {/* Drawer Header */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '1.25rem 1.5rem',
+                borderBottom: '1px solid rgba(75, 48, 36, 0.1)',
+                backgroundColor: '#FFFDF9'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <SlidersHorizontal size={18} color="#B88D4A" />
+                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.35rem', color: '#4B3024', margin: 0 }}>
+                  Filter Atelier
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsMobileFilterOpen(false)}
+                aria-label="Close filters"
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '50%',
+                  border: 'none',
+                  backgroundColor: 'rgba(75, 48, 36, 0.06)',
+                  cursor: 'pointer'
+                }}
+              >
+                <X size={18} />
               </button>
             </div>
 
-            {/* Mobile Filter Body */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Mobile Filter Scrollable Body */}
+            <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {/* Craft Heritage */}
               <div>
-                <h4 style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: '#B88D4A', fontWeight: 700, marginBottom: '0.75rem' }}>
+                <h4 style={{ fontSize: '0.78rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#B88D4A', fontWeight: 700, marginBottom: '0.75rem' }}>
                   Craft Heritage
                 </h4>
-                {CRAFT_CATEGORIES.map((c) => (
-                  <label key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.4rem 0', fontSize: '0.88rem' }}>
-                    <span>{c.name}</span>
-                    <input
-                      type="radio"
-                      name="m-craft"
-                      checked={selectedCraft === c.id}
-                      onChange={() => setSelectedCraft(c.id)}
-                      style={{ accentColor: '#B88D4A' }}
-                    />
-                  </label>
-                ))}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  {CRAFT_CATEGORIES.map((c) => (
+                    <label key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0', fontSize: '0.88rem', cursor: 'pointer' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input
+                          type="radio"
+                          name="m-craft"
+                          checked={selectedCraft === c.id}
+                          onChange={() => setSelectedCraft(c.id)}
+                          style={{ accentColor: '#B88D4A' }}
+                        />
+                        {c.name}
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: '#8F7263' }}>({c.count})</span>
+                    </label>
+                  ))}
+                </div>
               </div>
 
+              {/* Botanical Palette */}
               <div>
-                <h4 style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: '#B88D4A', fontWeight: 700, marginBottom: '0.75rem' }}>
-                  Max Price: ₹{priceMax.toLocaleString('en-IN')}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <h4 style={{ fontSize: '0.78rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#B88D4A', fontWeight: 700, margin: 0 }}>
+                    Botanical Palette
+                  </h4>
+                  {selectedColor !== 'all' && (
+                    <button
+                      onClick={() => setSelectedColor('all')}
+                      style={{ fontSize: '0.72rem', color: '#B88D4A', background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.65rem' }}>
+                  {COLOR_PALETTES.map((col) => (
+                    <button
+                      key={col.id}
+                      onClick={() => setSelectedColor(col.id)}
+                      title={col.name}
+                      style={{
+                        height: '42px',
+                        borderRadius: '4px',
+                        backgroundColor: col.hex,
+                        border: selectedColor === col.id ? '2px solid #4B3024' : '1px solid rgba(75, 48, 36, 0.15)',
+                        boxShadow: selectedColor === col.id ? '0 0 0 2px #B88D4A' : 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      {selectedColor === col.id && (
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: col.id === 'white' ? '#4B3024' : '#FAF6EE' }} />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Fabric Weave */}
+              <div>
+                <h4 style={{ fontSize: '0.78rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#B88D4A', fontWeight: 700, marginBottom: '0.75rem' }}>
+                  Fabric Weave
                 </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                  {FABRIC_TYPES.map((f) => (
+                    <label key={f.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0', fontSize: '0.88rem', cursor: 'pointer' }}>
+                      <input
+                        type="radio"
+                        name="m-fabric"
+                        checked={selectedFabric === f.id}
+                        onChange={() => setSelectedFabric(f.id)}
+                        style={{ accentColor: '#B88D4A' }}
+                      />
+                      <span>{f.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Price Slider */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <h4 style={{ fontSize: '0.78rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#B88D4A', fontWeight: 700, margin: 0 }}>
+                    Max Price
+                  </h4>
+                  <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#4B3024' }}>
+                    ₹{priceMax.toLocaleString('en-IN')}
+                  </span>
+                </div>
                 <input
                   type="range"
                   min="3500"
@@ -486,26 +596,36 @@ export const CollectionPage = () => {
                   style={{ width: '100%', accentColor: '#B88D4A' }}
                 />
               </div>
+            </div>
 
-              <div style={{ display: 'flex', gap: '0.85rem', marginTop: '1.5rem' }}>
-                <button
-                  onClick={() => {
-                    resetFilters();
-                    setIsMobileFilterOpen(false);
-                  }}
-                  className="btn btn-outline"
-                  style={{ flex: 1 }}
-                >
-                  Reset
-                </button>
-                <button
-                  onClick={() => setIsMobileFilterOpen(false)}
-                  className="btn btn-primary"
-                  style={{ flex: 1 }}
-                >
-                  Apply Filters
-                </button>
-              </div>
+            {/* Drawer Sticky Footer Actions */}
+            <div
+              style={{
+                display: 'flex',
+                gap: '0.75rem',
+                padding: '1rem 1.5rem',
+                borderTop: '1px solid rgba(75, 48, 36, 0.1)',
+                backgroundColor: '#FAF6EE',
+                paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))'
+              }}
+            >
+              <button
+                onClick={() => {
+                  resetFilters();
+                  setIsMobileFilterOpen(false);
+                }}
+                className="btn btn-outline"
+                style={{ flex: 1, minHeight: '44px' }}
+              >
+                Reset
+              </button>
+              <button
+                onClick={() => setIsMobileFilterOpen(false)}
+                className="btn btn-primary"
+                style={{ flex: 1.5, minHeight: '44px' }}
+              >
+                Apply ({sortedProducts.length})
+              </button>
             </div>
           </div>
         </div>
@@ -513,6 +633,9 @@ export const CollectionPage = () => {
 
       {/* Responsive Styles */}
       <style>{`
+        .mobile-filter-btn {
+          display: none !important;
+        }
         @media (max-width: 900px) {
           .collection-layout {
             grid-template-columns: 1fr !important;
@@ -520,10 +643,8 @@ export const CollectionPage = () => {
           .desktop-filter-sidebar {
             display: none !important;
           }
-        }
-        @media (min-width: 768px) {
-          .d-md-none {
-            display: none !important;
+          .mobile-filter-btn {
+            display: inline-flex !important;
           }
         }
       `}</style>

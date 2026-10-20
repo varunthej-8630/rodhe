@@ -18,20 +18,21 @@ export const PackagingSection = () => {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: 'clamp(2.5rem, 5vw, 5rem)',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
+            gap: 'clamp(2rem, 5vw, 4.5rem)',
             alignItems: 'center'
           }}
         >
           {/* Packaging Imagery */}
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative', width: '100%', minWidth: 0 }}>
             <div
               style={{
                 position: 'relative',
                 aspectRatio: '4 / 3',
                 overflow: 'hidden',
                 boxShadow: '0 20px 45px -10px rgba(75, 48, 36, 0.18)',
-                border: '1px solid rgba(184, 141, 74, 0.3)'
+                border: '1px solid rgba(184, 141, 74, 0.3)',
+                width: '100%'
               }}
             >
               <img
@@ -42,12 +43,12 @@ export const PackagingSection = () => {
               <div
                 style={{
                   position: 'absolute',
-                  top: '1rem',
-                  left: '1rem',
+                  top: '0.85rem',
+                  left: '0.85rem',
                   backgroundColor: 'rgba(250, 246, 238, 0.94)',
                   backdropFilter: 'blur(6px)',
-                  padding: '0.4rem 0.85rem',
-                  fontSize: '0.7rem',
+                  padding: '0.35rem 0.75rem',
+                  fontSize: '0.68rem',
                   fontWeight: 600,
                   letterSpacing: '0.12em',
                   textTransform: 'uppercase',
@@ -63,9 +64,9 @@ export const PackagingSection = () => {
             <div
               style={{
                 position: 'absolute',
-                bottom: '-25px',
-                right: '-20px',
-                width: '45%',
+                bottom: '-15px',
+                right: '0',
+                width: '42%',
                 aspectRatio: '4 / 3',
                 overflow: 'hidden',
                 border: '3px solid #FAF6EE',
@@ -82,7 +83,7 @@ export const PackagingSection = () => {
           </div>
 
           {/* Narrative Content */}
-          <div>
+          <div style={{ minWidth: 0 }}>
             <div className="eyebrow" style={{ justifyContent: 'flex-start' }}>
               The Unboxing Ritual
             </div>
@@ -90,11 +91,11 @@ export const PackagingSection = () => {
             <h2
               style={{
                 fontFamily: 'var(--font-serif)',
-                fontSize: 'clamp(2.2rem, 3.8vw, 3.4rem)',
+                fontSize: 'clamp(2rem, 3.8vw, 3.4rem)',
                 fontWeight: 400,
                 color: '#4B3024',
                 lineHeight: 1.15,
-                marginBottom: '1.25rem'
+                marginBottom: '1rem'
               }}
             >
               Packaged with Reverence. <br />
@@ -105,10 +106,10 @@ export const PackagingSection = () => {
 
             <p
               style={{
-                fontSize: '0.98rem',
+                fontSize: 'clamp(0.92rem, 1.4vw, 0.98rem)',
                 color: '#6F4E3E',
-                lineHeight: 1.8,
-                marginBottom: '2rem'
+                lineHeight: 1.75,
+                marginBottom: '1.75rem'
               }}
             >
               Opening a RODHE saree is designed to be an emotional moment. Every drape is wrapped in acid-free unbleached tissue paper, accompanied by our handwritten artisan card detailing the specific natural dye bath and master weaver who shaped it.
@@ -118,9 +119,9 @@ export const PackagingSection = () => {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                gap: '1.5rem',
-                marginBottom: '2.5rem'
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
+                gap: '1.25rem',
+                marginBottom: '2rem'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem' }}>
@@ -175,6 +176,7 @@ export const PackagingSection = () => {
             <button
               onClick={() => navigateTo('story')}
               className="btn btn-primary"
+              style={{ maxWidth: '100%' }}
             >
               Learn About Our Craft Ethics
             </button>

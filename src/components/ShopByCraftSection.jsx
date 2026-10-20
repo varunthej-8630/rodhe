@@ -55,8 +55,8 @@ export const ShopByCraftSection = () => {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-            gap: '1.5rem'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
+            gap: 'clamp(1rem, 2.5vw, 1.5rem)'
           }}
         >
           {crafts.map((craft) => (

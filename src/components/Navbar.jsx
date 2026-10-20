@@ -38,6 +38,17 @@ export const Navbar = () => {
     setIsMobileMenuOpen(false);
   };
 
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
+
   return (
     <>
       {/* Top Announcement Bar */}
@@ -45,22 +56,23 @@ export const Navbar = () => {
         style={{
           backgroundColor: '#4B3024',
           color: '#FAF6EE',
-          padding: '0.45rem 1rem',
-          fontSize: '0.74rem',
-          letterSpacing: '0.14em',
+          padding: '0.4rem clamp(0.6rem, 2vw, 1rem)',
+          fontSize: 'clamp(0.66rem, 1.8vw, 0.74rem)',
+          letterSpacing: '0.12em',
           textTransform: 'uppercase',
           textAlign: 'center',
           fontWeight: 500,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '1rem',
-          zIndex: 100
+          gap: 'clamp(0.5rem, 1.5vw, 1rem)',
+          zIndex: 100,
+          lineHeight: 1.35
         }}
       >
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-          <Sparkles size={12} color="#D4AC68" />
-          Complimentary Express Shipping Across India on Orders Above ₹2,999
+          <Sparkles size={12} color="#D4AC68" style={{ flexShrink: 0 }} />
+          <span>Complimentary Express Shipping in India on Orders Above ₹2,999</span>
         </span>
         <span style={{ opacity: 0.5, display: 'none' }} className="d-sm-inline">•</span>
         <span style={{ opacity: 0.9, display: 'none' }} className="d-sm-inline">
@@ -93,7 +105,8 @@ export const Navbar = () => {
             height: 'var(--header-height)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between'
+            justifyContent: 'space-between',
+            gap: 'clamp(0.5rem, 2vw, 1.5rem)'
           }}
         >
           {/* Mobile Menu Button */}
@@ -102,12 +115,18 @@ export const Navbar = () => {
             aria-label="Open mobile navigation menu"
             style={{
               display: 'none',
-              padding: '0.5rem',
-              color: '#4B3024'
+              padding: '0.4rem',
+              color: '#4B3024',
+              width: '42px',
+              height: '42px',
+              minWidth: '42px',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
             }}
             className="mobile-menu-trigger"
           >
-            <Menu size={24} />
+            <Menu size={22} />
           </button>
 
           {/* Desktop Left Nav Links */}
@@ -115,7 +134,8 @@ export const Navbar = () => {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '2.2rem'
+              gap: 'clamp(1.2rem, 2vw, 2.2rem)',
+              flexShrink: 0
             }}
             className="desktop-nav"
           >
@@ -256,7 +276,7 @@ export const Navbar = () => {
             </button>
           </nav>
 
-          {/* Center Brand Identity (Original supplied logo asset) */}
+          {/* Center Brand Identity */}
           <div
             onClick={() => navigateTo('home')}
             style={{
@@ -265,15 +285,18 @@ export const Navbar = () => {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              userSelect: 'none'
+              userSelect: 'none',
+              minWidth: 0,
+              flexShrink: 1
             }}
           >
             <img
               src="/assets/RODHE Woven Luxury Wordmark.png"
               alt="RODHE — Woven with Trust"
               style={{
-                height: '48px',
+                height: 'clamp(32px, 6vw, 46px)',
                 width: 'auto',
+                maxWidth: '100%',
                 objectFit: 'contain',
                 transition: 'transform 0.3s ease'
               }}
@@ -287,7 +310,8 @@ export const Navbar = () => {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '1.35rem'
+              gap: 'clamp(0.4rem, 2vw, 1.25rem)',
+              flexShrink: 0
             }}
           >
             {/* Search */}
@@ -297,14 +321,19 @@ export const Navbar = () => {
               style={{
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'center',
                 gap: '0.4rem',
                 color: '#4B3024',
-                transition: 'color 0.2s'
+                transition: 'color 0.2s',
+                width: '38px',
+                height: '38px',
+                minWidth: '38px',
+                minHeight: '38px'
               }}
               onMouseEnter={(e) => (e.currentTarget.style.color = '#B88D4A')}
               onMouseLeave={(e) => (e.currentTarget.style.color = '#4B3024')}
             >
-              <Search size={20} strokeWidth={1.7} />
+              <Search size={19} strokeWidth={1.8} />
               <span style={{ fontSize: '0.78rem', letterSpacing: '0.08em', display: 'none' }} className="d-md-inline">
                 Search
               </span>
@@ -314,16 +343,22 @@ export const Navbar = () => {
             <button
               onClick={() => setIsAuthOpen(true)}
               aria-label="Customer account"
+              className="d-xs-none"
               style={{
                 color: '#4B3024',
                 transition: 'color 0.2s',
                 display: 'flex',
-                alignItems: 'center'
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '38px',
+                height: '38px',
+                minWidth: '38px',
+                minHeight: '38px'
               }}
               onMouseEnter={(e) => (e.currentTarget.style.color = '#B88D4A')}
               onMouseLeave={(e) => (e.currentTarget.style.color = '#4B3024')}
             >
-              <User size={20} strokeWidth={1.7} />
+              <User size={19} strokeWidth={1.8} />
             </button>
 
             {/* Wishlist */}
@@ -335,24 +370,29 @@ export const Navbar = () => {
                 color: '#4B3024',
                 transition: 'color 0.2s',
                 display: 'flex',
-                alignItems: 'center'
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '38px',
+                height: '38px',
+                minWidth: '38px',
+                minHeight: '38px'
               }}
               onMouseEnter={(e) => (e.currentTarget.style.color = '#C98278')}
               onMouseLeave={(e) => (e.currentTarget.style.color = '#4B3024')}
             >
-              <Heart size={20} strokeWidth={1.7} fill={wishlistCount > 0 ? '#C98278' : 'none'} color={wishlistCount > 0 ? '#C98278' : '#4B3024'} />
+              <Heart size={19} strokeWidth={1.8} fill={wishlistCount > 0 ? '#C98278' : 'none'} color={wishlistCount > 0 ? '#C98278' : '#4B3024'} />
               {wishlistCount > 0 && (
                 <span
                   style={{
                     position: 'absolute',
-                    top: '-7px',
-                    right: '-9px',
+                    top: '-3px',
+                    right: '-4px',
                     backgroundColor: '#C98278',
                     color: '#FFFFFF',
-                    fontSize: '0.65rem',
+                    fontSize: '0.62rem',
                     fontWeight: 700,
-                    width: '18px',
-                    height: '18px',
+                    width: '17px',
+                    height: '17px',
                     borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
@@ -372,23 +412,25 @@ export const Navbar = () => {
                 position: 'relative',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.45rem',
+                gap: '0.35rem',
                 color: '#4B3024',
-                padding: '0.4rem 0.6rem',
-                border: '1px solid rgba(75, 48, 36, 0.15)',
-                transition: 'all 0.2s ease'
+                padding: '0.38rem 0.55rem',
+                minHeight: '38px',
+                border: '1px solid rgba(75, 48, 36, 0.18)',
+                transition: 'all 0.2s ease',
+                backgroundColor: 'rgba(255, 253, 249, 0.7)'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = '#B88D4A';
                 e.currentTarget.style.color = '#B88D4A';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(75, 48, 36, 0.15)';
+                e.currentTarget.style.borderColor = 'rgba(75, 48, 36, 0.18)';
                 e.currentTarget.style.color = '#4B3024';
               }}
             >
-              <ShoppingBag size={18} strokeWidth={1.8} />
-              <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>{cartCount}</span>
+              <ShoppingBag size={17} strokeWidth={1.8} />
+              <span style={{ fontSize: '0.78rem', fontWeight: 700 }}>{cartCount}</span>
             </button>
           </div>
         </div>
@@ -402,8 +444,10 @@ export const Navbar = () => {
             style={{
               left: 0,
               right: 'auto',
-              width: 'min(360px, 85vw)',
-              animation: 'slideInLeft 0.35s var(--ease-cinematic)'
+              width: 'min(360px, 88vw)',
+              maxHeight: '100dvh',
+              animation: 'slideInLeft 0.35s var(--ease-cinematic)',
+              overflowY: 'auto'
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -411,7 +455,7 @@ export const Navbar = () => {
               <img
                 src="/assets/RODHE Woven Luxury Wordmark.png"
                 alt="RODHE"
-                style={{ height: '36px' }}
+                style={{ height: '34px', width: 'auto', objectFit: 'contain' }}
               />
               <button
                 className="drawer-close"
@@ -422,47 +466,90 @@ export const Navbar = () => {
               </button>
             </div>
 
-            <div style={{ padding: '2rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div style={{ padding: '1.5rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', flexGrow: 1 }}>
+              {/* Quick Actions in Menu */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem', paddingBottom: '0.85rem', borderBottom: '1px solid rgba(75, 48, 36, 0.08)' }}>
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setIsAuthOpen(true);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    padding: '0.65rem 0.75rem',
+                    backgroundColor: '#F4ECE1',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    color: '#4B3024'
+                  }}
+                >
+                  <User size={15} color="#B88D4A" />
+                  <span>Sign In / Account</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setIsWishlistOpen(true);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    padding: '0.65rem 0.75rem',
+                    backgroundColor: '#F4ECE1',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    color: '#4B3024'
+                  }}
+                >
+                  <Heart size={15} color="#C98278" />
+                  <span>Wishlist ({wishlistCount})</span>
+                </button>
+              </div>
+
+              {/* Primary Routes */}
               <button
                 onClick={() => {
                   navigateTo('home');
                   setIsMobileMenuOpen(false);
                 }}
-                style={{ textAlign: 'left', fontSize: '1.1rem', fontWeight: 500, fontFamily: 'var(--font-serif)', color: '#4B3024' }}
+                style={{ textAlign: 'left', fontSize: '1.15rem', fontWeight: 500, fontFamily: 'var(--font-serif)', color: '#4B3024', padding: '0.35rem 0' }}
               >
                 Home
               </button>
 
               <div style={{ borderTop: '1px solid rgba(75, 48, 36, 0.08)', paddingTop: '1rem' }}>
-                <div style={{ fontSize: '0.74rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#B88D4A', fontWeight: 700, marginBottom: '0.75rem' }}>
+                <div style={{ fontSize: '0.74rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#B88D4A', fontWeight: 700, marginBottom: '0.75rem' }}>
                   Sarees by Craft
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', paddingLeft: '0.5rem' }}>
-                  <button onClick={() => handleCraftClick('all')} style={{ textAlign: 'left', fontSize: '0.92rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', paddingLeft: '0.5rem' }}>
+                  <button onClick={() => handleCraftClick('all')} style={{ textAlign: 'left', fontSize: '0.94rem', padding: '0.4rem 0', color: '#4B3024' }}>
                     All Sarees (8)
                   </button>
-                  <button onClick={() => handleCraftClick('tie-dye')} style={{ textAlign: 'left', fontSize: '0.92rem' }}>
-                    Indigo & Shibori
+                  <button onClick={() => handleCraftClick('tie-dye')} style={{ textAlign: 'left', fontSize: '0.94rem', padding: '0.4rem 0', color: '#4B3024' }}>
+                    Natural Indigo & Shibori
                   </button>
-                  <button onClick={() => handleCraftClick('handblock')} style={{ textAlign: 'left', fontSize: '0.92rem' }}>
-                    Bagru Handblock
+                  <button onClick={() => handleCraftClick('handblock')} style={{ textAlign: 'left', fontSize: '0.94rem', padding: '0.4rem 0', color: '#4B3024' }}>
+                    Bagru Mud-Resist Handblock
                   </button>
-                  <button onClick={() => handleCraftClick('chanderi')} style={{ textAlign: 'left', fontSize: '0.92rem' }}>
-                    Chanderi Cotton Silk
+                  <button onClick={() => handleCraftClick('chanderi')} style={{ textAlign: 'left', fontSize: '0.94rem', padding: '0.4rem 0', color: '#4B3024' }}>
+                    Chanderi Sheer Silk & Zari
                   </button>
-                  <button onClick={() => handleCraftClick('mulmul')} style={{ textAlign: 'left', fontSize: '0.92rem' }}>
-                    Pure Mulmul Cotton
+                  <button onClick={() => handleCraftClick('mulmul')} style={{ textAlign: 'left', fontSize: '0.94rem', padding: '0.4rem 0', color: '#4B3024' }}>
+                    Pure Breathable Mulmul Cotton
                   </button>
                 </div>
               </div>
 
-              <div style={{ borderTop: '1px solid rgba(75, 48, 36, 0.08)', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ borderTop: '1px solid rgba(75, 48, 36, 0.08)', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                 <button
                   onClick={() => {
                     navigateTo('story');
                     setIsMobileMenuOpen(false);
                   }}
-                  style={{ textAlign: 'left', fontSize: '1.1rem', fontWeight: 500, fontFamily: 'var(--font-serif)', color: '#4B3024' }}
+                  style={{ textAlign: 'left', fontSize: '1.15rem', fontWeight: 500, fontFamily: 'var(--font-serif)', color: '#4B3024', padding: '0.35rem 0' }}
                 >
                   Our Craft & Story
                 </button>
@@ -471,14 +558,14 @@ export const Navbar = () => {
                     navigateTo('contact');
                     setIsMobileMenuOpen(false);
                   }}
-                  style={{ textAlign: 'left', fontSize: '1.1rem', fontWeight: 500, fontFamily: 'var(--font-serif)', color: '#4B3024' }}
+                  style={{ textAlign: 'left', fontSize: '1.15rem', fontWeight: 500, fontFamily: 'var(--font-serif)', color: '#4B3024', padding: '0.35rem 0' }}
                 >
-                  Customer Concierge & Contact
+                  Customer Concierge & Care
                 </button>
               </div>
 
-              <div style={{ marginTop: 'auto', borderTop: '1px solid rgba(75, 48, 36, 0.08)', paddingTop: '1.5rem', textAlign: 'center' }}>
-                <p style={{ fontSize: '0.78rem', color: '#8F7263', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+              <div style={{ marginTop: 'auto', borderTop: '1px solid rgba(75, 48, 36, 0.08)', paddingTop: '1.25rem', textAlign: 'center' }}>
+                <p style={{ fontSize: '0.74rem', color: '#8F7263', letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600 }}>
                   Woven with Trust
                 </p>
               </div>
@@ -505,6 +592,11 @@ export const Navbar = () => {
         @media (min-width: 576px) {
           .d-sm-inline {
             display: inline !important;
+          }
+        }
+        @media (max-width: 350px) {
+          .d-xs-none {
+            display: none !important;
           }
         }
       `}</style>

@@ -34,8 +34,8 @@ export const ShopByColourSection = () => {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-            gap: '1.25rem'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 135px), 1fr))',
+            gap: 'clamp(0.75rem, 2vw, 1.25rem)'
           }}
         >
           {colorData.map((c) => (
