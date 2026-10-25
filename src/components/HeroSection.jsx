@@ -1,33 +1,94 @@
-import React, { useRef, useState } from 'react';
-import { ArrowRight, Volume2, VolumeX, Play, Pause, ChevronDown } from 'lucide-react';
+import React, { useRef, useEffect, useState } from 'react';
+import { ArrowRight, ChevronDown, Star, Sparkles, MessageCircle } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
+import { storeService } from '../services/storeService';
 
 export const HeroSection = () => {
   const { navigateTo } = useShop();
   const videoRef = useRef(null);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const [isReducedMotion, setIsReducedMotion] = useState(false);
 
-  const togglePlay = () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
+  const [config, setConfig] = useState({
+    heroEyebrow: 'WOVEN WITH TRUST',
+    heroHeadline: 'Born from Nature. Made to Be Worn.',
+    heroSubtext: 'Discover gossamer sarees shaped by rain-fed cotton, botanical pigments, and the timeless touch of Indian generational artisans.',
+  });
+  const [settings, setSettings] = useState({
+    sareesSoldCount: 1240,
+    customerRating: 4.2,
+    whatsappNumber: '919490658858'
+  });
+
+  // Load backend store configuration and verified metrics
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const cfg = await storeService.getHomepageConfig();
+        const stg = await storeService.getSettings();
+        if (cfg) setConfig(cfg);
+        if (stg) setSettings(stg);
+      } catch (err) {
+        console.warn('Hero config load error:', err);
       }
-      setIsPlaying(!isPlaying);
+    };
+    loadConfig();
+  }, []);
+
+  // Handle prefers-reduced-motion
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setIsReducedMotion(mediaQuery.matches);
+
+    const handleMotionChange = (e) => {
+      setIsReducedMotion(e.matches);
+      if (e.matches && videoRef.current) {
+        videoRef.current.pause();
+      } else if (videoRef.current) {
+        videoRef.current.play().catch(() => { });
+      }
+    };
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleMotionChange);
+      return () => mediaQuery.removeEventListener('change', handleMotionChange);
+    } else {
+      mediaQuery.addListener(handleMotionChange);
+      return () => mediaQuery.removeListener(handleMotionChange);
     }
+  }, []);
+
+  // Autoplay and muted guarantee across all desktop & mobile browsers
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || isReducedMotion) return;
+
+    video.muted = true;
+    video.defaultMuted = true;
+
+    const playVideo = () => {
+      const promise = video.play();
+      if (promise !== undefined) {
+        promise.catch((err) => {
+          // Handled gracefully (e.g. low-power mode or browser policy)
+          console.log('Video autoplay handled gracefully:', err);
+        });
+      }
+    };
+
+    playVideo();
+  }, [isReducedMotion]);
+
+  const handleWhatsAppConcierge = () => {
+    const rawPhone = settings.whatsappNumber.replace(/[^0-9]/g, '');
+    const message = encodeURIComponent(
+      `Namaste RODHE Concierge. I am exploring your handcrafted saree collection and would love personal assistance in choosing an heirloom drape.`
+    );
+    window.open(`https://wa.me/${rawPhone}?text=${message}`, '_blank');
   };
 
-  const toggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !videoRef.current.muted;
-      setIsMuted(videoRef.current.muted);
-    }
-  };
-
-  const scrollToStory = () => {
-    const el = document.getElementById('nature-story');
+  const scrollToContent = () => {
+    const el = document.getElementById('craft-marquee-ribbon') || document.getElementById('shop-by-colour') || document.getElementById('product-grid');
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
     }
@@ -35,306 +96,319 @@ export const HeroSection = () => {
 
   return (
     <section
+      id="rodhe-hero-section"
       style={{
         position: 'relative',
         width: '100%',
-        minHeight: 'calc(100svh - var(--header-height, 80px) - 30px)',
-        height: 'clamp(540px, 88svh, 920px)',
-        maxHeight: '940px',
+        height: 'clamp(480px, 70vh, 660px)',
         overflow: 'hidden',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#4B3024'
+        backgroundColor: '#1E120D',
+        color: '#FAF6EE'
       }}
     >
-      {/* Background Video using supplied Herosection-RODHE.mp4 */}
-      <video
-        ref={videoRef}
-        src="/assets/Herosection-RODHE.mp4"
-        poster="/assets/Rustic Natural Dye Still Life.png"
-        autoPlay
-        muted={isMuted}
-        loop
-        playsInline
-        style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          objectPosition: 'center 28%',
-          transform: 'translate(-50%, -50%)',
-          zIndex: 1
-        }}
-      />
-
-      {/* Editorial Scrim Overlay for high-contrast legible luxury text */}
+      {/* Editorial Saree Poster Background (Instant display, zero black screen) */}
       <div
+        className="rodhe-hero-poster"
         style={{
           position: 'absolute',
           inset: 0,
-          background:
-            'linear-gradient(180deg, rgba(42, 26, 19, 0.48) 0%, rgba(75, 48, 36, 0.28) 45%, rgba(42, 26, 19, 0.78) 100%)',
-          zIndex: 2
+          backgroundImage: 'url(/assets/products/saree_muted_gold.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center 30%',
+          filter: 'brightness(0.75)',
+          zIndex: 0
         }}
       />
 
-      {/* Radial soft spotlight behind headline */}
+      {/* Full-Width Seamless Hero Video (Edge-to-Edge Fit, No Side Pillarboxes/Cropping) */}
+      {!isReducedMotion && (
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="rodhe-hero-video"
+          onLoadedData={() => setIsVideoLoaded(true)}
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: 'center 35%',
+            zIndex: 1,
+            pointerEvents: 'none',
+            opacity: isVideoLoaded ? 1 : 0,
+            transition: 'opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}
+          aria-hidden="true"
+        >
+          <source src="/gemini_generated_video_0e273349.mp4" type="video/mp4" />
+          <source src="/assets/gemini_generated_video_0e273349.mp4" type="video/mp4" />
+        </video>
+      )}
+
+      {/* Subtle, Elegant Multi-Stop Gradient Overlay (High text legibility while honoring saree texture) */}
       <div
+        className="rodhe-hero-overlay"
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'radial-gradient(circle at center, rgba(0,0,0,0) 35%, rgba(42, 26, 19, 0.55) 100%)',
-          zIndex: 2
+          zIndex: 2,
+          pointerEvents: 'none',
+          background: `
+            linear-gradient(180deg, rgba(30, 18, 13, 0.42) 0%, rgba(30, 18, 13, 0.1) 20%, transparent 40%),
+            linear-gradient(0deg, rgba(30, 18, 13, 0.88) 0%, rgba(30, 18, 13, 0.58) 28%, rgba(30, 18, 13, 0.15) 55%, transparent 75%),
+            radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(30, 18, 13, 0.32) 100%)
+          `
         }}
       />
 
-      {/* Hero Editorial Content */}
+      {/* Top-Right Social Proof Trust Indicators */}
+      <div
+        className="hero-trust-indicators"
+        style={{
+          position: 'absolute',
+          top: 'clamp(1rem, 3vw, 2rem)',
+          right: 'clamp(1rem, 4vw, 3.5rem)',
+          zIndex: 4,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'clamp(0.65rem, 1.5vw, 1.25rem)'
+        }}
+      >
+        <div
+          style={{
+            backgroundColor: 'rgba(30, 18, 13, 0.65)',
+            border: '1px solid rgba(184, 141, 74, 0.4)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            padding: '0.45rem 0.85rem',
+            borderRadius: '2px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            fontSize: 'clamp(0.72rem, 1.4vw, 0.8rem)',
+            color: '#EADAB5'
+          }}
+        >
+          <div style={{ display: 'flex', color: '#D4AC68' }}>
+            <Star size={13} fill="#D4AC68" />
+          </div>
+          <span><strong>{settings.customerRating}</strong> Rating</span>
+        </div>
+
+        <div
+          style={{
+            backgroundColor: 'rgba(30, 18, 13, 0.65)',
+            border: '1px solid rgba(184, 141, 74, 0.4)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            padding: '0.45rem 0.85rem',
+            borderRadius: '2px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            fontSize: 'clamp(0.72rem, 1.4vw, 0.8rem)',
+            color: '#EADAB5'
+          }}
+        >
+          <Sparkles size={13} color="#D4AC68" />
+          <span><strong>{settings.sareesSoldCount.toLocaleString('en-IN')}+</strong> Sarees Draped</span>
+        </div>
+      </div>
+
+      {/* Main Hero Editorial Typography & CTAs */}
       <div
         className="container"
         style={{
           position: 'relative',
           zIndex: 3,
-          textAlign: 'center',
-          maxWidth: '920px',
-          color: '#FAF6EE',
-          paddingTop: 'clamp(1.5rem, 4vw, 2.5rem)',
-          paddingBottom: 'clamp(2.5rem, 5vw, 3.5rem)'
-        }}
-      >
-        {/* Subtle Brand Hallmark */}
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            fontSize: 'clamp(0.68rem, 1.4vw, 0.74rem)',
-            fontWeight: 600,
-            letterSpacing: '0.24em',
-            textTransform: 'uppercase',
-            color: '#EADAB5',
-            marginBottom: '1rem',
-            opacity: 0.95
-          }}
-        >
-          <span style={{ display: 'inline-block', width: '20px', height: '1px', backgroundColor: '#B88D4A' }}></span>
-          WOVEN WITH TRUST
-          <span style={{ display: 'inline-block', width: '20px', height: '1px', backgroundColor: '#B88D4A' }}></span>
-        </div>
-
-        {/* Cinematic Headline */}
-        <h1
-          style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: 'clamp(2.1rem, 5.2vw, 5.2rem)',
-            fontWeight: 300,
-            lineHeight: 1.1,
-            letterSpacing: '-0.02em',
-            color: '#FFFFFF',
-            textShadow: '0 4px 24px rgba(0, 0, 0, 0.45)',
-            marginBottom: '1rem'
-          }}
-        >
-          Born from Nature. <br />
-          <span style={{ fontStyle: 'italic', fontWeight: 400, color: '#EADAB5' }}>
-            Made to Be Worn.
-          </span>
-        </h1>
-
-        {/* Supporting Line */}
-        <p
-          style={{
-            fontSize: 'clamp(0.92rem, 1.4vw, 1.2rem)',
-            fontWeight: 300,
-            lineHeight: 1.6,
-            color: 'rgba(250, 246, 238, 0.94)',
-            maxWidth: '620px',
-            margin: '0 auto clamp(1.5rem, 3.5vw, 2.4rem)',
-            textShadow: '0 2px 12px rgba(0, 0, 0, 0.55)'
-          }}
-        >
-          Discover gossamer sarees shaped by rain-fed cotton, botanical pigments, and the timeless touch of Indian generational artisans.
-        </p>
-
-        {/* Call to Actions */}
-        <div
-          className="hero-cta-group"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 'clamp(0.75rem, 2vw, 1.25rem)',
-            flexWrap: 'wrap'
-          }}
-        >
-          <button
-            onClick={() => navigateTo('shop')}
-            className="btn btn-gold btn-lg hero-cta-btn"
-            style={{
-              boxShadow: '0 12px 32px rgba(0, 0, 0, 0.3)'
-            }}
-          >
-            <span>Explore Collection</span>
-            <ArrowRight size={16} />
-          </button>
-
-          <button
-            onClick={() => navigateTo('story')}
-            className="hero-cta-btn"
-            style={{
-              padding: 'clamp(0.85rem, 2.5vw, 1.15rem) clamp(1.4rem, 4vw, 2.4rem)',
-              fontSize: 'clamp(0.8rem, 1.6vw, 0.88rem)',
-              fontWeight: 600,
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-              color: '#FFFFFF',
-              border: '1px solid rgba(250, 246, 238, 0.45)',
-              backgroundColor: 'rgba(42, 26, 19, 0.35)',
-              backdropFilter: 'blur(8px)',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(250, 246, 238, 0.95)';
-              e.currentTarget.style.color = '#4B3024';
-              e.currentTarget.style.borderColor = '#FFFFFF';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(42, 26, 19, 0.35)';
-              e.currentTarget.style.color = '#FFFFFF';
-              e.currentTarget.style.borderColor = 'rgba(250, 246, 238, 0.45)';
-            }}
-          >
-            Our Story & Craft
-          </button>
-        </div>
-      </div>
-
-      {/* Floating Media Controls */}
-      <div
-        className="hero-media-controls"
-        style={{
-          position: 'absolute',
-          bottom: 'clamp(1.2rem, 3vw, 2rem)',
-          right: 'clamp(1rem, 3.5vw, 3rem)',
-          zIndex: 4,
+          width: '100%',
+          height: '100%',
           display: 'flex',
-          alignItems: 'center',
-          gap: '0.65rem'
+          flexDirection: 'column',
+          justifyContent: 'flex-end',
+          paddingBottom: 'clamp(3.5rem, 7vw, 5.5rem)',
+          boxSizing: 'border-box'
         }}
       >
-        <button
-          onClick={togglePlay}
-          aria-label={isPlaying ? 'Pause hero video' : 'Play hero video'}
-          style={{
-            width: '38px',
-            height: '38px',
-            minWidth: '38px',
-            minHeight: '38px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(42, 26, 19, 0.65)',
-            border: '1px solid rgba(250, 246, 238, 0.25)',
-            color: '#FAF6EE',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backdropFilter: 'blur(6px)',
-            transition: 'background 0.2s',
-            touchAction: 'manipulation'
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(184, 141, 74, 0.85)')}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(42, 26, 19, 0.65)')}
-        >
-          {isPlaying ? <Pause size={14} /> : <Play size={14} />}
-        </button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '2rem' }}>
+          {/* Bottom-Left Brand Heading */}
+          <div style={{ maxWidth: '640px' }}>
+            {/* Hallmark Eyebrow */}
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.65rem',
+                fontSize: 'clamp(0.68rem, 1.4vw, 0.76rem)',
+                fontWeight: 600,
+                letterSpacing: '0.24em',
+                textTransform: 'uppercase',
+                color: '#EADAB5',
+                marginBottom: '1rem'
+              }}
+            >
+              <span style={{ display: 'inline-block', width: '24px', height: '1px', backgroundColor: '#B88D4A' }} />
+              {config.heroEyebrow}
+              <span style={{ display: 'inline-block', width: '24px', height: '1px', backgroundColor: '#B88D4A' }} />
+            </div>
 
-        <button
-          onClick={toggleMute}
-          aria-label={isMuted ? 'Unmute hero video' : 'Mute hero video'}
-          style={{
-            width: '38px',
-            height: '38px',
-            minWidth: '38px',
-            minHeight: '38px',
-            borderRadius: '50%',
-            backgroundColor: 'rgba(42, 26, 19, 0.65)',
-            border: '1px solid rgba(250, 246, 238, 0.25)',
-            color: '#FAF6EE',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backdropFilter: 'blur(6px)',
-            transition: 'background 0.2s',
-            touchAction: 'manipulation'
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(184, 141, 74, 0.85)')}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(42, 26, 19, 0.65)')}
-        >
-          {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-        </button>
+            {/* Headline */}
+            <h1
+              style={{
+                fontFamily: 'var(--font-serif)',
+                fontSize: 'clamp(2.3rem, 5.4vw, 5rem)',
+                fontWeight: 300,
+                lineHeight: 1.08,
+                letterSpacing: '-0.02em',
+                color: '#FFFFFF',
+                textShadow: '0 4px 25px rgba(0, 0, 0, 0.7)',
+                marginBottom: '1.15rem'
+              }}
+            >
+              Born from Nature. <br />
+              <span style={{ fontStyle: 'italic', fontWeight: 400, color: '#EADAB5' }}>
+                Made to Be Worn.
+              </span>
+            </h1>
+
+            {/* Supporting Text */}
+            <p
+              style={{
+                fontSize: 'clamp(0.92rem, 1.4vw, 1.15rem)',
+                fontWeight: 300,
+                lineHeight: 1.6,
+                color: 'rgba(250, 246, 238, 0.94)',
+                textShadow: '0 2px 14px rgba(0, 0, 0, 0.75)',
+                margin: 0
+              }}
+            >
+              {config.heroSubtext}
+            </p>
+          </div>
+
+          {/* Bottom-Right Primary Calls to Action */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'clamp(0.75rem, 1.5vw, 1.25rem)',
+              flexWrap: 'wrap'
+            }}
+          >
+            <button
+              onClick={() => navigateTo('shop')}
+              className="btn btn-gold btn-lg"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.65rem',
+                boxShadow: '0 12px 35px rgba(0, 0, 0, 0.5)',
+                padding: 'clamp(0.85rem, 2vw, 1.15rem) clamp(1.4rem, 3.5vw, 2.2rem)'
+              }}
+            >
+              <span>Explore Collection</span>
+              <ArrowRight size={16} />
+            </button>
+
+            <button
+              onClick={handleWhatsAppConcierge}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.55rem',
+                padding: 'clamp(0.85rem, 2vw, 1.15rem) clamp(1.3rem, 3vw, 1.8rem)',
+                fontSize: 'clamp(0.8rem, 1.6vw, 0.88rem)',
+                fontWeight: 600,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                color: '#FAF6EE',
+                border: '1px solid rgba(250, 246, 238, 0.4)',
+                backgroundColor: 'rgba(30, 18, 13, 0.65)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                cursor: 'pointer',
+                borderRadius: '2px',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#525B3A';
+                e.currentTarget.style.borderColor = '#7A8856';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(30, 18, 13, 0.65)';
+                e.currentTarget.style.borderColor = 'rgba(250, 246, 238, 0.4)';
+              }}
+            >
+              <MessageCircle size={16} color="#D4AC68" />
+              <span>WhatsApp Concierge</span>
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Discreet Scroll Cue */}
+      {/* Discreet Scroll Cue to Store Content */}
       <button
-        onClick={scrollToStory}
-        aria-label="Scroll down to nature story"
-        className="hero-scroll-cue"
+        onClick={scrollToContent}
+        aria-label="Scroll down to explore handcrafted sarees"
         style={{
           position: 'absolute',
-          bottom: 'clamp(1.2rem, 3vw, 2rem)',
+          bottom: '1.25rem',
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 4,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '0.35rem',
-          color: 'rgba(250, 246, 238, 0.75)',
-          fontSize: '0.68rem',
+          gap: '0.25rem',
+          color: 'rgba(234, 218, 181, 0.8)',
+          fontSize: '0.66rem',
           letterSpacing: '0.2em',
           textTransform: 'uppercase',
-          transition: 'color 0.2s',
-          padding: '0.3rem',
-          touchAction: 'manipulation'
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer'
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = '#EADAB5')}
-        onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(250, 246, 238, 0.75)')}
       >
-        <span>Discover</span>
-        <ChevronDown size={16} className="scroll-bounce" />
+        <span>Explore Drapes</span>
+        <ChevronDown size={14} className="hero-scroll-bounce" />
       </button>
 
-      {/* Responsive overrides & keyframes */}
+      {/* Responsive adjustments for video positioning and mobile viewports */}
       <style>{`
-        @keyframes scrollBounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(6px); }
-        }
-        .scroll-bounce {
-          animation: scrollBounce 2s infinite ease-in-out;
-        }
-        @media (max-width: 480px) {
-          .hero-cta-btn {
-            width: 100% !important;
-            max-width: 290px !important;
+        @media (max-width: 768px) {
+          .rodhe-hero-video {
+            object-fit: cover !important;
+            object-position: center 30% !important;
           }
-          .hero-media-controls {
+          #rodhe-hero-section {
+            height: auto !important;
+            min-height: 520px !important;
+            padding-top: 4rem;
+          }
+          .hero-trust-indicators {
             top: 1rem !important;
-            bottom: auto !important;
             right: 1rem !important;
           }
         }
-        @media (prefers-reduced-motion: reduce) {
-          .scroll-bounce {
-            animation: none !important;
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .rodhe-hero-video {
+            object-fit: cover !important;
+            object-position: center 35% !important;
           }
         }
       `}</style>
     </section>
   );
 };
+
+export default HeroSection;

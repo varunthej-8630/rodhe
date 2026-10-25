@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Clock, MessageSquare, Send, CheckCircle2, ChevronDown } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
+import { storeService } from '../services/storeService';
 
 export const ContactConciergePage = () => {
   const { showToast } = useShop();
@@ -14,10 +15,36 @@ export const ContactConciergePage = () => {
   const [isSent, setIsSent] = useState(false);
   const [openFaq, setOpenFaq] = useState(0);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSent(true);
-    showToast('Your concierge inquiry has been received. Our stylist will respond within 4 hours.');
+
+    // Save inquiry to backend store
+    try {
+      await storeService.createEnquiry({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        subject: formData.subject,
+        message: formData.message,
+        source: 'contact_page'
+      });
+    } catch (err) {
+      console.warn('Inquiry record error:', err);
+    }
+
+    // Prefill WhatsApp inquiry message to 9490658858
+    const waText = encodeURIComponent(
+      `Namaste RODHE Concierge,\n\nI am sending an inquiry from your website:\n` +
+      `• Name: ${formData.name || 'Patron'}\n` +
+      `• Email: ${formData.email || 'N/A'}\n` +
+      `• Phone: ${formData.phone || 'N/A'}\n` +
+      `• Subject: ${formData.subject}\n\n` +
+      `Message:\n${formData.message || 'I would like styling guidance and details about your handcrafted cotton sarees.'}`
+    );
+
+    showToast('Directing your inquiry to WhatsApp (+91 94906 58858)...');
+    window.open(`https://wa.me/919490658858?text=${waText}`, '_blank');
   };
 
   const faqs = [
@@ -99,17 +126,22 @@ export const ContactConciergePage = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <a
+                href="https://wa.me/919490658858?text=Namaste%20RODHE%20Concierge%2C%20I%20would%20love%20personal%20styling%20assistance%20for%20a%20handcrafted%20cotton%20saree."
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'flex', alignItems: 'center', gap: '1rem', textDecoration: 'none' }}
+              >
                 <div style={{ width: '42px', height: '42px', backgroundColor: '#F4ECE1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B88D4A', flexShrink: 0 }}>
                   <Phone size={20} />
                 </div>
                 <div>
                   <div style={{ fontSize: '0.74rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8F7263', fontWeight: 600 }}>WhatsApp Concierge</div>
                   <span style={{ fontSize: '0.95rem', fontWeight: 600, color: '#4B3024' }}>
-                    +91 98450 12345
+                    +91 94906 58858
                   </span>
                 </div>
-              </div>
+              </a>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <div style={{ width: '42px', height: '42px', backgroundColor: '#F4ECE1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B88D4A', flexShrink: 0 }}>

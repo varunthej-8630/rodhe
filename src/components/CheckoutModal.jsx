@@ -28,7 +28,7 @@ export const CheckoutModal = () => {
     firstName: 'Ananya',
     lastName: 'Deshmukh',
     email: 'ananya.deshmukh@example.com',
-    phone: '9845012345',
+    phone: '9490658858',
     pincode: '560001',
     address: 'Flat 402, Heritage Enclave, Lavelle Road',
     landmark: 'Near Bangalore Club',
@@ -603,9 +603,13 @@ export const CheckoutModal = () => {
                   {cart.map((item) => (
                     <div key={item.product.id} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                       <img
-                        src={item.product.primaryImage}
+                        src={item.product.primaryImage || item.product.primary_image || '/assets/products/saree_ivory_mulmul.jpg'}
                         alt=""
                         style={{ width: '42px', height: '54px', objectFit: 'cover', flexShrink: 0 }}
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = '/assets/products/saree_ivory_mulmul.jpg';
+                        }}
                       />
                       <div style={{ flexGrow: 1, minWidth: 0 }}>
                         <h5 style={{ fontSize: '0.82rem', fontWeight: 600, color: '#4B3024', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -614,7 +618,7 @@ export const CheckoutModal = () => {
                         <span style={{ fontSize: '0.72rem', color: '#8F7263' }}>Qty: {item.quantity}</span>
                       </div>
                       <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#4B3024', flexShrink: 0 }}>
-                        ₹{(item.product.price * item.quantity).toLocaleString('en-IN')}
+                        ₹{((Number(item.product.price ?? item.product.sellingPrice ?? item.product.selling_price ?? 990) || 990) * item.quantity).toLocaleString('en-IN')}
                       </span>
                     </div>
                   ))}

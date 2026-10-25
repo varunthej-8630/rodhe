@@ -231,53 +231,6 @@ export const BrandStoryPage = () => {
           </div>
         </div>
 
-        {/* Official Atelier Presentation (Visiting Cards & Identity) */}
-        <div
-          style={{
-            backgroundColor: '#F4ECE1',
-            padding: 'clamp(2rem, 5vw, 3.5rem) clamp(1rem, 3vw, 2rem)',
-            border: '1px solid rgba(184, 141, 74, 0.25)',
-            textAlign: 'center',
-            marginBottom: 'clamp(3.5rem, 5vw, 5rem)'
-          }}
-        >
-          <div className="eyebrow">Brand Heritage</div>
-          <h3
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: 'clamp(1.8rem, 3.5vw, 2.4rem)',
-              color: '#4B3024',
-              marginBottom: '1rem'
-            }}
-          >
-            The Official RODHE Atelier
-          </h3>
-          <p style={{ fontSize: '0.94rem', color: '#6F4E3E', maxWidth: '600px', margin: '0 auto 2rem' }}>
-            Rooted in India, recognized by textile connoisseurs worldwide.
-          </p>
-
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '1.5rem',
-              flexWrap: 'wrap'
-            }}
-          >
-            <img
-              src="/assets/VC-F.png"
-              alt="RODHE Official Identity"
-              style={{ maxHeight: '180px', maxWidth: '100%', width: 'auto', height: 'auto', boxShadow: '0 12px 30px rgba(0,0,0,0.15)', border: '1px solid rgba(75, 48, 36, 0.15)' }}
-            />
-            <img
-              src="/assets/VC-B.png"
-              alt="RODHE Woven with Trust Card"
-              style={{ maxHeight: '180px', maxWidth: '100%', width: 'auto', height: 'auto', boxShadow: '0 12px 30px rgba(0,0,0,0.15)', border: '1px solid rgba(75, 48, 36, 0.15)' }}
-            />
-          </div>
-        </div>
-
         {/* Explore Collection CTA */}
         <div style={{ textAlign: 'center' }}>
           <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '2.2rem', color: '#4B3024', marginBottom: '1rem' }}>

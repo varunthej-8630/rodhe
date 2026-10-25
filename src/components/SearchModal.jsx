@@ -215,19 +215,23 @@ export const SearchModal = () => {
                   }}
                 >
                   <img
-                    src={product.primaryImage}
-                    alt={product.name}
+                    src={product.primaryImage || product.primary_image || '/assets/products/saree_ivory_mulmul.jpg'}
+                    alt={product.name || 'Saree'}
                     style={{ width: '48px', height: '62px', objectFit: 'cover', flexShrink: 0 }}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = '/assets/products/saree_ivory_mulmul.jpg';
+                    }}
                   />
                   <div style={{ flexGrow: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '0.7rem', color: '#B88D4A', textTransform: 'uppercase', fontWeight: 600 }}>
-                      {product.craft} • {product.color}
+                      {product.craft || 'Handloom'} • {product.color || 'Artisanal'}
                     </div>
                     <h5 style={{ fontFamily: 'var(--font-serif)', fontSize: '1rem', color: '#4B3024', margin: '0.15rem 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {product.name}
                     </h5>
                     <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#4B3024' }}>
-                      ₹{product.price.toLocaleString('en-IN')}
+                      ₹{(Number(product.price ?? product.sellingPrice ?? product.selling_price ?? 990) || 990).toLocaleString('en-IN')}
                     </span>
                   </div>
                   <ArrowRight size={16} color="#B88D4A" style={{ flexShrink: 0 }} />

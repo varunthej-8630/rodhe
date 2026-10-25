@@ -21,7 +21,7 @@ export const ShopByColourSection = () => {
   ];
 
   return (
-    <section className="section-padding" style={{ backgroundColor: '#F4ECE1' }}>
+    <section id="shop-by-colour" style={{ backgroundColor: '#F4ECE1', paddingTop: 'clamp(2rem, 3.5vw, 3rem)', paddingBottom: 'clamp(3rem, 6vw, 5rem)' }}>
       <div className="container">
         <div className="section-header">
           <div className="eyebrow">Botanical Pigments</div>

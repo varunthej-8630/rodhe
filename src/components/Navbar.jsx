@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, User, Heart, ShoppingBag, Menu, X, ChevronDown, Sparkles } from 'lucide-react';
+import { Search, User, Heart, ShoppingBag, Menu, X, ChevronDown, Sparkles, Shield } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 
 export const Navbar = () => {
@@ -12,7 +12,8 @@ export const Navbar = () => {
     setIsWishlistOpen,
     setIsSearchOpen,
     setIsAuthOpen,
-    setSelectedCraft
+    setSelectedCraft,
+    PRODUCTS
   } = useShop();
 
   const [isScrolled, setIsScrolled] = useState(false);
@@ -99,35 +100,31 @@ export const Navbar = () => {
           boxShadow: isScrolled ? '0 4px 20px rgba(75, 48, 36, 0.06)' : 'none'
         }}
       >
-        <div
-          className="container"
-          style={{
-            height: 'var(--header-height)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 'clamp(0.5rem, 2vw, 1.5rem)'
-          }}
-        >
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMobileMenuOpen(true)}
-            aria-label="Open mobile navigation menu"
-            style={{
-              display: 'none',
-              padding: '0.4rem',
-              color: '#4B3024',
-              width: '42px',
-              height: '42px',
-              minWidth: '42px',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0
-            }}
-            className="mobile-menu-trigger"
-          >
-            <Menu size={22} />
-          </button>
+        <div className="container header-nav-grid">
+          {/* Left Column: Mobile Menu Trigger & Desktop Navigation */}
+          <div className="header-left-col">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              aria-label="Open mobile navigation menu"
+              style={{
+                display: 'none',
+                padding: '0.4rem',
+                color: '#4B3024',
+                width: '40px',
+                height: '40px',
+                minWidth: '40px',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer'
+              }}
+              className="mobile-menu-trigger"
+            >
+              <Menu size={22} />
+            </button>
 
           {/* Desktop Left Nav Links */}
           <nav
@@ -226,7 +223,7 @@ export const Navbar = () => {
                       }}
                       style={{ fontSize: '0.78rem', color: '#B88D4A', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}
                     >
-                      View All 8 Handcrafted Sarees →
+                      View All {PRODUCTS?.length || 9} Handcrafted Sarees →
                     </button>
                   </div>
                 </div>
@@ -274,27 +271,21 @@ export const Navbar = () => {
             >
               Contact
             </button>
-          </nav>
+            </nav>
+          </div>
 
-          {/* Center Brand Identity */}
+          {/* Center Column: Brand Identity */}
           <div
+            id="header-brand-container"
+            className="header-brand-col"
             onClick={() => navigateTo('home')}
-            style={{
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              userSelect: 'none',
-              minWidth: 0,
-              flexShrink: 1
-            }}
           >
             <img
-              src="/assets/RODHE Woven Luxury Wordmark.png"
+              id="header-brand-logo"
+              src="/assets/RODHE_Secondary_Emblem.png"
               alt="RODHE — Woven with Trust"
               style={{
-                height: 'clamp(32px, 6vw, 46px)',
+                height: 'clamp(38px, 5.5vw, 52px)',
                 width: 'auto',
                 maxWidth: '100%',
                 objectFit: 'contain',
@@ -305,19 +296,13 @@ export const Navbar = () => {
             />
           </div>
 
-          {/* Right Action Icons */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'clamp(0.4rem, 2vw, 1.25rem)',
-              flexShrink: 0
-            }}
-          >
+          {/* Right Column: Action Icons */}
+          <div className="header-right-col">
             {/* Search */}
             <button
               onClick={() => setIsSearchOpen(true)}
               aria-label="Search sarees"
+              className="header-nav-btn"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -328,7 +313,11 @@ export const Navbar = () => {
                 width: '38px',
                 height: '38px',
                 minWidth: '38px',
-                minHeight: '38px'
+                minHeight: '38px',
+                borderRadius: '50%',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer'
               }}
               onMouseEnter={(e) => (e.currentTarget.style.color = '#B88D4A')}
               onMouseLeave={(e) => (e.currentTarget.style.color = '#4B3024')}
@@ -339,21 +328,24 @@ export const Navbar = () => {
               </span>
             </button>
 
-            {/* Account */}
+            {/* Account (Desktop & Tablet only; mobile has it in drawer) */}
             <button
               onClick={() => setIsAuthOpen(true)}
               aria-label="Customer account"
-              className="d-xs-none"
+              className="d-md-flex header-nav-btn"
               style={{
                 color: '#4B3024',
                 transition: 'color 0.2s',
-                display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 width: '38px',
                 height: '38px',
                 minWidth: '38px',
-                minHeight: '38px'
+                minHeight: '38px',
+                borderRadius: '50%',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer'
               }}
               onMouseEnter={(e) => (e.currentTarget.style.color = '#B88D4A')}
               onMouseLeave={(e) => (e.currentTarget.style.color = '#4B3024')}
@@ -365,6 +357,7 @@ export const Navbar = () => {
             <button
               onClick={() => setIsWishlistOpen(true)}
               aria-label={`Wishlist with ${wishlistCount} items`}
+              className="header-nav-btn"
               style={{
                 position: 'relative',
                 color: '#4B3024',
@@ -375,7 +368,11 @@ export const Navbar = () => {
                 width: '38px',
                 height: '38px',
                 minWidth: '38px',
-                minHeight: '38px'
+                minHeight: '38px',
+                borderRadius: '50%',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer'
               }}
               onMouseEnter={(e) => (e.currentTarget.style.color = '#C98278')}
               onMouseLeave={(e) => (e.currentTarget.style.color = '#4B3024')}
@@ -431,6 +428,50 @@ export const Navbar = () => {
             >
               <ShoppingBag size={17} strokeWidth={1.8} />
               <span style={{ fontSize: '0.78rem', fontWeight: 700 }}>{cartCount}</span>
+            </button>
+
+            {/* Client CRM Admin Portal (Visible on desktop & tablet; mobile has it in drawer) */}
+            <button
+              onClick={() => navigateTo('admin')}
+              title="Boutique Client CRM Portal"
+              aria-label="Boutique Client CRM Portal"
+              className="d-md-flex"
+              style={{
+                color: '#4B3024',
+                transition: 'all 0.2s ease',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.38rem 0.65rem',
+                minHeight: '38px',
+                borderRadius: '3px',
+                backgroundColor: 'rgba(184, 141, 74, 0.08)',
+                border: '1px solid rgba(184, 141, 74, 0.35)',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#B88D4A';
+                e.currentTarget.style.borderColor = '#B88D4A';
+                e.currentTarget.style.backgroundColor = 'rgba(184, 141, 74, 0.16)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#4B3024';
+                e.currentTarget.style.borderColor = 'rgba(184, 141, 74, 0.35)';
+                e.currentTarget.style.backgroundColor = 'rgba(184, 141, 74, 0.08)';
+              }}
+            >
+              <Shield size={15} strokeWidth={2} color="#B88D4A" />
+              <span
+                style={{
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  display: 'none'
+                }}
+                className="d-md-inline"
+              >
+                CRM Portal
+              </span>
             </button>
           </div>
         </div>
@@ -562,6 +603,28 @@ export const Navbar = () => {
                 >
                   Customer Concierge & Care
                 </button>
+
+                <button
+                  onClick={() => {
+                    navigateTo('admin');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  style={{
+                    textAlign: 'left',
+                    fontSize: '0.92rem',
+                    fontWeight: 600,
+                    letterSpacing: '0.04em',
+                    color: '#B88D4A',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.45rem 0',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Shield size={16} />
+                  <span>Boutique Owner CRM</span>
+                </button>
               </div>
 
               <div style={{ marginTop: 'auto', borderTop: '1px solid rgba(75, 48, 36, 0.08)', paddingTop: '1.25rem', textAlign: 'center' }}>
@@ -576,6 +639,49 @@ export const Navbar = () => {
 
       {/* Responsive Inline CSS overrides for header */}
       <style>{`
+        .header-nav-grid {
+          display: grid;
+          grid-template-columns: 1fr auto 1fr;
+          align-items: center;
+          height: var(--header-height);
+          position: relative;
+          gap: 0.5rem;
+        }
+        .header-left-col {
+          display: flex;
+          align-items: center;
+          justify-self: start;
+          min-width: 0;
+        }
+        .header-brand-col {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          justify-self: center;
+          cursor: pointer;
+          user-select: none;
+          z-index: 10;
+          padding: 0 0.5rem;
+        }
+        .header-right-col {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          justify-self: end;
+          gap: clamp(0.25rem, 1.5vw, 0.75rem);
+          min-width: 0;
+        }
+        .d-md-flex {
+          display: none !important;
+        }
+        @media (min-width: 768px) {
+          .d-md-flex {
+            display: flex !important;
+          }
+          .d-md-inline {
+            display: inline !important;
+          }
+        }
         @media (max-width: 900px) {
           .desktop-nav {
             display: none !important;
@@ -584,19 +690,17 @@ export const Navbar = () => {
             display: flex !important;
           }
         }
-        @media (min-width: 768px) {
-          .d-md-inline {
-            display: inline !important;
-          }
-        }
         @media (min-width: 576px) {
           .d-sm-inline {
             display: inline !important;
           }
         }
-        @media (max-width: 350px) {
-          .d-xs-none {
-            display: none !important;
+        @media (max-width: 480px) {
+          .header-nav-btn {
+            width: 35px !important;
+            height: 35px !important;
+            min-width: 35px !important;
+            min-height: 35px !important;
           }
         }
       `}</style>

@@ -21,27 +21,24 @@ export const Footer = () => {
   };
 
   return (
-    <footer
-      style={{
-        backgroundColor: '#4B3024',
-        color: '#FAF6EE',
-        borderTop: '1px solid #B88D4A',
-        position: 'relative'
-      }}
-    >
-      {/* Newsletter Feature Row */}
-      <div
+    <>
+      {/* Distinct Pre-Footer Newsletter Section (Separated from Footer) */}
+      <section
+        id="newsletter-section"
         style={{
-          borderBottom: '1px solid rgba(234, 218, 181, 0.15)',
-          padding: 'clamp(3rem, 5vw, 4.5rem) 0'
+          backgroundColor: '#FAF6EE',
+          borderTop: '1px solid rgba(184, 141, 74, 0.22)',
+          borderBottom: '1px solid rgba(184, 141, 74, 0.22)',
+          padding: 'clamp(2.75rem, 5vw, 4rem) 0',
+          position: 'relative'
         }}
       >
         <div className="container">
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
-              gap: 'clamp(1.5rem, 3vw, 2.5rem)',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
+              gap: 'clamp(1.5rem, 3.5vw, 3rem)',
               alignItems: 'center'
             }}
           >
@@ -51,28 +48,37 @@ export const Footer = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.45rem',
-                  fontSize: '0.75rem',
+                  fontSize: '0.74rem',
                   letterSpacing: '0.18em',
                   textTransform: 'uppercase',
-                  color: '#D4AC68',
-                  marginBottom: '0.5rem',
-                  fontWeight: 600
+                  color: '#B88D4A',
+                  marginBottom: '0.45rem',
+                  fontWeight: 700
                 }}
               >
-                <Sparkles size={14} />
+                <Sparkles size={14} color="#B88D4A" />
                 <span>The RODHE Gazette</span>
               </div>
               <h3
                 style={{
                   fontFamily: 'var(--font-serif)',
-                  fontSize: 'clamp(1.6rem, 3vw, 2.4rem)',
-                  color: '#FFFFFF',
-                  lineHeight: 1.2
+                  fontSize: 'clamp(1.75rem, 3.2vw, 2.4rem)',
+                  color: '#4B3024',
+                  lineHeight: 1.2,
+                  fontWeight: 500
                 }}
               >
                 Join the Textile Society
               </h3>
-              <p style={{ fontSize: '0.88rem', color: 'rgba(250, 246, 238, 0.75)', marginTop: '0.4rem', lineHeight: 1.6 }}>
+              <p
+                style={{
+                  fontSize: '0.88rem',
+                  color: '#6F4E3E',
+                  marginTop: '0.45rem',
+                  lineHeight: 1.6,
+                  maxWidth: '520px'
+                }}
+              >
                 Receive rare invitations to limited artisanal harvests, botanical dye journals, and preview access.
               </p>
             </div>
@@ -84,15 +90,18 @@ export const Footer = () => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.65rem',
-                    padding: '1rem',
-                    backgroundColor: 'rgba(184, 141, 74, 0.2)',
+                    padding: '1rem 1.25rem',
+                    backgroundColor: 'rgba(184, 141, 74, 0.12)',
                     border: '1px solid #B88D4A',
-                    color: '#EADAB5',
-                    fontSize: '0.88rem'
+                    color: '#4B3024',
+                    fontSize: '0.88rem',
+                    borderRadius: '2px'
                   }}
                 >
-                  <Check size={18} color="#D4AC68" style={{ flexShrink: 0 }} />
-                  <span>Welcome. Check your inbox for your 10% welcome invitation (WOVEN10).</span>
+                  <Check size={18} color="#525B3A" style={{ flexShrink: 0 }} />
+                  <span style={{ fontWeight: 500 }}>
+                    Welcome. Check your inbox for your 10% welcome invitation (<strong>WOVEN10</strong>).
+                  </span>
                 </div>
               ) : (
                 <form onSubmit={handleSubscribe} className="footer-newsletter-form">
@@ -105,18 +114,27 @@ export const Footer = () => {
                     style={{
                       flexGrow: 1,
                       minWidth: 0,
-                      padding: '0.85rem 1rem',
-                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                      border: '1px solid rgba(234, 218, 181, 0.3)',
-                      color: '#FFFFFF',
-                      fontSize: '0.86rem',
-                      outline: 'none'
+                      padding: '0.85rem 1.15rem',
+                      backgroundColor: '#FFFFFF',
+                      border: '1px solid rgba(184, 141, 74, 0.38)',
+                      borderRadius: '2px',
+                      color: '#4B3024',
+                      fontSize: '0.88rem',
+                      outline: 'none',
+                      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03)'
                     }}
                   />
                   <button
                     type="submit"
                     className="btn btn-gold"
-                    style={{ padding: '0.85rem 1.5rem', minHeight: '44px', flexShrink: 0 }}
+                    style={{
+                      padding: '0.85rem 1.6rem',
+                      minHeight: '44px',
+                      flexShrink: 0,
+                      backgroundColor: '#B88D4A',
+                      color: '#FAF6EE',
+                      borderRadius: '2px'
+                    }}
                   >
                     <span>Subscribe</span>
                     <ArrowRight size={15} />
@@ -126,10 +144,19 @@ export const Footer = () => {
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Main Footer Links */}
-      <div style={{ padding: 'clamp(2.5rem, 5vw, 4.5rem) 0 2.5rem' }}>
+      {/* Main Luxury Dark Footer */}
+      <footer
+        style={{
+          backgroundColor: '#301B12',
+          color: '#FAF6EE',
+          borderTop: '1px solid rgba(184, 141, 74, 0.3)',
+          position: 'relative'
+        }}
+      >
+        {/* Main Footer Links */}
+        <div style={{ padding: 'clamp(2.5rem, 5vw, 4.5rem) 0 2.5rem' }}>
         <div className="container">
           <div
             style={{
@@ -325,9 +352,25 @@ export const Footer = () => {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-              <span>Privacy Policy</span>
-              <span>Terms of Service</span>
-              <span>Authentication Certificate</span>
+              <span style={{ cursor: 'pointer' }} onClick={() => navigateTo('contact')}>Privacy Policy</span>
+              <span style={{ cursor: 'pointer' }} onClick={() => navigateTo('contact')}>Terms of Service</span>
+              <span style={{ cursor: 'pointer' }} onClick={() => navigateTo('story')}>Authentication Certificate</span>
+              <button
+                onClick={() => navigateTo('admin')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  color: '#D4AC68',
+                  cursor: 'pointer',
+                  fontSize: '0.78rem',
+                  fontWeight: 500,
+                  letterSpacing: '0.04em',
+                  textDecoration: 'underline'
+                }}
+              >
+                Client CRM Portal
+              </button>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#D4AC68' }}>
@@ -351,5 +394,7 @@ export const Footer = () => {
         }
       `}</style>
     </footer>
+    </>
   );
 };
+

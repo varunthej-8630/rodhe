@@ -19,7 +19,12 @@ export const ProductQuickViewModal = () => {
 
   const product = quickViewProduct;
   const isFavorited = isInWishlist(product.id);
-  const images = product.gallery || [product.primaryImage];
+  const primaryImage = product.primaryImage || product.primary_image || '/assets/products/saree_ivory_mulmul.jpg';
+  const images = (Array.isArray(product.gallery) && product.gallery.length > 0)
+    ? product.gallery
+    : [primaryImage, product.secondaryImage || primaryImage].filter(Boolean);
+  const unitPrice = Number(product.price ?? product.sellingPrice ?? product.selling_price ?? 990) || 990;
+  const originalPrice = product.originalPrice ? (Number(product.originalPrice) || null) : (product.original_price ? (Number(product.original_price) || null) : null);
 
   const handleAddToCart = () => {
     addToCart(product, quantity, true);
@@ -50,9 +55,13 @@ export const ProductQuickViewModal = () => {
         <div style={{ backgroundColor: '#F4ECE1', position: 'relative', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <div style={{ flexGrow: 1, position: 'relative', minHeight: 'clamp(240px, 40vh, 420px)' }}>
             <img
-              src={images[activeImageIndex] || product.primaryImage}
-              alt={product.name}
+              src={images[activeImageIndex] || primaryImage}
+              alt={product.name || 'Handcrafted Saree'}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = '/assets/products/saree_ivory_mulmul.jpg';
+              }}
             />
             {product.badge && (
               <span className="product-badge">
@@ -84,7 +93,15 @@ export const ProductQuickViewModal = () => {
                     overflow: 'hidden'
                   }}
                 >
-                  <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img
+                    src={img}
+                    alt=""
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = '/assets/products/saree_ivory_mulmul.jpg';
+                    }}
+                  />
                 </button>
               ))}
             </div>
@@ -131,11 +148,11 @@ export const ProductQuickViewModal = () => {
           {/* Price */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
             <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.65rem', fontWeight: 600, color: '#4B3024' }}>
-              ₹{product.price.toLocaleString('en-IN')}
+              ₹{unitPrice.toLocaleString('en-IN')}
             </span>
-            {product.originalPrice && (
+            {originalPrice && (
               <span style={{ fontSize: '1rem', textDecoration: 'line-through', color: '#8F7263' }}>
-                ₹{product.originalPrice.toLocaleString('en-IN')}
+                ₹{originalPrice.toLocaleString('en-IN')}
               </span>
             )}
             <span style={{ fontSize: '0.72rem', color: '#B88D4A', fontWeight: 600, textTransform: 'uppercase' }}>

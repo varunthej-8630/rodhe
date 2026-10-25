@@ -54,9 +54,11 @@ export const ShopByCraftSection = () => {
 
         <div
           style={{
+            maxWidth: '1160px',
+            margin: '0 auto',
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
-            gap: 'clamp(1rem, 2.5vw, 1.5rem)'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
+            gap: 'clamp(0.85rem, 2vw, 1.25rem)'
           }}
         >
           {crafts.map((craft) => (
@@ -72,9 +74,9 @@ export const ShopByCraftSection = () => {
                 transition: 'all 0.4s cubic-bezier(0.19, 1, 0.22, 1)'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-6px)';
+                e.currentTarget.style.transform = 'translateY(-5px)';
                 e.currentTarget.style.borderColor = '#B88D4A';
-                e.currentTarget.style.boxShadow = '0 12px 30px rgba(75, 48, 36, 0.1)';
+                e.currentTarget.style.boxShadow = '0 10px 24px rgba(75, 48, 36, 0.09)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'translateY(0)';
@@ -83,7 +85,7 @@ export const ShopByCraftSection = () => {
               }}
             >
               {/* Image Frame */}
-              <div style={{ position: 'relative', aspectRatio: '1', overflow: 'hidden' }}>
+              <div style={{ position: 'relative', aspectRatio: '1 / 0.92', overflow: 'hidden' }}>
                 <img
                   src={craft.image}
                   alt={craft.title}
@@ -91,24 +93,25 @@ export const ShopByCraftSection = () => {
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
+                    objectPosition: 'center 25%',
                     transition: 'transform 0.6s ease'
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.06)')}
+                  onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
                   onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
                 />
                 <span
                   style={{
                     position: 'absolute',
-                    top: '0.85rem',
-                    left: '0.85rem',
+                    top: '0.7rem',
+                    left: '0.7rem',
                     backgroundColor: 'rgba(250, 246, 238, 0.94)',
                     backdropFilter: 'blur(6px)',
-                    fontSize: '0.68rem',
+                    fontSize: '0.64rem',
                     fontWeight: 600,
                     letterSpacing: '0.12em',
                     textTransform: 'uppercase',
                     color: '#4B3024',
-                    padding: '0.3rem 0.65rem',
+                    padding: '0.25rem 0.55rem',
                     border: '1px solid rgba(184, 141, 74, 0.25)'
                   }}
                 >
@@ -117,24 +120,24 @@ export const ShopByCraftSection = () => {
               </div>
 
               {/* Craft Info */}
-              <div style={{ padding: '1.4rem 1.25rem 1.5rem' }}>
+              <div style={{ padding: '1.1rem 1.05rem 1.25rem' }}>
                 <h3
                   style={{
                     fontFamily: 'var(--font-serif)',
-                    fontSize: '1.35rem',
+                    fontSize: '1.18rem',
                     fontWeight: 500,
                     color: '#4B3024',
-                    marginBottom: '0.45rem'
+                    marginBottom: '0.35rem'
                   }}
                 >
                   {craft.title}
                 </h3>
                 <p
                   style={{
-                    fontSize: '0.84rem',
+                    fontSize: '0.80rem',
                     color: '#8F7263',
-                    lineHeight: 1.5,
-                    marginBottom: '1rem'
+                    lineHeight: 1.48,
+                    marginBottom: '0.85rem'
                   }}
                 >
                   {craft.desc}
@@ -143,8 +146,8 @@ export const ShopByCraftSection = () => {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.35rem',
-                    fontSize: '0.78rem',
+                    gap: '0.3rem',
+                    fontSize: '0.74rem',
                     fontWeight: 600,
                     letterSpacing: '0.1em',
                     textTransform: 'uppercase',
@@ -152,7 +155,7 @@ export const ShopByCraftSection = () => {
                   }}
                 >
                   <span>Explore Craft</span>
-                  <ArrowRight size={14} />
+                  <ArrowRight size={13} />
                 </div>
               </div>
             </div>

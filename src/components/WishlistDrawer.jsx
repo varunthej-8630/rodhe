@@ -126,9 +126,13 @@ export const WishlistDrawer = () => {
                   }}
                 >
                   <img
-                    src={product.primaryImage}
-                    alt={product.name}
+                    src={product.primaryImage || product.primary_image || '/assets/products/saree_ivory_mulmul.jpg'}
+                    alt={product.name || 'Saree'}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = '/assets/products/saree_ivory_mulmul.jpg';
+                    }}
                   />
                 </div>
 
@@ -164,12 +168,12 @@ export const WishlistDrawer = () => {
                   </div>
 
                   <span style={{ fontSize: '0.72rem', color: '#B88D4A', fontWeight: 600, textTransform: 'uppercase', margin: '0.25rem 0 0.5rem' }}>
-                    {product.craft}
+                    {product.craft || 'Handloom'}
                   </span>
 
                   <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
                     <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', fontWeight: 600, color: '#4B3024' }}>
-                      ₹{product.price.toLocaleString('en-IN')}
+                      ₹{(Number(product.price ?? product.sellingPrice ?? product.selling_price ?? 990) || 990).toLocaleString('en-IN')}
                     </span>
 
                     <button

@@ -15,6 +15,8 @@ export const CollectionPage = () => {
     setSelectedFabric,
     priceMax,
     setPriceMax,
+    priceRangeFilter,
+    setPriceRangeFilter,
     inStockOnly,
     setInStockOnly,
     sortBy,
@@ -23,6 +25,12 @@ export const CollectionPage = () => {
   } = useShop();
 
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  // Dynamic count calculation based on current live products
+  const getCraftCount = (craftId) => {
+    if (craftId === 'all') return PRODUCTS.length;
+    return PRODUCTS.filter((p) => p.craftCategory === craftId).length;
+  };
 
   // Filter Logic
   const filteredProducts = PRODUCTS.filter((product) => {
@@ -39,7 +47,33 @@ export const CollectionPage = () => {
       return false;
     }
     // Price
-    if (product.price > priceMax) {
+    const price = product.sellingPrice || product.price || 0;
+    if (price > priceMax) {
+      return false;
+    }
+    // Budget Tier Filter (Find Your Piece)
+    if ((priceRangeFilter === 'under-800' || priceRangeFilter === 'under800') && price > 800) {
+      return false;
+    }
+    if ((priceRangeFilter === '800-1200') && (price < 800 || price > 1200)) {
+      return false;
+    }
+    if ((priceRangeFilter === '1200-1600') && (price < 1200 || price > 1600)) {
+      return false;
+    }
+    if ((priceRangeFilter === '1600-2000') && (price < 1600 || price > 2000)) {
+      return false;
+    }
+    if ((priceRangeFilter === 'under2k' || priceRangeFilter === 'under-2000') && price > 2000) {
+      return false;
+    }
+    if ((priceRangeFilter === '2k-4k' || priceRangeFilter === '2000-4000') && (price < 2000 || price >= 4000)) {
+      return false;
+    }
+    if ((priceRangeFilter === '4k-6k' || priceRangeFilter === '4000-6000') && (price < 4000 || price > 6000)) {
+      return false;
+    }
+    if ((priceRangeFilter === 'above6k' || priceRangeFilter === 'above-6000') && price <= 6000) {
       return false;
     }
     // Stock
@@ -51,10 +85,12 @@ export const CollectionPage = () => {
 
   // Sort Logic
   const sortedProducts = [...filteredProducts].sort((a, b) => {
-    if (sortBy === 'price-low') return a.price - b.price;
-    if (sortBy === 'price-high') return b.price - a.price;
-    if (sortBy === 'rating') return b.rating - a.rating;
-    if (sortBy === 'newest') return (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0);
+    const priceA = a.sellingPrice || a.price || 0;
+    const priceB = b.sellingPrice || b.price || 0;
+    if (sortBy === 'price-low') return priceA - priceB;
+    if (sortBy === 'price-high') return priceB - priceA;
+    if (sortBy === 'rating') return (b.rating || 5) - (a.rating || 5);
+    if (sortBy === 'newest') return (b.isNew || b.isNewArrival ? 1 : 0) - (a.isNew || a.isNewArrival ? 1 : 0);
     return 0; // Default featured
   });
 
@@ -63,6 +99,7 @@ export const CollectionPage = () => {
     selectedColor !== 'all' ||
     selectedFabric !== 'all' ||
     priceMax < 8000 ||
+    !!priceRangeFilter ||
     inStockOnly;
 
   return (
@@ -248,6 +285,25 @@ export const CollectionPage = () => {
               </span>
             )}
 
+            {priceRangeFilter && (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.25rem 0.55rem',
+                  backgroundColor: 'rgba(184, 141, 74, 0.12)',
+                  fontSize: '0.74rem',
+                  color: '#8A6224',
+                  fontWeight: 600,
+                  border: '1px solid rgba(184, 141, 74, 0.35)'
+                }}
+              >
+                Budget: {priceRangeFilter === 'under2k' ? 'Under ₹2,000' : priceRangeFilter === '2k-4k' ? '₹2,000 – ₹4,000' : priceRangeFilter === '4k-6k' ? '₹4,000 – ₹6,000' : 'Above ₹6,000'}
+                <X size={12} style={{ cursor: 'pointer' }} onClick={() => setPriceRangeFilter(null)} />
+              </span>
+            )}
+
             <button
               onClick={resetFilters}
               style={{
@@ -320,7 +376,7 @@ export const CollectionPage = () => {
                       />
                       {c.name}
                     </span>
-                    <span style={{ fontSize: '0.75rem', color: '#8F7263' }}>({c.count})</span>
+                    <span style={{ fontSize: '0.75rem', color: '#8F7263' }}>({getCraftCount(c.id)})</span>
                   </label>
                 ))}
               </div>
@@ -396,9 +452,9 @@ export const CollectionPage = () => {
               </div>
               <input
                 type="range"
-                min="3500"
+                min="500"
                 max="8000"
-                step="250"
+                step="100"
                 value={priceMax}
                 onChange={(e) => setPriceMax(Number(e.target.value))}
                 style={{ width: '100%', accentColor: '#B88D4A' }}
@@ -508,7 +564,7 @@ export const CollectionPage = () => {
                         />
                         {c.name}
                       </span>
-                      <span style={{ fontSize: '0.75rem', color: '#8F7263' }}>({c.count})</span>
+                      <span style={{ fontSize: '0.75rem', color: '#8F7263' }}>({getCraftCount(c.id)})</span>
                     </label>
                   ))}
                 </div>
@@ -588,9 +644,9 @@ export const CollectionPage = () => {
                 </div>
                 <input
                   type="range"
-                  min="3500"
+                  min="500"
                   max="8000"
-                  step="250"
+                  step="100"
                   value={priceMax}
                   onChange={(e) => setPriceMax(Number(e.target.value))}
                   style={{ width: '100%', accentColor: '#B88D4A' }}

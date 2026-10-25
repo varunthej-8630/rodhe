@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Heart, ShoppingBag, Star, ShieldCheck, Truck, RotateCcw, Sparkles, ChevronRight, Share2, Check, ArrowRight } from 'lucide-react';
+import { Heart, ShoppingBag, Star, ShieldCheck, Truck, RotateCcw, Sparkles, ChevronRight, Share2, Check, ArrowRight, MessageCircle } from 'lucide-react';
 import { ProductCard } from './ProductCard';
 import { useShop } from '../context/ShopContext';
+import { storeService } from '../services/storeService';
 
 export const ProductDetailPage = ({ productId }) => {
   const {
@@ -13,18 +14,35 @@ export const ProductDetailPage = ({ productId }) => {
     navigateTo
   } = useShop();
 
-  const product = PRODUCTS.find((p) => p.id === productId) || PRODUCTS[0];
+  const product = PRODUCTS.find((p) => p.id === productId || p.slug === productId) || PRODUCTS[0];
   const isFavorited = isInWishlist(product.id);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('description'); // 'description' | 'craft' | 'care' | 'shipping'
 
-  const images = product.gallery || [product.primaryImage];
+  const primaryImage = product.primaryImage || product.primary_image || '/assets/products/saree_ivory_mulmul.jpg';
+  const images = (Array.isArray(product.gallery) && product.gallery.length > 0)
+    ? product.gallery
+    : [primaryImage, product.secondaryImage || primaryImage].filter(Boolean);
   const relatedProducts = PRODUCTS.filter((p) => p.id !== product.id && p.craftCategory === product.craftCategory).slice(0, 3);
+
+  const unitPrice = Number(product.price ?? product.sellingPrice ?? product.selling_price ?? 990) || 990;
+  const originalPrice = product.originalPrice ? (Number(product.originalPrice) || null) : (product.original_price ? (Number(product.original_price) || null) : null);
 
   const handleBuyNow = () => {
     addToCart(product, quantity, false);
     setIsCheckoutOpen(true);
+  };
+
+  const handleWhatsAppEnquiry = async () => {
+    const settings = await storeService.getSettings();
+    const phone = (settings?.whatsappNumber || '919490658858').replace(/[^0-9]/g, '');
+    const price = unitPrice;
+    const itemTotal = price * quantity;
+    const msg = encodeURIComponent(
+      `Namaste RODHE Concierge,\n\nI am interested in purchasing:\n• Saree: ${product.name}\n• SKU: ${product.sku || 'RODHE-SAR'}\n• Quantity: ${quantity}\n• Unit Price: ₹${price.toLocaleString('en-IN')}${quantity > 1 ? `\n• Total: ₹${itemTotal.toLocaleString('en-IN')}` : ''}\n• Craft: ${product.craft || 'Handloom'}\n\nPlease confirm availability and share details for dispatch.`
+    );
+    window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
   };
 
   const handleShare = () => {
@@ -77,13 +95,17 @@ export const ProductDetailPage = ({ productId }) => {
               }}
             >
               <img
-                src={images[selectedImageIndex] || product.primaryImage}
-                alt={product.name}
+                src={images[selectedImageIndex] || primaryImage}
+                alt={product.name || 'Handcrafted Saree'}
                 style={{
                   width: '100%',
                   height: '100%',
                   objectFit: 'cover',
                   transition: 'transform 0.4s ease'
+                }}
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = '/assets/products/saree_ivory_mulmul.jpg';
                 }}
               />
               {product.badge && (
@@ -120,7 +142,15 @@ export const ProductDetailPage = ({ productId }) => {
                     padding: 0
                   }}
                 >
-                  <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img
+                    src={img}
+                    alt=""
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = '/assets/products/saree_ivory_mulmul.jpg';
+                    }}
+                  />
                 </button>
               ))}
             </div>
@@ -192,10 +222,10 @@ export const ProductDetailPage = ({ productId }) => {
                   color: '#4B3024'
                 }}
               >
-                ₹{product.price.toLocaleString('en-IN')}
+                ₹{unitPrice.toLocaleString('en-IN')}
               </span>
 
-              {product.originalPrice && (
+              {originalPrice && (
                 <span
                   style={{
                     fontSize: '1.1rem',
@@ -203,7 +233,7 @@ export const ProductDetailPage = ({ productId }) => {
                     color: '#8F7263'
                   }}
                 >
-                  ₹{product.originalPrice.toLocaleString('en-IN')}
+                  ₹{originalPrice.toLocaleString('en-IN')}
                 </span>
               )}
 
@@ -314,12 +344,12 @@ export const ProductDetailPage = ({ productId }) => {
                 </button>
               </div>
 
-              {/* Row 2 on mobile: Add to Bag & Buy Now */}
-              <div className="pdp-btn-row">
+              {/* Action Buttons: Add to Bag, Buy Now, and WhatsApp Enquiry */}
+              <div className="pdp-btn-row" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                 <button
                   onClick={() => addToCart(product, quantity, true)}
                   className="btn btn-primary btn-lg"
-                  style={{ minHeight: '48px', flex: 1 }}
+                  style={{ minHeight: '48px', flex: '1 1 180px' }}
                 >
                   <ShoppingBag size={18} />
                   <span>Add to Bag</span>
@@ -328,9 +358,32 @@ export const ProductDetailPage = ({ productId }) => {
                 <button
                   onClick={handleBuyNow}
                   className="btn btn-gold btn-lg"
-                  style={{ minHeight: '48px', flex: 1 }}
+                  style={{ minHeight: '48px', flex: '1 1 180px' }}
                 >
                   <span>Buy Now</span>
+                </button>
+
+                <button
+                  onClick={handleWhatsAppEnquiry}
+                  className="btn btn-outline btn-lg"
+                  style={{
+                    minHeight: '48px',
+                    flex: '1 1 100%',
+                    borderColor: '#25D366',
+                    color: '#128C7E',
+                    background: 'rgba(37, 211, 102, 0.06)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    fontWeight: 500,
+                    fontSize: '0.9rem',
+                    letterSpacing: '0.04em',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <MessageCircle size={18} color="#25D366" />
+                  <span>Order via WhatsApp Concierge</span>
                 </button>
               </div>
             </div>
@@ -474,7 +527,7 @@ export const ProductDetailPage = ({ productId }) => {
         <div>
           <div style={{ fontSize: '0.72rem', color: '#8F7263', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Price</div>
           <div style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', fontWeight: 700, color: '#4B3024' }}>
-            ₹{product.price.toLocaleString('en-IN')}
+            ₹{unitPrice.toLocaleString('en-IN')}
           </div>
         </div>
 

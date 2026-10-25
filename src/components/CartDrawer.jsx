@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { X, Plus, Minus, Trash2, ShoppingBag, ArrowRight, Sparkles, Tag, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Plus, Minus, Trash2, ShoppingBag, ArrowRight, Sparkles, Tag, Check, MessageCircle } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
+import { storeService } from '../services/storeService';
 
 export const CartDrawer = () => {
   const {
@@ -46,6 +47,33 @@ export const CartDrawer = () => {
   const handleCheckoutClick = () => {
     setIsCartOpen(false);
     setIsCheckoutOpen(true);
+  };
+
+  const handleWhatsAppOrder = async () => {
+    const settings = await storeService.getSettings();
+    const phone = (settings?.whatsappNumber || '919490658858').replace(/[^0-9]/g, '');
+
+    const itemsText = cart.map((item, idx) => {
+      const p = item.product;
+      const unit = Number(p.price ?? p.sellingPrice ?? p.selling_price ?? 990) || 990;
+      const itemSubtotal = unit * item.quantity;
+      return `${idx + 1}. ${p.name}\n   SKU: ${p.sku || 'RODHE-SAR'}\n   Qty: ${item.quantity} × ₹${unit.toLocaleString('en-IN')} = ₹${itemSubtotal.toLocaleString('en-IN')}`;
+    }).join('\n\n');
+
+    let summaryText = `\n\n-------------------------\nBag Subtotal: ₹${subtotal.toLocaleString('en-IN')}`;
+    if (discountAmount > 0) {
+      summaryText += `\nCoupon (${appliedCoupon?.code}): -₹${discountAmount.toLocaleString('en-IN')}`;
+    }
+    if (giftWrap) {
+      summaryText += `\nHeritage Gift Box: +₹${giftWrapFee}`;
+    }
+    summaryText += `\nShipping: ${isFreeShipping ? 'FREE' : `₹${shippingFee}`}`;
+    summaryText += `\nTotal: ₹${total.toLocaleString('en-IN')}`;
+
+    const fullMessage = `Namaste RODHE Team,\n\nI would like to place an order enquiry for the following handcrafted saree(s):\n\n${itemsText}${summaryText}\n\nPlease confirm stock availability and share payment/delivery details. Thank you!`;
+
+    const encoded = encodeURIComponent(fullMessage);
+    window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
   };
 
   return (
@@ -189,9 +217,13 @@ export const CartDrawer = () => {
                   }}
                 >
                   <img
-                    src={item.product.primaryImage}
-                    alt={item.product.name}
+                    src={item.product.primaryImage || item.product.primary_image || '/assets/products/saree_ivory_mulmul.jpg'}
+                    alt={item.product.name || 'Saree'}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = '/assets/products/saree_ivory_mulmul.jpg';
+                    }}
                   />
                 </div>
 
@@ -227,7 +259,7 @@ export const CartDrawer = () => {
                   </div>
 
                   <span style={{ fontSize: '0.72rem', color: '#B88D4A', fontWeight: 600, textTransform: 'uppercase', margin: '0.25rem 0 0.5rem' }}>
-                    {item.product.craft}
+                    {item.product.craft || 'Handloom'}
                   </span>
 
                   <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -261,7 +293,7 @@ export const CartDrawer = () => {
 
                     {/* Item Price */}
                     <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', fontWeight: 600, color: '#4B3024' }}>
-                      ₹{(item.product.price * item.quantity).toLocaleString('en-IN')}
+                      ₹{((Number(item.product.price ?? item.product.sellingPrice ?? item.product.selling_price ?? 990) || 990) * item.quantity).toLocaleString('en-IN')}
                     </span>
                   </div>
                 </div>
@@ -414,15 +446,46 @@ export const CartDrawer = () => {
               </span>
             </div>
 
-            {/* Checkout Action Button */}
-            <button
-              onClick={handleCheckoutClick}
-              className="btn btn-primary"
-              style={{ width: '100%', padding: '0.95rem', minHeight: '48px' }}
-            >
-              <span>Proceed to Checkout</span>
-              <ArrowRight size={16} />
-            </button>
+            {/* Dual Checkout Actions */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+              <button
+                onClick={handleWhatsAppOrder}
+                style={{
+                  width: '100%',
+                  padding: '0.95rem',
+                  minHeight: '48px',
+                  backgroundColor: '#525B3A',
+                  color: '#FAF6EE',
+                  border: 'none',
+                  borderRadius: '3px',
+                  fontSize: '0.86rem',
+                  fontWeight: 600,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.55rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 8px 20px rgba(82, 91, 58, 0.25)',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3E462B')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#525B3A')}
+              >
+                <MessageCircle size={18} color="#D4AC68" />
+                <span>Order via WhatsApp</span>
+              </button>
+
+              <button
+                onClick={handleCheckoutClick}
+                className="btn btn-outline"
+                style={{ width: '100%', padding: '0.75rem', minHeight: '42px', fontSize: '0.8rem' }}
+              >
+                <span>Pay Online (UPI / Card / NetBanking)</span>
+                <ArrowRight size={14} />
+              </button>
+            </div>
           </div>
         )}
       </div>

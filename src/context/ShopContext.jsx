@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { PRODUCTS } from '../data/products';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { PRODUCTS as STATIC_PRODUCTS } from '../data/products';
+import { storeService } from '../services/storeService';
 
 const ShopContext = createContext();
 
@@ -7,6 +8,27 @@ export const ShopProvider = ({ children }) => {
   // Navigation / Page State
   const [currentPage, setCurrentPage] = useState('home');
   const [selectedProductId, setSelectedProductId] = useState(null);
+
+  // Dynamic Products loaded from storeService (with STATIC_PRODUCTS as resilient fallback)
+  const [products, setProducts] = useState(STATIC_PRODUCTS);
+  const [isProductsLoading, setIsProductsLoading] = useState(true);
+
+  const refreshProducts = useCallback(async () => {
+    try {
+      const data = await storeService.getProducts({ publishedOnly: false });
+      if (data && data.length > 0) {
+        setProducts(data);
+      }
+    } catch (err) {
+      console.warn('Failed to refresh products from storeService:', err);
+    } finally {
+      setIsProductsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshProducts();
+  }, [refreshProducts]);
 
   // Intro video session state
   const [hasIntroPlayed, setHasIntroPlayedState] = useState(() => {
@@ -30,10 +52,10 @@ export const ShopProvider = ({ children }) => {
       const saved = localStorage.getItem('rodhe_cart');
       return saved ? JSON.parse(saved) : [
         // Seed with 1 item for immediate delight or empty if clean
-        { product: PRODUCTS[0], quantity: 1 }
+        { product: STATIC_PRODUCTS[0], quantity: 1 }
       ];
     } catch (e) {
-      return [{ product: PRODUCTS[0], quantity: 1 }];
+      return [{ product: STATIC_PRODUCTS[0], quantity: 1 }];
     }
   });
 
@@ -47,9 +69,9 @@ export const ShopProvider = ({ children }) => {
   const [wishlist, setWishlist] = useState(() => {
     try {
       const saved = localStorage.getItem('rodhe_wishlist');
-      return saved ? JSON.parse(saved) : [PRODUCTS[1].id, PRODUCTS[2].id];
+      return saved ? JSON.parse(saved) : [STATIC_PRODUCTS[1].id, STATIC_PRODUCTS[2].id];
     } catch (e) {
-      return [PRODUCTS[1].id];
+      return [STATIC_PRODUCTS[1].id];
     }
   });
 
@@ -75,6 +97,7 @@ export const ShopProvider = ({ children }) => {
   const [inStockOnly, setInStockOnly] = useState(false);
   const [sortBy, setSortBy] = useState('featured');
   const [searchQuery, setSearchQuery] = useState('');
+  const [priceRangeFilter, setPriceRangeFilter] = useState(null); // 'under2k' | '2k-4k' | '4k-6k' | null
 
   // Discount & Gift Wrap
   const [appliedCoupon, setAppliedCoupon] = useState(null);
@@ -140,7 +163,7 @@ export const ShopProvider = ({ children }) => {
 
   // Wishlist Operations
   const toggleWishlist = (productId) => {
-    const product = PRODUCTS.find((p) => p.id === productId);
+    const product = products.find((p) => p.id === productId);
     setWishlist((prev) => {
       if (prev.includes(productId)) {
         showToast(`Removed "${product ? product.name : 'Item'}" from wishlist.`, 'info');
@@ -155,9 +178,16 @@ export const ShopProvider = ({ children }) => {
   const isInWishlist = (productId) => wishlist.includes(productId);
 
   // Financial Calculations
-  const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const subtotal = cart.reduce((sum, item) => {
+    const price = item.product.sellingPrice || item.product.price || 0;
+    return sum + price * item.quantity;
+  }, 0);
   
-  const discountAmount = appliedCoupon ? Math.round((subtotal * appliedCoupon.percent) / 100) : 0;
+  const discountAmount = appliedCoupon 
+    ? (appliedCoupon.type === 'fixed' 
+        ? Math.min(subtotal, appliedCoupon.value || 0) 
+        : Math.round((subtotal * (appliedCoupon.percent || appliedCoupon.value || 0)) / 100))
+    : 0;
   
   // Free shipping above ₹2999
   const shippingThreshold = 2999;
@@ -167,15 +197,34 @@ export const ShopProvider = ({ children }) => {
   const total = Math.max(0, subtotal - discountAmount + shippingFee + giftWrapFee);
   const remainingForFreeShipping = Math.max(0, shippingThreshold - subtotal);
 
-  const applyCouponCode = (code) => {
+  const applyCouponCode = async (code) => {
     const clean = code.trim().toUpperCase();
+    try {
+      const promos = await storeService.getPromotions();
+      const match = promos.find((p) => p.code?.toUpperCase() === clean && p.isActive);
+      if (match) {
+        const percent = match.type === 'percentage' ? match.value : Math.round((match.value / (subtotal || 1)) * 100);
+        setAppliedCoupon({
+          code: match.code,
+          percent: percent,
+          value: match.value,
+          type: match.type,
+          label: match.name || `${match.value}% Off Handcrafted Drapes`
+        });
+        showToast(`Coupon ${match.code} applied: ${match.name}!`, 'success');
+        return { success: true, message: `${match.value}${match.type === 'percentage' ? '%' : '₹'} discount applied!` };
+      }
+    } catch (e) {
+      console.warn('Coupon lookup failed:', e);
+    }
+
     if (clean === 'WOVEN10') {
-      setAppliedCoupon({ code: 'WOVEN10', percent: 10, label: '10% Handcrafted Welcome Discount' });
+      setAppliedCoupon({ code: 'WOVEN10', percent: 10, value: 10, type: 'percentage', label: '10% Handcrafted Welcome Discount' });
       showToast('Coupon WOVEN10 applied: 10% Off your order!', 'success');
       return { success: true, message: '10% discount applied!' };
     }
     if (clean === 'RODHE15') {
-      setAppliedCoupon({ code: 'RODHE15', percent: 15, label: '15% Festive Saree Offer' });
+      setAppliedCoupon({ code: 'RODHE15', percent: 15, value: 15, type: 'percentage', label: '15% Festive Saree Offer' });
       showToast('Coupon RODHE15 applied: 15% Off!', 'success');
       return { success: true, message: '15% discount applied!' };
     }
@@ -194,6 +243,29 @@ export const ShopProvider = ({ children }) => {
     if (productId) {
       setSelectedProductId(productId);
     }
+    try {
+      if (typeof window !== 'undefined') {
+        if (page === 'admin') {
+          if (!window.location.hash.includes('admin')) {
+            window.location.hash = 'admin';
+          }
+        } else if (page === 'shop' || page === 'collections') {
+          if (!window.location.hash.includes('collections') && !window.location.hash.includes('shop')) {
+            window.location.hash = 'collections';
+          }
+        } else if (page === 'product' && productId) {
+          window.location.hash = `product/${productId}`;
+        } else if (page === 'story') {
+          window.location.hash = 'story';
+        } else if (page === 'contact') {
+          window.location.hash = 'contact';
+        } else if (page === 'home') {
+          if (window.location.hash) {
+            history.replaceState(null, '', window.location.pathname + window.location.search);
+          }
+        }
+      }
+    } catch (e) {}
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -202,6 +274,7 @@ export const ShopProvider = ({ children }) => {
     setSelectedColor('all');
     setSelectedFabric('all');
     setPriceMax(8000);
+    setPriceRangeFilter(null);
     setInStockOnly(false);
     setSortBy('featured');
     setSearchQuery('');
@@ -213,7 +286,10 @@ export const ShopProvider = ({ children }) => {
   return (
     <ShopContext.Provider
       value={{
-        PRODUCTS,
+        PRODUCTS: products,
+        products,
+        isProductsLoading,
+        refreshProducts,
         currentPage,
         selectedProductId,
         navigateTo,
@@ -262,6 +338,8 @@ export const ShopProvider = ({ children }) => {
         setSelectedFabric,
         priceMax,
         setPriceMax,
+        priceRangeFilter,
+        setPriceRangeFilter,
         inStockOnly,
         setInStockOnly,
         sortBy,
