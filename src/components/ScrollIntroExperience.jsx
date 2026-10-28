@@ -3,8 +3,10 @@ import { gsap } from 'gsap';
 import { Volume2, VolumeX, ArrowRight } from 'lucide-react';
 
 // ============================================================================
-// LUXURY WEB AUDIO DESIGN SYSTEM
-// Procedural, zero-dependency, ultra-luxury sound design for RODHE
+// SERENE NATURE SOUND DESIGN SYSTEM (Web Audio API)
+// Organic, zero-dependency, ultra-luxury nature soundscape for RODHE
+// Features: Morning canopy breeze, sweet songbirds, crystal spring water droplets,
+// resonant bamboo wind chimes, and fresh forest unveil chorus.
 // ============================================================================
 class LuxuryAudioSystem {
   constructor() {
@@ -12,6 +14,7 @@ class LuxuryAudioSystem {
     this.isMuted = false;
     this.masterGain = null;
     this.hasInitialized = false;
+    this.ambientNodes = [];
   }
 
   init() {
@@ -21,7 +24,7 @@ class LuxuryAudioSystem {
       if (!AudioCtx) return;
       this.ctx = new AudioCtx();
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.8, this.ctx.currentTime);
+      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 0.75, this.ctx.currentTime);
       this.masterGain.connect(this.ctx.destination);
       this.hasInitialized = true;
     } catch (e) {
@@ -38,17 +41,135 @@ class LuxuryAudioSystem {
   setMuted(muted) {
     this.isMuted = muted;
     if (this.masterGain && this.ctx) {
-      this.masterGain.gain.setTargetAtTime(muted ? 0 : 0.8, this.ctx.currentTime, 0.04);
+      this.masterGain.gain.setTargetAtTime(muted ? 0 : 0.75, this.ctx.currentTime, 0.04);
     }
   }
 
-  // 1. Subtle warm opening ambient drone (C-major luxury chord)
+  // --- HELPER 1: Gentle Brown Noise (Deep organic forest breeze / rustling leaves) ---
+  createBreezeBuffer(duration = 4.5) {
+    if (!this.ctx) return null;
+    const sampleRate = this.ctx.sampleRate;
+    const bufferSize = Math.floor(sampleRate * duration);
+    const buffer = this.ctx.createBuffer(1, bufferSize, sampleRate);
+    const data = buffer.getChannelData(0);
+    let lastOut = 0.0;
+    for (let i = 0; i < bufferSize; i++) {
+      const white = (Math.random() * 2 - 1) * 0.25;
+      // Integrated brownian filter for smooth, warm wind texture
+      lastOut = (lastOut + 0.025 * white) / 1.025;
+      data[i] = lastOut * 3.5;
+    }
+    return buffer;
+  }
+
+  // --- HELPER 2: Sweet, Delicate Procedural Songbird Chirp ---
+  playBirdChirp(time, fStart, fPeak, fEnd, duration, volume = 0.032, withVibrato = true) {
+    if (!this.ctx || this.isMuted) return;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(fStart, time);
+      osc.frequency.exponentialRampToValueAtTime(fPeak, time + duration * 0.4);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(fEnd, 200), time + duration);
+
+      // Natural bird trill vibrato
+      if (withVibrato) {
+        const lfo = this.ctx.createOscillator();
+        const lfoGain = this.ctx.createGain();
+        lfo.frequency.setValueAtTime(28, time); // 28Hz flutter
+        lfoGain.gain.setValueAtTime(45, time);
+        lfo.connect(osc.frequency);
+        lfo.start(time);
+        lfo.stop(time + duration);
+      }
+
+      gain.gain.setValueAtTime(0.0001, time);
+      gain.gain.linearRampToValueAtTime(volume, time + 0.008);
+      gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+
+      osc.start(time);
+      osc.stop(time + duration + 0.05);
+    } catch (e) {
+      // Audio safety fallback
+    }
+  }
+
+  // --- HELPER 3: Pure Mountain Spring Water Droplet ("plink / bloop") ---
+  playWaterDroplet(time, startFreq = 1650, endFreq = 980, duration = 0.075, volume = 0.038) {
+    if (!this.ctx || this.isMuted) return;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(startFreq, time);
+      osc.frequency.exponentialRampToValueAtTime(endFreq, time + duration);
+
+      gain.gain.setValueAtTime(0.0001, time);
+      gain.gain.linearRampToValueAtTime(volume, time + 0.004);
+      gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+
+      osc.start(time);
+      osc.stop(time + duration + 0.02);
+    } catch (e) {}
+  }
+
+  // --- HELPER 4: Resonant Bamboo / Tonewood Nature Chime ---
+  playBambooChime(time, baseFreq, duration = 2.2, volume = 0.04) {
+    if (!this.ctx || this.isMuted) return;
+    try {
+      // Natural wooden/bamboo bar overtones
+      const partials = [
+        { mult: 1.0, decay: duration, vol: volume },
+        { mult: 2.76, decay: duration * 0.45, vol: volume * 0.4 },
+        { mult: 5.4, decay: duration * 0.22, vol: volume * 0.15 }
+      ];
+
+      partials.forEach((p) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const filter = this.ctx.createBiquadFilter();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(baseFreq * p.mult, time);
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(1600, time);
+
+        gain.gain.setValueAtTime(0.0001, time);
+        gain.gain.linearRampToValueAtTime(p.vol, time + 0.006);
+        gain.gain.exponentialRampToValueAtTime(0.0001, time + p.decay);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.masterGain);
+
+        osc.start(time);
+        osc.stop(time + p.decay + 0.05);
+      });
+    } catch (e) {}
+  }
+
+  // ==========================================================================
+  // NATURE SOUND CUES MATCHED TO INTRO TIMELINE
+  // ==========================================================================
+
+  // 1. Forest Dawn Ambience & First Sweet Songbird (Triggered at 0.0s)
   playAtmosphericChord() {
     if (!this.ctx || this.isMuted) return;
     this.resume();
     const now = this.ctx.currentTime;
-    const notes = [130.81, 196.00, 261.63, 392.00]; // C3, G3, C4, G4
-    notes.forEach((freq, i) => {
+
+    // A. Warm Earth Canopy Humming (Deep grounding organic warmth: A2 & E3)
+    [110.0, 164.81].forEach((freq, idx) => {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       const filter = this.ctx.createBiquadFilter();
@@ -57,130 +178,184 @@ class LuxuryAudioSystem {
       osc.frequency.setValueAtTime(freq, now);
 
       filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(400, now);
+      filter.frequency.setValueAtTime(260, now);
 
       gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.linearRampToValueAtTime(0.05 / (i + 1), now + 1.2);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 4.8);
+      gain.gain.linearRampToValueAtTime(0.025 / (idx + 1), now + 1.2);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 4.5);
 
       osc.connect(filter);
       filter.connect(gain);
       gain.connect(this.masterGain);
 
       osc.start(now);
-      osc.stop(now + 5.0);
+      osc.stop(now + 4.6);
     });
+
+    // B. Gentle Morning Forest Breeze
+    const breezeBuffer = this.createBreezeBuffer(4.8);
+    if (breezeBuffer) {
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = breezeBuffer;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(320, now);
+      filter.frequency.exponentialRampToValueAtTime(540, now + 1.8);
+      filter.frequency.exponentialRampToValueAtTime(280, now + 4.2);
+      filter.Q.setValueAtTime(1.8, now);
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.045, now + 0.9);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 4.6);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain);
+
+      noise.start(now);
+      noise.stop(now + 4.7);
+    }
+
+    // C. First Cheerful Morning Robin Chirps ("tweet... tweet-trill")
+    this.playBirdChirp(now + 0.28, 2750, 3600, 3150, 0.085, 0.038, true);
+    this.playBirdChirp(now + 0.42, 3200, 4150, 3500, 0.095, 0.042, true);
+    this.playWaterDroplet(now + 0.85, 1720, 1020, 0.07, 0.032);
   }
 
-  // 2. Soft airy silk whoosh as clouds drift across
+  // 2. Canopy Breeze & Spring Water Droplets as Clouds Drift Across (0.45s)
   playSilkWhoosh() {
     if (!this.ctx || this.isMuted) return;
     this.resume();
     const now = this.ctx.currentTime;
-    const bufferSize = this.ctx.sampleRate * 2.2;
-    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * 0.4;
+
+    // A. Soft gust of wind through tree leaves
+    const breezeBuffer = this.createBreezeBuffer(2.4);
+    if (breezeBuffer) {
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = breezeBuffer;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(450, now);
+      filter.frequency.exponentialRampToValueAtTime(920, now + 0.8);
+      filter.frequency.exponentialRampToValueAtTime(350, now + 2.0);
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.05, now + 0.6);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.2);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain);
+
+      noise.start(now);
+      noise.stop(now + 2.3);
     }
 
-    const noise = this.ctx.createBufferSource();
-    noise.buffer = buffer;
+    // B. Clear water stream droplets
+    this.playWaterDroplet(now + 0.35, 1580, 940, 0.075, 0.036);
+    this.playWaterDroplet(now + 0.75, 1890, 1120, 0.065, 0.028);
 
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(380, now);
-    filter.frequency.exponentialRampToValueAtTime(950, now + 1.0);
-    filter.frequency.exponentialRampToValueAtTime(320, now + 2.0);
-    filter.Q.setValueAtTime(2.5, now);
-
-    const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.linearRampToValueAtTime(0.065, now + 0.7);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.1);
-
-    noise.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.masterGain);
-
-    noise.start(now);
-    noise.stop(now + 2.2);
+    // C. Gentle forest bird in the canopy
+    this.playBirdChirp(now + 0.95, 2900, 3750, 3300, 0.08, 0.034, false);
   }
 
-  // 3. Delicate crystal chime during logo transformation
+  // 3. Tranquil Bamboo Wind Chimes & Songbird Melody (1.4s - Logo Transformation)
   playLogoChime() {
     if (!this.ctx || this.isMuted) return;
     this.resume();
     const now = this.ctx.currentTime;
-    const notes = [587.33, 880.00, 1174.66, 1760.00]; // D5, A5, D6, A6 harmonics
-    notes.forEach((freq, idx) => {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
 
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, now + idx * 0.06);
-
-      gain.gain.setValueAtTime(0.0001, now + idx * 0.06);
-      gain.gain.linearRampToValueAtTime(0.038, now + idx * 0.06 + 0.03);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.06 + 1.5);
-
-      osc.connect(gain);
-      gain.connect(this.masterGain);
-
-      osc.start(now + idx * 0.06);
-      osc.stop(now + idx * 0.06 + 1.6);
+    // A. Tuned Zen Bamboo Chimes (Pentatonic: E4, G#4, B4, E5)
+    const chimeFrequencies = [329.63, 415.30, 493.88, 659.25];
+    chimeFrequencies.forEach((freq, idx) => {
+      this.playBambooChime(now + idx * 0.09, freq, 2.2 - idx * 0.15, 0.04);
     });
+
+    // B. Sweet Songbird Warble / Melody
+    this.playBirdChirp(now + 0.22, 3300, 4200, 3600, 0.09, 0.036, true);
+    this.playBirdChirp(now + 0.38, 3650, 4550, 3900, 0.11, 0.038, true);
+    this.playBirdChirp(now + 0.55, 3400, 3950, 3200, 0.08, 0.032, false);
   }
 
-  // 4. Gentle tonal rise as emblem travels UPWARDS to header
+  // 4. Ascending Nature Harmonics & Crystal Droplet (2.3s - Emblem Ascends)
   playTonalRise() {
     if (!this.ctx || this.isMuted) return;
     this.resume();
     const now = this.ctx.currentTime;
+
+    // A. Gentle breeze rising through bamboo pipes (flute-like harmonic swell)
     const osc = this.ctx.createOscillator();
     const filter = this.ctx.createBiquadFilter();
     const gain = this.ctx.createGain();
 
     osc.type = 'sine';
     osc.frequency.setValueAtTime(220, now);
-    osc.frequency.exponentialRampToValueAtTime(440, now + 1.4);
+    osc.frequency.exponentialRampToValueAtTime(440, now + 1.3);
 
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(650, now);
+    filter.frequency.setValueAtTime(620, now);
+    filter.frequency.linearRampToValueAtTime(1100, now + 1.1);
 
     gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.linearRampToValueAtTime(0.04, now + 0.5);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.6);
+    gain.gain.linearRampToValueAtTime(0.035, now + 0.45);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.5);
 
     osc.connect(filter);
     filter.connect(gain);
     gain.connect(this.masterGain);
 
     osc.start(now);
-    osc.stop(now + 1.7);
+    osc.stop(now + 1.55);
+
+    // B. Crystal water drop as it reaches the peak
+    this.playWaterDroplet(now + 0.65, 2050, 1280, 0.07, 0.035);
   }
 
-  // 5. Light atmospheric sweep during final boutique reveal
+  // 5. Forest Morning Unveil Chorus & Sunlight Breeze (2.8s - Curtains Part)
   playRevealSweep() {
     if (!this.ctx || this.isMuted) return;
     this.resume();
     const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
 
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(329.63, now); // E4
-    osc.frequency.exponentialRampToValueAtTime(523.25, now + 1.1); // C5
+    // A. Fresh warm summer breeze unveiling the sanctuary
+    const breezeBuffer = this.createBreezeBuffer(2.2);
+    if (breezeBuffer) {
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = breezeBuffer;
 
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.linearRampToValueAtTime(0.03, now + 0.4);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.8);
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(320, now);
+      filter.frequency.exponentialRampToValueAtTime(780, now + 0.7);
+      filter.frequency.exponentialRampToValueAtTime(260, now + 1.8);
+      filter.Q.setValueAtTime(1.4, now);
 
-    osc.connect(gain);
-    gain.connect(this.masterGain);
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.042, now + 0.5);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.0);
 
-    osc.start(now);
-    osc.stop(now + 1.9);
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain);
+
+      noise.start(now);
+      noise.stop(now + 2.1);
+    }
+
+    // B. Serene morning chorus of birds greeting the boutique reveal
+    this.playBirdChirp(now + 0.12, 2800, 3600, 3100, 0.08, 0.035, true);
+    this.playBirdChirp(now + 0.28, 3350, 4350, 3750, 0.10, 0.040, true);
+    this.playBirdChirp(now + 0.50, 3900, 4700, 4100, 0.12, 0.038, true);
+
+    // C. Harmonious peaceful bamboo chime resolution (A4 & E5)
+    this.playBambooChime(now + 0.15, 440.00, 2.0, 0.035);
+    this.playBambooChime(now + 0.35, 659.25, 1.8, 0.028);
+    this.playWaterDroplet(now + 0.8, 1750, 1050, 0.065, 0.025);
   }
 }
 
@@ -863,7 +1038,7 @@ export const ScrollIntroExperience = ({ onComplete }) => {
         <button
           id="rodhe-sound-btn"
           onClick={toggleMute}
-          aria-label={isMuted ? 'Unmute luxury sound' : 'Mute luxury sound'}
+          aria-label={isMuted ? 'Unmute nature sound' : 'Mute nature sound'}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -893,7 +1068,7 @@ export const ScrollIntroExperience = ({ onComplete }) => {
           }}
         >
           {isMuted ? <VolumeX size={13} /> : <Volume2 size={13} />}
-          <span>{isMuted ? 'Muted' : 'Sound'}</span>
+          <span>{isMuted ? 'Muted' : 'Nature Sound'}</span>
         </button>
 
         {/* Accessible Skip Button */}
