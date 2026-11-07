@@ -122,3 +122,4 @@ The application is cryptographically hardened and free from client-side credenti
 1. Rotate Supabase API keys if the previous prototype service-role key was ever shared externally.
 2. Require multi-factor authentication (MFA) for the boutique administrator email account via Supabase Auth settings.
 3. Keep CORS origins restricted to `https://rodhe.in` in production.
+

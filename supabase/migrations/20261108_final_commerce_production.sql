@@ -29,6 +29,11 @@ CREATE TABLE IF NOT EXISTS public.admin_users (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Defensive schema evolution if table pre-existed
+ALTER TABLE public.admin_users ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
+ALTER TABLE public.admin_users ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE public.admin_users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'super_admin';
+
 ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
 
 -- Clean existing policies for idempotency
@@ -186,6 +191,11 @@ CREATE TABLE IF NOT EXISTS public.orders (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Defensive schema evolution if table pre-existed
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS customer_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS tracking_number TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS courier_partner TEXT DEFAULT 'Express Air Logistics';
 
 CREATE TABLE IF NOT EXISTS public.order_items (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -726,3 +736,4 @@ GRANT EXECUTE ON FUNCTION public.lookup_order(TEXT, TEXT) TO anon, authenticated
 GRANT EXECUTE ON FUNCTION public.create_order_atomic(JSONB, JSONB) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.cancel_order_atomic(UUID, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;
+

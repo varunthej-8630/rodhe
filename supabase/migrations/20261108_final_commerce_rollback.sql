@@ -47,3 +47,4 @@ DROP POLICY IF EXISTS "Admin Users Delete Authorized" ON public.admin_users;
 
 -- 4. Note: Master tables (orders, order_items, payments, customer_profiles, customer_addresses, admin_users)
 -- are NOT dropped by default during rollback to protect existing business data.
+

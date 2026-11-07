@@ -106,3 +106,4 @@ Resolve-DnsName emtmzrjaygcrmzoatvfa.supabase.co
 
 > [!WARNING] Active Database Host Block
 > The host `emtmzrjaygcrmzoatvfa.supabase.co` specified in `.env` is either paused, deleted, or a prototype placeholder in Supabase. Executing SQL migrations against this live host will fail with `getaddrinfo ENOTFOUND`. A valid live Supabase project URL and anon key must be provided before executing Gate A.
+
