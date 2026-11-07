@@ -21,12 +21,13 @@ import { WishlistDrawer } from './components/WishlistDrawer';
 import { SearchModal } from './components/SearchModal';
 import { AuthModal } from './components/AuthModal';
 import { CheckoutModal } from './components/CheckoutModal';
+import { TrackOrderModal } from './components/TrackOrderModal';
 import { ProductQuickViewModal } from './components/ProductQuickViewModal';
 import { Toast } from './components/Toast';
 import { Footer } from './components/Footer';
 
 const MainLayout = () => {
-  const { currentPage, selectedProductId, navigateTo } = useShop();
+  const { currentPage, selectedProductId, navigateTo, isTrackOrderOpen, setIsTrackOrderOpen } = useShop();
 
   // URL route sync: check for #admin, #shop, #collections, #product, etc. on mount and hashchange
   useEffect(() => {
@@ -115,6 +116,7 @@ const MainLayout = () => {
         <SearchModal />
         <AuthModal />
         <CheckoutModal />
+        <TrackOrderModal isOpen={isTrackOrderOpen} onClose={() => setIsTrackOrderOpen(false)} />
         <ProductQuickViewModal />
         <Toast />
 

@@ -65,6 +65,41 @@ export const CheckoutModal = () => {
     }
   };
 
+  const finalizeOrderSuccess = (result) => {
+    const generatedNumber = result.orderNumber || result.order_number;
+    setOrderId(generatedNumber);
+    setCreatedOrder(result);
+    setStep(4);
+    clearCart();
+
+    // Persist shipping address for patron convenience
+    try {
+      const existingPatron = JSON.parse(localStorage.getItem('rodhe_patron_session') || '{}');
+      const updatedPatron = {
+        ...existingPatron,
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        landmark: formData.landmark,
+        city: formData.city,
+        state: formData.state,
+        pincode: formData.pincode
+      };
+      localStorage.setItem('rodhe_patron_session', JSON.stringify(updatedPatron));
+    } catch (e) {}
+
+    // Trigger Celebration Confetti
+    try {
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#B88D4A', '#EADAB5', '#4B3024', '#C98278']
+      });
+    } catch (e) {}
+  };
+
   const handlePlaceOrder = async () => {
     setIsProcessing(true);
     setOrderError('');
@@ -92,39 +127,80 @@ export const CheckoutModal = () => {
         paymentMethod: formData.paymentMethod
       };
 
-      const result = await storeService.createOrder(orderPayload);
-      const generatedNumber = result.orderNumber || result.order_number;
-      setOrderId(generatedNumber);
-      setCreatedOrder(result);
-      setStep(4);
-      clearCart();
-
-      // Persist shipping address for patron convenience
-      try {
-        const existingPatron = JSON.parse(localStorage.getItem('rodhe_patron_session') || '{}');
-        const updatedPatron = {
-          ...existingPatron,
-          name: `${formData.firstName} ${formData.lastName}`.trim(),
-          email: formData.email,
-          phone: formData.phone,
-          address: formData.address,
-          landmark: formData.landmark,
-          city: formData.city,
-          state: formData.state,
-          pincode: formData.pincode
+      // 1. Cash on Delivery handling
+      if (formData.paymentMethod === 'cod') {
+        const codPayload = {
+          ...orderPayload,
+          paymentStatus: 'pending_cod'
         };
-        localStorage.setItem('rodhe_patron_session', JSON.stringify(updatedPatron));
-      } catch (e) {}
+        const result = await storeService.createOrder(codPayload);
+        finalizeOrderSuccess(result);
+        return;
+      }
 
-      // Trigger Celebration Confetti
-      try {
-        confetti({
-          particleCount: 80,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#B88D4A', '#EADAB5', '#4B3024', '#C98278']
+      // 2. Razorpay Gateway Handling
+      const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
+      const isRazorpayConfigured = razorpayKey && razorpayKey.startsWith('rzp_') && typeof window !== 'undefined' && window.Razorpay;
+
+      if (isRazorpayConfigured) {
+        const options = {
+          key: razorpayKey,
+          amount: Math.round(total * 100), // In paise
+          currency: 'INR',
+          name: 'RODHE — Woven with Trust',
+          description: `Order of ${cart.length} Handcrafted Saree${cart.length > 1 ? 's' : ''}`,
+          image: '/assets/01_Primary_logo_transparent.png',
+          handler: async function (response) {
+            try {
+              const verifiedPayload = {
+                ...orderPayload,
+                paymentStatus: 'captured',
+                gatewayPaymentId: response.razorpay_payment_id,
+                gatewayOrderId: response.razorpay_order_id,
+                gatewaySignature: response.razorpay_signature
+              };
+              const result = await storeService.createOrder(verifiedPayload);
+              finalizeOrderSuccess(result);
+            } catch (err) {
+              console.error('Order finalization error post-payment:', err);
+              setIsProcessing(false);
+              setOrderError(err.message || 'Payment recorded, but cloud order registry sync failed. Please notify concierge@rodhe.in');
+            }
+          },
+          prefill: {
+            name: `${formData.firstName} ${formData.lastName}`.trim(),
+            email: formData.email,
+            contact: formData.phone
+          },
+          theme: {
+            color: '#4B3024'
+          },
+          modal: {
+            ondismiss: function () {
+              setIsProcessing(false);
+              setOrderError('Payment process was dismissed. Your shopping bag has been safely preserved.');
+            }
+          }
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.on('payment.failed', function (failRes) {
+          setIsProcessing(false);
+          setOrderError(`Payment failed: ${failRes.error?.description || 'Gateway transaction declined.'}`);
         });
-      } catch (e) {}
+        rzp.open();
+        return;
+      }
+
+      // 3. Fallback / Test Simulation Mode (when live gateway key is pending)
+      const simPayload = {
+        ...orderPayload,
+        paymentStatus: 'pending_payment',
+        notes: 'Test Mode: Gateway pending merchant activation. Order reserved with pending_payment status.'
+      };
+      const result = await storeService.createOrder(simPayload);
+      finalizeOrderSuccess(result);
+
     } catch (err) {
       console.error('Order creation error:', err);
       setOrderError(err.message || 'Unable to secure order in cloud database. Your shopping bag has been preserved.');
@@ -675,7 +751,14 @@ export const CheckoutModal = () => {
                         marginBottom: '1.25rem'
                       }}
                     >
-                      <strong style={{ color: '#4B3024' }}>Notice:</strong> Electronic orders are recorded in the boutique registry with <code>pending_payment</code> status until official gateway settlement. Cash on Delivery is confirmed as <code>pending_cod</code>.
+                      <strong style={{ color: '#4B3024' }}>Commerce Architecture:</strong>{' '}
+                      {formData.paymentMethod === 'cod' ? (
+                        <span>Cash on Delivery is confirmed as <code>pending_cod</code> and verified prior to atelier dispatch.</span>
+                      ) : import.meta.env.VITE_RAZORPAY_KEY_ID ? (
+                        <span>Razorpay Standard Checkout active. UPI, Credit/Debit Cards, and Net Banking supported with 256-bit SSL encryption.</span>
+                      ) : (
+                        <span>Development Mode: Razorpay test simulation enabled. Orders transition safely with verifiable <code>pending_payment</code> ledger.</span>
+                      )}
                     </div>
 
                     <div style={{ display: 'flex', gap: '0.75rem' }}>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, User, Heart, ShoppingBag, Menu, X, ChevronDown, Sparkles, Shield } from 'lucide-react';
+import { Search, User, Heart, ShoppingBag, Menu, X, ChevronDown, Sparkles, Shield, Truck } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 
 export const Navbar = () => {
@@ -12,6 +12,7 @@ export const Navbar = () => {
     setIsWishlistOpen,
     setIsSearchOpen,
     setIsAuthOpen,
+    setIsTrackOrderOpen,
     patronUser,
     setSelectedCraft,
     PRODUCTS
@@ -370,6 +371,32 @@ export const Navbar = () => {
               )}
             </button>
 
+            {/* Track Order */}
+            <button
+              onClick={() => setIsTrackOrderOpen(true)}
+              aria-label="Track your saree order"
+              title="Track Your Order"
+              className="d-md-flex header-nav-btn"
+              style={{
+                color: '#4B3024',
+                transition: 'color 0.2s',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '38px',
+                height: '38px',
+                minWidth: '38px',
+                minHeight: '38px',
+                borderRadius: '50%',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = '#B88D4A')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = '#4B3024')}
+            >
+              <Truck size={19} strokeWidth={1.8} />
+            </button>
+
             {/* Wishlist */}
             <button
               onClick={() => setIsWishlistOpen(true)}
@@ -566,6 +593,30 @@ export const Navbar = () => {
                   <span>Wishlist ({wishlistCount})</span>
                 </button>
               </div>
+
+              {/* Mobile Track Order Button */}
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsTrackOrderOpen(true);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.65rem 0.85rem',
+                  backgroundColor: '#FAF6EE',
+                  border: '1px solid rgba(184, 141, 74, 0.3)',
+                  borderRadius: '3px',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  color: '#4B3024',
+                  cursor: 'pointer'
+                }}
+              >
+                <Truck size={16} color="#B88D4A" />
+                <span>Track Your Saree Order</span>
+              </button>
 
               {/* Primary Routes */}
               <button

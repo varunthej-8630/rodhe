@@ -39,6 +39,21 @@ export const authService = {
   },
 
   /**
+   * Cryptographically verifies administrator authorization on the server.
+   */
+  async verifyAdminAuthorization() {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: isAdmin, error } = await supabase.rpc('is_admin');
+        return !error && Boolean(isAdmin);
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  },
+
+  /**
    * Authenticates administrator using genuine Supabase Auth.
    * Verifies database authorization via public.is_admin() RPC.
    */

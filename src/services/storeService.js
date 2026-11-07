@@ -1,6 +1,6 @@
-import { supabase, isSupabaseConfigured } from './supabaseClient';
-import { PRODUCTS as SEED_PRODUCTS } from '../data/products';
-import { TESTIMONIALS as SEED_TESTIMONIALS } from '../data/storyData';
+import { supabase, isSupabaseConfigured } from './supabaseClient.js';
+import { PRODUCTS as SEED_PRODUCTS } from '../data/products.js';
+import { TESTIMONIALS as SEED_TESTIMONIALS } from '../data/storyData.js';
 
 // Storage keys for persistent local storage engine
 const STORAGE_KEYS = {
@@ -19,7 +19,7 @@ const STORAGE_KEYS = {
 const DEFAULT_SETTINGS = {
   storeName: 'RODHE',
   tagline: 'Woven with Trust',
-  whatsappNumber: import.meta.env.VITE_STORE_WHATSAPP_NUMBER || '919490658858',
+  whatsappNumber: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_STORE_WHATSAPP_NUMBER) || '919490658858',
   conciergeEmail: 'concierge@rodhe.in',
   currencySymbol: '₹',
   currencyCode: 'INR',
@@ -64,20 +64,27 @@ const DEFAULT_PROMOTIONS = [
   { id: 'promo-2', code: 'RODHE15', label: '15% Festive Saree Offer', discountType: 'percentage', discountValue: 15, isActive: true }
 ];
 
+// Memory fallback for Node environments and SSR
+const memoryStore = new Map();
+
 // Local Storage Helper Utilities
 const getLocalData = (key, fallback) => {
   try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch (e) {
-    return fallback;
-  }
+    if (typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem(key);
+      if (raw) return JSON.parse(raw);
+    }
+  } catch (e) {}
+  return memoryStore.has(key) ? memoryStore.get(key) : fallback;
 };
 
 const setLocalData = (key, val) => {
   try {
-    localStorage.setItem(key, JSON.stringify(val));
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(key, JSON.stringify(val));
+    }
   } catch (e) {}
+  memoryStore.set(key, val);
 };
 
 // Helper: resolve guaranteed high-resolution saree image based on craft & color family
@@ -901,7 +908,7 @@ export const storeService = {
       created_at: new Date().toISOString()
     };
 
-    // 2. Synchronous Cloud Persistence (Fail-Safe Verification)
+    // 2. Synchronous Cloud Persistence (Fail-Safe Verification with Atomic RPC)
     if (isSupabaseConfigured && supabase) {
       const dbOrderPayload = {
         order_number: orderRecord.order_number,
@@ -918,46 +925,80 @@ export const storeService = {
         payment_method: orderRecord.payment_method,
         payment_status: orderRecord.payment_status,
         fulfillment_status: orderRecord.fulfillment_status,
-        courier_partner: orderRecord.courier_partner
+        courier_partner: orderRecord.courier_partner,
+        gateway_payment_id: orderPayload.gatewayPaymentId || null,
+        gateway_order_id: orderPayload.gatewayOrderId || null,
+        gateway_signature: orderPayload.gatewaySignature || null
       };
 
-      const { data: dbOrder, error: orderErr } = await supabase
-        .from('orders')
-        .insert([dbOrderPayload])
-        .select('id')
-        .maybeSingle();
+      const dbItems = formattedItems.map(it => ({
+        product_id: it.productId,
+        sku: it.sku,
+        name: it.name,
+        unit_price: it.unitPrice,
+        quantity: it.quantity,
+        subtotal: it.subtotal,
+        primary_image: it.primaryImage
+      }));
 
-      if (orderErr) {
-        console.error('Supabase order creation rejected:', orderErr);
-        throw new Error(orderErr.message || 'Unable to secure order in cloud database. Bag preserved.');
+      let rpcSucceeded = false;
+      try {
+        const { data: rpcResult, error: rpcErr } = await supabase.rpc('create_order_atomic', {
+          p_order: dbOrderPayload,
+          p_items: dbItems
+        });
+
+        if (rpcErr) {
+          if (rpcErr.message && (rpcErr.message.includes('Insufficient') || rpcErr.message.includes('stock'))) {
+            throw new Error(rpcErr.message);
+          }
+          console.warn('create_order_atomic RPC notice, falling back to direct insert:', rpcErr.message);
+        } else if (rpcResult?.success) {
+          rpcSucceeded = true;
+          if (rpcResult.order_number) {
+            orderRecord.orderNumber = rpcResult.order_number;
+            orderRecord.order_number = rpcResult.order_number;
+          }
+          if (rpcResult.order_id) {
+            orderRecord.id = rpcResult.order_id;
+          }
+        }
+      } catch (err) {
+        if (err.message && err.message.includes('Insufficient')) {
+          throw err;
+        }
+        console.warn('RPC execution attempt notice:', err);
       }
 
-      if (dbOrder?.id) {
-        const dbItems = formattedItems.map(it => ({
-          order_id: dbOrder.id,
-          product_id: it.productId,
-          sku: it.sku,
-          name: it.name,
-          unit_price: it.unitPrice,
-          quantity: it.quantity,
-          subtotal: it.subtotal,
-          primary_image: it.primaryImage
-        }));
-        
-        const { error: itemsErr } = await supabase.from('order_items').insert(dbItems);
-        if (itemsErr) {
-          console.error('Failed to persist order items:', itemsErr);
-          throw new Error('Failed to record order items in cloud registry.');
+      if (!rpcSucceeded) {
+        const { data: dbOrder, error: orderErr } = await supabase
+          .from('orders')
+          .insert([dbOrderPayload])
+          .select('id')
+          .maybeSingle();
+
+        if (orderErr) {
+          console.error('Supabase order creation rejected:', orderErr);
+          throw new Error(orderErr.message || 'Unable to secure order in cloud database. Bag preserved.');
         }
 
-        // Deduct inventory in Supabase products table
-        for (const it of formattedItems) {
-          try {
-            await supabase.rpc('decrement_product_stock', {
-              p_sku: it.sku,
-              p_qty: it.quantity
-            });
-          } catch {}
+        if (dbOrder?.id) {
+          const itemsToInsert = dbItems.map(it => ({ ...it, order_id: dbOrder.id }));
+          const { error: itemsErr } = await supabase.from('order_items').insert(itemsToInsert);
+          if (itemsErr) {
+            console.error('Failed to persist order items:', itemsErr);
+            throw new Error('Failed to record order items in cloud registry.');
+          }
+
+          // Deduct inventory in Supabase products table
+          for (const it of formattedItems) {
+            try {
+              await supabase.rpc('decrement_product_stock', {
+                p_sku: it.sku,
+                p_qty: it.quantity
+              });
+            } catch {}
+          }
         }
       }
     }
@@ -1191,5 +1232,94 @@ export const storeService = {
     }
 
     return true;
+  },
+
+  async lookupOrder(orderNumber, contact) {
+    if (!orderNumber || !contact) {
+      throw new Error('Please provide both Order Number and Phone or Email.');
+    }
+    const cleanNum = orderNumber.trim();
+    const cleanContact = contact.trim().toLowerCase();
+    const cleanDigits = cleanContact.replace(/\D/g, '');
+
+    // 1. Try Supabase RPC lookup_order
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.rpc('lookup_order', {
+          p_order_number: cleanNum,
+          p_phone_or_email: cleanContact
+        });
+
+        if (!error && data?.success && data?.order) {
+          return data.order;
+        }
+      } catch (err) {
+        console.warn('lookup_order RPC attempt notice:', err);
+      }
+    }
+
+    // 2. Local fallback
+    const orders = getLocalData(STORAGE_KEYS.ORDERS, []);
+    const found = orders.find(o => {
+      const num = (o.orderNumber || o.order_number || '').trim().toLowerCase();
+      if (num !== cleanNum.toLowerCase()) return false;
+      const email = (o.customerEmail || o.customer_email || '').toLowerCase();
+      const phoneDigits = (o.customerPhone || o.customer_phone || '').replace(/\D/g, '');
+      return email === cleanContact || (cleanDigits.length >= 8 && phoneDigits.endsWith(cleanDigits.slice(-10)));
+    });
+
+    return found || null;
+  },
+
+  async getCustomerOrders(email) {
+    if (!email) return [];
+    const cleanEmail = email.trim().toLowerCase();
+
+    // 1. Try Supabase query
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select(`
+            id, order_number, customer_name, customer_email,
+            grand_total, subtotal, shipping_fee, payment_method,
+            payment_status, fulfillment_status, courier_partner,
+            tracking_number, created_at,
+            order_items (
+              id, sku, name, unit_price, quantity, subtotal, primary_image
+            )
+          `)
+          .eq('customer_email', cleanEmail)
+          .order('created_at', { ascending: false });
+
+        if (!error && Array.isArray(data) && data.length > 0) {
+          return data;
+        }
+      } catch (err) {
+        console.warn('Supabase customer orders query notice:', err);
+      }
+    }
+
+    // 2. Local fallback
+    const orders = getLocalData(STORAGE_KEYS.ORDERS, []);
+    return orders.filter(o => (o.customerEmail || o.customer_email || '').toLowerCase() === cleanEmail);
+  },
+
+  async cancelOrder(orderId, reason = 'Customer requested cancellation') {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.rpc('cancel_order_atomic', {
+          p_order_id: orderId,
+          p_reason: reason
+        });
+        if (!error && data?.success) {
+          await this.updateOrderStatus(orderId, { fulfillmentStatus: 'cancelled' });
+          return data;
+        }
+      } catch (err) {
+        console.warn('cancel_order_atomic RPC attempt notice:', err);
+      }
+    }
+    return this.updateOrderStatus(orderId, { fulfillmentStatus: 'cancelled' });
   }
 };

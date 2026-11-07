@@ -9,7 +9,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function syncProducts() {
   console.log('--- Checking Supabase tables ---');
-  const { data: testData, error: testErr } = await supabase.from('products').select('count').limit(1);
+  const { error: testErr } = await supabase.from('products').select('count').limit(1);
 
   if (testErr) {
     console.error('❌ Table "products" does not exist yet in Supabase:', testErr.message);

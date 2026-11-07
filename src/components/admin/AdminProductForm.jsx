@@ -8,7 +8,7 @@ export const AdminProductForm = ({ product, onSaveComplete, onCancel }) => {
   const isEditing = Boolean(product && product.id);
   const { refreshProducts } = useShop();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(() => ({
     id: product?.id || `rodhe-saree-${Date.now()}`,
     name: product?.name || '',
     slug: product?.slug || '',
@@ -41,7 +41,7 @@ export const AdminProductForm = ({ product, onSaveComplete, onCancel }) => {
       product?.primaryImage || '/assets/products/saree_indigo_shibori.jpg',
       product?.secondaryImage || '/assets/products/saree_indigo_shibori_detail.jpg'
     ]
-  });
+  }));
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);

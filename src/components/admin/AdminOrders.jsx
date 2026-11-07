@@ -335,13 +335,15 @@ export const AdminOrders = () => {
                         <span>#{order.orderNumber || order.order_number}</span>
                       </div>
                       <span style={{ fontSize: '0.74rem', color: '#8F7263' }}>
-                        {new Date(order.createdAt || order.created_at || Date.now()).toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
+                        {order.createdAt || order.created_at
+                          ? new Date(order.createdAt || order.created_at).toLocaleDateString('en-IN', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })
+                          : 'Recently'}
                       </span>
                     </div>
 

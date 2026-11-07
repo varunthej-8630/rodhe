@@ -87,6 +87,7 @@ export const ShopProvider = ({ children }) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isTrackOrderOpen, setIsTrackOrderOpen] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState(null);
 
   // Patron Session State
@@ -358,6 +359,8 @@ export const ShopProvider = ({ children }) => {
         logoutPatron,
         isCheckoutOpen,
         setIsCheckoutOpen,
+        isTrackOrderOpen,
+        setIsTrackOrderOpen,
         quickViewProduct,
         setQuickViewProduct,
         selectedCraft,

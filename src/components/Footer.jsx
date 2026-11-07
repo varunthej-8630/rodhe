@@ -5,7 +5,7 @@ import { useShop } from '../context/ShopContext';
 import { storeService } from '../services/storeService';
 
 export const Footer = () => {
-  const { navigateTo, setSelectedCraft, showToast } = useShop();
+  const { navigateTo, setSelectedCraft, showToast, setIsTrackOrderOpen } = useShop();
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
 
@@ -310,6 +310,11 @@ export const Footer = () => {
                 Client Concierge
               </h4>
               <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.85rem' }}>
+                <li>
+                  <button onClick={() => setIsTrackOrderOpen(true)} style={{ color: '#D4AC68', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                    Track Your Order
+                  </button>
+                </li>
                 <li>
                   <button onClick={() => navigateTo('contact')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
                     Customer Support
