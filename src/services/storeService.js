@@ -11,7 +11,8 @@ const STORAGE_KEYS = {
   TESTIMONIALS: 'rodhe_db_testimonials',
   SETTINGS: 'rodhe_db_settings',
   ENQUIRIES: 'rodhe_db_enquiries',
-  SIGNUPS: 'rodhe_db_signups'
+  SIGNUPS: 'rodhe_db_signups',
+  ORDERS: 'rodhe_db_orders'
 };
 
 // Initial Seed Data for Store Settings
@@ -283,6 +284,9 @@ const initLocalStore = () => {
   }
   if (!localStorage.getItem(STORAGE_KEYS.SIGNUPS)) {
     setLocalData(STORAGE_KEYS.SIGNUPS, []);
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.ORDERS)) {
+    setLocalData(STORAGE_KEYS.ORDERS, []);
   }
 };
 
@@ -782,7 +786,410 @@ export const storeService = {
     return { success: true, message: 'Welcome to the RODHE Circle of Trust.' };
   },
 
+  // Alias for backward and forward compatibility
+  async createEnquiry(enquiry) {
+    return this.submitEnquiry(enquiry);
+  },
+
   async getSignups() {
     return getLocalData(STORAGE_KEYS.SIGNUPS, []);
+  },
+
+  // --------------------------------------------------------------------------
+  // ORDERS & TRANSACTIONAL COMMERCE
+  // --------------------------------------------------------------------------
+  // ORDER FULFILLMENT & PERSISTENCE (Secured)
+  // --------------------------------------------------------------------------
+  async createOrder(orderPayload) {
+    const rawItems = Array.isArray(orderPayload.items) ? orderPayload.items : [];
+    if (rawItems.length === 0) {
+      throw new Error('Cannot place an order with an empty shopping bag.');
+    }
+
+    const currentProducts = getLocalData(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS);
+
+    // 1. Pre-flight Inventory Validation: Ensure items are in stock
+    for (const item of rawItems) {
+      const prod = item.product || item;
+      const targetId = String(prod.id || prod.slug || '');
+      const targetSku = prod.sku || '';
+      const matching = currentProducts.find(p => p.id === targetId || p.sku === targetSku || p.slug === targetId);
+      const available = Number(matching?.stockCount ?? matching?.stock_count ?? 10);
+      const requested = Number(item.quantity) || 1;
+
+      if (available < requested) {
+        throw new Error(`Insufficient inventory for "${prod.name || 'saree'}". Only ${available} available in atelier.`);
+      }
+    }
+
+    const orderNumber = `RDH-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+    const orderId = `order-${Date.now()}`;
+
+    // Normalize items
+    const formattedItems = rawItems.map((item, idx) => {
+      const prod = item.product || item;
+      const unitPrice = Number(prod.price ?? prod.sellingPrice ?? prod.selling_price ?? 990) || 990;
+      const qty = Number(item.quantity) || 1;
+      return {
+        id: `item-${Date.now()}-${idx}`,
+        productId: String(prod.id || prod.slug || `saree-${idx}`),
+        sku: prod.sku || `RDH-${String(idx + 1).padStart(3, '0')}`,
+        name: prod.name || 'Handcrafted Cotton Saree',
+        unitPrice: unitPrice,
+        unit_price: unitPrice,
+        quantity: qty,
+        subtotal: unitPrice * qty,
+        primaryImage: prod.primaryImage || prod.primary_image || '/assets/products/saree_ivory_mulmul.jpg'
+      };
+    });
+
+    const subtotal = formattedItems.reduce((acc, it) => acc + it.subtotal, 0);
+    const discountAmount = Number(orderPayload.discountAmount || 0);
+    const shippingFee = Number(orderPayload.shippingFee || 0);
+    const giftWrapFee = Number(orderPayload.giftWrapFee || (orderPayload.giftWrap ? 150 : 0));
+    const grandTotal = Math.max(0, subtotal - discountAmount + shippingFee + giftWrapFee);
+
+    // Initial payment status: NEVER fake 'captured' without gateway confirmation
+    const paymentStatus = orderPayload.paymentMethod === 'cod' ? 'pending_cod' : 'pending_payment';
+
+    const orderRecord = {
+      id: orderId,
+      orderNumber,
+      order_number: orderNumber,
+      customerName: orderPayload.customerName || orderPayload.name || 'Patron',
+      customer_name: orderPayload.customerName || orderPayload.name || 'Patron',
+      customerEmail: orderPayload.customerEmail || orderPayload.email || '',
+      customer_email: orderPayload.customerEmail || orderPayload.email || '',
+      customerPhone: orderPayload.customerPhone || orderPayload.phone || '',
+      customer_phone: orderPayload.customerPhone || orderPayload.phone || '',
+      shippingAddress: orderPayload.shippingAddress || {
+        addressLine1: orderPayload.address || '',
+        city: orderPayload.city || '',
+        state: orderPayload.state || '',
+        pincode: orderPayload.pincode || ''
+      },
+      shipping_address: orderPayload.shippingAddress || {
+        addressLine1: orderPayload.address || '',
+        city: orderPayload.city || '',
+        state: orderPayload.state || '',
+        pincode: orderPayload.pincode || ''
+      },
+      items: formattedItems,
+      subtotal,
+      discountAmount,
+      discount_amount: discountAmount,
+      shippingFee,
+      shipping_fee: shippingFee,
+      giftWrap: Boolean(orderPayload.giftWrap),
+      giftWrapFee,
+      gift_wrap_fee: giftWrapFee,
+      grandTotal,
+      grand_total: grandTotal,
+      appliedCoupon: orderPayload.appliedCoupon || null,
+      applied_coupon: orderPayload.appliedCoupon || null,
+      paymentMethod: orderPayload.paymentMethod || 'upi',
+      payment_method: orderPayload.paymentMethod || 'upi',
+      paymentStatus: paymentStatus,
+      payment_status: paymentStatus,
+      fulfillmentStatus: 'unfulfilled',
+      fulfillment_status: 'unfulfilled',
+      trackingNumber: '',
+      tracking_number: '',
+      courierPartner: 'Express Air Logistics',
+      courier_partner: 'Express Air Logistics',
+      createdAt: new Date().toISOString(),
+      created_at: new Date().toISOString()
+    };
+
+    // 2. Synchronous Cloud Persistence (Fail-Safe Verification)
+    if (isSupabaseConfigured && supabase) {
+      const dbOrderPayload = {
+        order_number: orderRecord.order_number,
+        customer_name: orderRecord.customer_name,
+        customer_email: orderRecord.customer_email,
+        customer_phone: orderRecord.customer_phone,
+        shipping_address: orderRecord.shipping_address,
+        subtotal: orderRecord.subtotal,
+        discount_amount: orderRecord.discount_amount,
+        shipping_fee: orderRecord.shipping_fee,
+        gift_wrap_fee: orderRecord.gift_wrap_fee,
+        grand_total: orderRecord.grand_total,
+        applied_coupon: orderRecord.applied_coupon,
+        payment_method: orderRecord.payment_method,
+        payment_status: orderRecord.payment_status,
+        fulfillment_status: orderRecord.fulfillment_status,
+        courier_partner: orderRecord.courier_partner
+      };
+
+      const { data: dbOrder, error: orderErr } = await supabase
+        .from('orders')
+        .insert([dbOrderPayload])
+        .select('id')
+        .maybeSingle();
+
+      if (orderErr) {
+        console.error('Supabase order creation rejected:', orderErr);
+        throw new Error(orderErr.message || 'Unable to secure order in cloud database. Bag preserved.');
+      }
+
+      if (dbOrder?.id) {
+        const dbItems = formattedItems.map(it => ({
+          order_id: dbOrder.id,
+          product_id: it.productId,
+          sku: it.sku,
+          name: it.name,
+          unit_price: it.unitPrice,
+          quantity: it.quantity,
+          subtotal: it.subtotal,
+          primary_image: it.primaryImage
+        }));
+        
+        const { error: itemsErr } = await supabase.from('order_items').insert(dbItems);
+        if (itemsErr) {
+          console.error('Failed to persist order items:', itemsErr);
+          throw new Error('Failed to record order items in cloud registry.');
+        }
+
+        // Deduct inventory in Supabase products table
+        for (const it of formattedItems) {
+          try {
+            await supabase.rpc('decrement_product_stock', {
+              p_sku: it.sku,
+              p_qty: it.quantity
+            });
+          } catch {}
+        }
+      }
+    }
+
+    // 3. Decrement stock in local store & persist verified order
+    try {
+      const updatedProducts = currentProducts.map(p => {
+        const matchingItem = formattedItems.find(it => it.productId === p.id || it.sku === p.sku);
+        if (matchingItem) {
+          const newStock = Math.max(0, (p.stockCount ?? p.stock_count ?? 10) - matchingItem.quantity);
+          return {
+            ...p,
+            stockCount: newStock,
+            stock_count: newStock,
+            inStock: newStock > 0,
+            in_stock: newStock > 0
+          };
+        }
+        return p;
+      });
+      setLocalData(STORAGE_KEYS.PRODUCTS, updatedProducts);
+    } catch (e) {
+      console.warn('Local stock decrement notice:', e);
+    }
+
+    const orders = getLocalData(STORAGE_KEYS.ORDERS, []);
+    setLocalData(STORAGE_KEYS.ORDERS, [orderRecord, ...orders]);
+
+    return orderRecord;
+  },
+
+  async getOrders(filters = {}) {
+    let localOrders = getLocalData(STORAGE_KEYS.ORDERS, []);
+
+    // Seed realistic initial orders if empty so CRM has authentic administrative view
+    if (!localOrders || localOrders.length === 0) {
+      localOrders = [
+        {
+          id: 'ord-101',
+          orderNumber: 'RDH-2026-948102',
+          order_number: 'RDH-2026-948102',
+          customerName: 'Ananya Deshmukh',
+          customer_name: 'Ananya Deshmukh',
+          customerEmail: 'ananya.deshmukh@example.com',
+          customer_email: 'ananya.deshmukh@example.com',
+          customerPhone: '9490658858',
+          customer_phone: '9490658858',
+          shippingAddress: {
+            addressLine1: 'Flat 402, Heritage Enclave, Lavelle Road',
+            city: 'Bengaluru',
+            state: 'Karnataka',
+            pincode: '560001'
+          },
+          shipping_address: {
+            addressLine1: 'Flat 402, Heritage Enclave, Lavelle Road',
+            city: 'Bengaluru',
+            state: 'Karnataka',
+            pincode: '560001'
+          },
+          items: [
+            {
+              id: 'it-1',
+              sku: 'RDH-501',
+              name: 'Nilambari Shibori Mulmul Saree',
+              unitPrice: 1450,
+              quantity: 1,
+              subtotal: 1450,
+              primaryImage: '/assets/products/saree_indigo_shibori.jpg'
+            },
+            {
+              id: 'it-2',
+              sku: 'RDH-502',
+              name: 'Mrittika Bagru Mud-Resist Saree',
+              unitPrice: 1250,
+              quantity: 1,
+              subtotal: 1250,
+              primaryImage: '/assets/products/saree_earth_bagru.jpg'
+            }
+          ],
+          subtotal: 2700,
+          discountAmount: 270,
+          discount_amount: 270,
+          shippingFee: 0,
+          shipping_fee: 0,
+          giftWrap: true,
+          giftWrapFee: 150,
+          gift_wrap_fee: 150,
+          grandTotal: 2580,
+          grand_total: 2580,
+          appliedCoupon: 'WOVEN10',
+          paymentMethod: 'upi',
+          paymentStatus: 'captured',
+          fulfillmentStatus: 'processing',
+          trackingNumber: 'BLUEDART-8492019',
+          courierPartner: 'Blue Dart Air Express',
+          createdAt: new Date(Date.now() - 3600000 * 5).toISOString()
+        },
+        {
+          id: 'ord-102',
+          orderNumber: 'RDH-2026-781903',
+          order_number: 'RDH-2026-781903',
+          customerName: 'Meera Sen',
+          customer_name: 'Meera Sen',
+          customerEmail: 'meera.sen@example.com',
+          customerPhone: '9830012345',
+          customer_phone: '9830012345',
+          shippingAddress: {
+            addressLine1: '8B Alipore Park Road',
+            city: 'Kolkata',
+            state: 'West Bengal',
+            pincode: '700027'
+          },
+          shipping_address: {
+            addressLine1: '8B Alipore Park Road',
+            city: 'Kolkata',
+            state: 'West Bengal',
+            pincode: '700027'
+          },
+          items: [
+            {
+              id: 'it-3',
+              sku: 'RDH-506',
+              name: 'Gulabi Raag Handblock Saree',
+              unitPrice: 1550,
+              quantity: 1,
+              subtotal: 1550,
+              primaryImage: '/assets/products/saree_soft_rose.jpg'
+            }
+          ],
+          subtotal: 1550,
+          discountAmount: 0,
+          shippingFee: 199,
+          giftWrap: false,
+          giftWrapFee: 0,
+          grandTotal: 1749,
+          paymentMethod: 'cod',
+          paymentStatus: 'pending_cod',
+          fulfillmentStatus: 'unfulfilled',
+          trackingNumber: '',
+          courierPartner: 'Delhivery Surface',
+          createdAt: new Date(Date.now() - 3600000 * 24).toISOString()
+        }
+      ];
+      setLocalData(STORAGE_KEYS.ORDERS, localOrders);
+    }
+
+    // Try reading cloud database if Supabase configured
+    if (isSupabaseConfigured && supabase) {
+      try {
+        let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
+        if (filters.status && filters.status !== 'all') {
+          query = query.eq('fulfillment_status', filters.status);
+        }
+        const { data, error } = await query;
+        if (!error && Array.isArray(data) && data.length > 0) {
+          return data;
+        }
+      } catch (err) {}
+    }
+
+    if (filters.status && filters.status !== 'all') {
+      return localOrders.filter(o => o.fulfillmentStatus === filters.status || o.fulfillment_status === filters.status);
+    }
+    return localOrders;
+  },
+
+  async getOrderById(orderId) {
+    const orders = await this.getOrders();
+    return orders.find(o => o.id === orderId || o.orderNumber === orderId || o.order_number === orderId) || null;
+  },
+
+  async updateOrderStatus(orderId, statusData) {
+    const orders = getLocalData(STORAGE_KEYS.ORDERS, []);
+    const targetOrder = orders.find(o => o.id === orderId || o.orderNumber === orderId || o.order_number === orderId);
+    const newStatus = statusData.fulfillmentStatus || statusData.fulfillment_status;
+    const oldStatus = targetOrder?.fulfillmentStatus || targetOrder?.fulfillment_status;
+
+    // Transactionally restore inventory if order is cancelled
+    if (newStatus === 'cancelled' && oldStatus !== 'cancelled' && Array.isArray(targetOrder?.items)) {
+      try {
+        const currentProducts = getLocalData(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS);
+        const restored = currentProducts.map(p => {
+          const matched = targetOrder.items.find(it => it.productId === p.id || it.sku === p.sku);
+          if (matched) {
+            const count = (p.stockCount ?? p.stock_count ?? 10) + matched.quantity;
+            return { ...p, stockCount: count, stock_count: count, inStock: true, in_stock: true };
+          }
+          return p;
+        });
+        setLocalData(STORAGE_KEYS.PRODUCTS, restored);
+      } catch (e) {
+        console.warn('Inventory restoration notice:', e);
+      }
+    }
+
+    const updated = orders.map(o => {
+      if (o.id === orderId || o.orderNumber === orderId || o.order_number === orderId) {
+        return {
+          ...o,
+          ...statusData,
+          fulfillmentStatus: newStatus || o.fulfillmentStatus,
+          fulfillment_status: newStatus || o.fulfillment_status,
+          paymentStatus: statusData.paymentStatus || statusData.payment_status || o.paymentStatus,
+          payment_status: statusData.paymentStatus || statusData.payment_status || o.payment_status,
+          trackingNumber: statusData.trackingNumber || statusData.tracking_number || o.trackingNumber,
+          tracking_number: statusData.trackingNumber || statusData.tracking_number || o.tracking_number,
+          courierPartner: statusData.courierPartner || statusData.courier_partner || o.courierPartner,
+          courier_partner: statusData.courierPartner || statusData.courier_partner || o.courier_partner,
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return o;
+    });
+
+    setLocalData(STORAGE_KEYS.ORDERS, updated);
+
+    // Sync to Supabase if connected
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase
+          .from('orders')
+          .update({
+            fulfillment_status: newStatus,
+            payment_status: statusData.paymentStatus || statusData.payment_status,
+            tracking_number: statusData.trackingNumber || statusData.tracking_number,
+            courier_partner: statusData.courierPartner || statusData.courier_partner,
+            updated_at: new Date().toISOString()
+          })
+          .or(`id.eq.${orderId},order_number.eq.${orderId}`);
+      } catch (err) {}
+    }
+
+    return true;
   }
 };

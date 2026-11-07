@@ -13,10 +13,7 @@ export const AdminLogin = ({ onLoginSuccess, onBackToStore }) => {
 
   // Forgot / Reset Password Mode
   const [isForgotMode, setIsForgotMode] = useState(false);
-  const [resetUsername, setResetUsername] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
   const [resetSuccess, setResetSuccess] = useState(false);
 
   // Handle Sign In
@@ -33,45 +30,30 @@ export const AdminLogin = ({ onLoginSuccess, onBackToStore }) => {
       } else {
         setError(res.message || 'Authentication failed. Please verify credentials.');
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred during authentication.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Handle Forgot / Change Password
+  // Handle Forgot Password
   const handleResetSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
-    if (newPassword !== confirmPassword) {
-      setError('New password and confirmation do not match.');
-      return;
-    }
-
-    if (newPassword.length < 4) {
-      setError('Password must be at least 4 characters long.');
-      return;
-    }
-
+    setSuccessMessage('');
     setIsLoading(true);
+
     try {
-      const res = await authService.resetPassword(resetUsername, newPassword);
+      const res = await authService.requestPasswordReset(resetEmail);
       if (res.success) {
         setResetSuccess(true);
-        setSuccessMessage(res.message || 'Password successfully updated!');
-        setPassword(newPassword);
-        setUsername(resetUsername);
-        setTimeout(() => {
-          setIsForgotMode(false);
-          setResetSuccess(false);
-        }, 1800);
+        setSuccessMessage(res.message || 'Password reset link sent to registered email.');
       } else {
-        setError(res.message || 'Unable to reset password.');
+        setError(res.message || 'Unable to dispatch recovery link.');
       }
-    } catch (err) {
-      setError('Error while updating password in database.');
+    } catch {
+      setError('An error occurred during password recovery.');
     } finally {
       setIsLoading(false);
     }
@@ -140,9 +122,9 @@ export const AdminLogin = ({ onLoginSuccess, onBackToStore }) => {
           {successMessage && (
             <div
               style={{
-                backgroundColor: 'rgba(78, 115, 65, 0.15)',
-                border: '1px solid #7A9E6E',
-                color: '#284E1F',
+                backgroundColor: 'rgba(82, 91, 58, 0.15)',
+                border: '1px solid #525B3A',
+                color: '#34401E',
                 padding: '0.75rem 1rem',
                 borderRadius: '3px',
                 fontSize: '0.8rem',
@@ -152,47 +134,46 @@ export const AdminLogin = ({ onLoginSuccess, onBackToStore }) => {
                 gap: '0.5rem'
               }}
             >
-              <CheckCircle2 size={16} />
+              <CheckCircle2 size={16} color="#525B3A" style={{ flexShrink: 0 }} />
               <span>{successMessage}</span>
             </div>
           )}
 
           {!isForgotMode ? (
             /* ========================================================= */
-            /* 1. STANDARD CRM LOGIN FORM (rodhe / rodhe@admin)          */
+            /* 1. STANDARD ADMIN LOGIN FORM                              */
             /* ========================================================= */
-            <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#4B3024', marginBottom: '0.45rem' }}>
-                  Administrator Username
+                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#4B3024', marginBottom: '0.4rem' }}>
+                  Admin Email / Username
                 </label>
                 <div style={{ position: 'relative' }}>
                   <input
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Enter username"
+                    placeholder="e.g. rodhe@rodhe.in"
                     required
-                    autoFocus
                     style={{
                       width: '100%',
-                      padding: '0.75rem 1rem 0.75rem 2.4rem',
+                      padding: '0.7rem 0.9rem 0.7rem 2.4rem',
                       border: '1px solid rgba(75, 48, 36, 0.22)',
                       borderRadius: '3px',
-                      fontSize: '0.88rem',
+                      fontSize: '0.86rem',
                       color: '#4B3024',
                       outline: 'none',
                       backgroundColor: '#FFFDF9',
                       boxSizing: 'border-box'
                     }}
                   />
-                  <User size={16} color="#8F7263" style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)' }} />
+                  <User size={15} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: '#8F7263' }} />
                 </div>
               </div>
 
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.45rem' }}>
-                  <label style={{ fontSize: '0.76rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#4B3024' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <label style={{ fontSize: '0.74rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#4B3024' }}>
                     Password
                   </label>
                   <button
@@ -201,16 +182,15 @@ export const AdminLogin = ({ onLoginSuccess, onBackToStore }) => {
                       setIsForgotMode(true);
                       setError('');
                       setSuccessMessage('');
-                      setResetUsername(username || '');
                     }}
                     style={{
                       background: 'none',
                       border: 'none',
-                      fontSize: '0.74rem',
                       color: '#B88D4A',
-                      fontWeight: 600,
+                      fontSize: '0.74rem',
                       cursor: 'pointer',
-                      padding: 0
+                      padding: 0,
+                      fontWeight: 600
                     }}
                   >
                     Forgot Password?
@@ -221,27 +201,27 @@ export const AdminLogin = ({ onLoginSuccess, onBackToStore }) => {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••••••"
+                    placeholder="••••••••"
                     required
                     style={{
                       width: '100%',
-                      padding: '0.75rem 2.6rem 0.75rem 2.4rem',
+                      padding: '0.7rem 2.4rem',
                       border: '1px solid rgba(75, 48, 36, 0.22)',
                       borderRadius: '3px',
-                      fontSize: '0.88rem',
+                      fontSize: '0.86rem',
                       color: '#4B3024',
                       outline: 'none',
                       backgroundColor: '#FFFDF9',
                       boxSizing: 'border-box'
                     }}
                   />
-                  <Lock size={16} color="#8F7263" style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)' }} />
+                  <Lock size={15} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: '#8F7263' }} />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     style={{
                       position: 'absolute',
-                      right: '0.8rem',
+                      right: '0.75rem',
                       top: '50%',
                       transform: 'translateY(-50%)',
                       background: 'none',
@@ -249,9 +229,8 @@ export const AdminLogin = ({ onLoginSuccess, onBackToStore }) => {
                       color: '#8F7263',
                       cursor: 'pointer'
                     }}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
               </div>
@@ -282,13 +261,13 @@ export const AdminLogin = ({ onLoginSuccess, onBackToStore }) => {
                 onMouseEnter={(e) => !isLoading && (e.currentTarget.style.backgroundColor = '#6F4E3E')}
                 onMouseLeave={(e) => !isLoading && (e.currentTarget.style.backgroundColor = '#4B3024')}
               >
-                <span>{isLoading ? 'Connecting to Database...' : 'Sign In to CRM'}</span>
+                <span>{isLoading ? 'Verifying with Supabase Auth...' : 'Sign In to CRM'}</span>
                 <ArrowRight size={15} />
               </button>
             </form>
           ) : (
             /* ========================================================= */
-            /* 2. FORGOT / CHANGE PASSWORD FORM                          */
+            /* 2. FORGOT PASSWORD (SUPABASE AUTH MAGIC LINK)             */
             /* ========================================================= */
             <form onSubmit={handleResetSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
               <div style={{ textAlign: 'center', marginBottom: '0.5rem' }}>
@@ -297,85 +276,19 @@ export const AdminLogin = ({ onLoginSuccess, onBackToStore }) => {
                 </div>
                 <h3 style={{ fontSize: '1rem', color: '#4B3024', fontWeight: 600, margin: 0 }}>Reset CRM Password</h3>
                 <p style={{ fontSize: '0.76rem', color: '#8F7263', marginTop: '0.25rem', marginBottom: 0 }}>
-                  Enter your username and choose your new password.
+                  Enter your registered administrative email address. A secure recovery link will be dispatched via Supabase Auth.
                 </p>
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#4B3024', marginBottom: '0.4rem' }}>
-                  Username
+                  Administrator Email
                 </label>
                 <input
-                  type="text"
-                  value={resetUsername}
-                  onChange={(e) => setResetUsername(e.target.value)}
-                  placeholder="Enter username"
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '0.7rem 0.9rem',
-                    border: '1px solid rgba(75, 48, 36, 0.22)',
-                    borderRadius: '3px',
-                    fontSize: '0.86rem',
-                    color: '#4B3024',
-                    outline: 'none',
-                    backgroundColor: '#FFFDF9',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#4B3024', marginBottom: '0.4rem' }}>
-                  New Password
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type={showNewPassword ? 'text' : 'password'}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter new password"
-                    required
-                    style={{
-                      width: '100%',
-                      padding: '0.7rem 2.4rem 0.7rem 0.9rem',
-                      border: '1px solid rgba(75, 48, 36, 0.22)',
-                      borderRadius: '3px',
-                      fontSize: '0.86rem',
-                      color: '#4B3024',
-                      outline: 'none',
-                      backgroundColor: '#FFFDF9',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                    style={{
-                      position: 'absolute',
-                      right: '0.75rem',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      color: '#8F7263',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {showNewPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#4B3024', marginBottom: '0.4rem' }}>
-                  Confirm New Password
-                </label>
-                <input
-                  type={showNewPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Re-enter new password"
+                  type="email"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  placeholder="e.g. rodhe@rodhe.in"
                   required
                   style={{
                     width: '100%',
@@ -393,7 +306,7 @@ export const AdminLogin = ({ onLoginSuccess, onBackToStore }) => {
 
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || resetSuccess}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -409,13 +322,14 @@ export const AdminLogin = ({ onLoginSuccess, onBackToStore }) => {
                   fontWeight: 700,
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',
-                  cursor: isLoading ? 'not-allowed' : 'pointer',
-                  opacity: isLoading ? 0.7 : 1,
+                  cursor: (isLoading || resetSuccess) ? 'not-allowed' : 'pointer',
+                  opacity: (isLoading || resetSuccess) ? 0.7 : 1,
                   marginTop: '0.35rem',
                   transition: 'background 0.2s'
                 }}
               >
-                <span>{isLoading ? 'Updating in Database...' : 'Save New Password'}</span>
+                <span>{isLoading ? 'Dispatching Link...' : 'Send Recovery Link'}</span>
+                <ArrowRight size={15} />
               </button>
 
               <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
@@ -424,39 +338,61 @@ export const AdminLogin = ({ onLoginSuccess, onBackToStore }) => {
                   onClick={() => {
                     setIsForgotMode(false);
                     setError('');
+                    setSuccessMessage('');
                   }}
                   style={{
                     background: 'none',
                     border: 'none',
-                    fontSize: '0.76rem',
                     color: '#8F7263',
+                    fontSize: '0.78rem',
                     cursor: 'pointer',
-                    textDecoration: 'underline'
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem'
                   }}
                 >
-                  Return to Login
+                  <ArrowLeft size={13} />
+                  <span>Return to Sign In</span>
                 </button>
               </div>
             </form>
           )}
 
-          {/* Return to Storefront */}
-          <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+          {/* Bottom Security Hallmark */}
+          <div
+            style={{
+              marginTop: '2rem',
+              paddingTop: '1.25rem',
+              borderTop: '1px solid rgba(75, 48, 36, 0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.45rem',
+              color: '#8F7263',
+              fontSize: '0.72rem'
+            }}
+          >
+            <ShieldCheck size={14} color="#B88D4A" />
+            <span>256-bit SSL In-Transit Encryption • Supabase Auth</span>
+          </div>
+
+          <div style={{ textAlign: 'center', marginTop: '1rem' }}>
             <button
               onClick={onBackToStore}
               style={{
+                background: 'none',
+                border: 'none',
+                color: '#6F4E3E',
+                fontSize: '0.76rem',
+                cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.35rem',
-                background: 'none',
-                border: 'none',
-                color: '#8F7263',
-                fontSize: '0.78rem',
-                cursor: 'pointer'
+                textDecoration: 'underline'
               }}
             >
               <ArrowLeft size={13} />
-              <span>Back to Public Storefront</span>
+              <span>Return to Public Boutique</span>
             </button>
           </div>
         </div>

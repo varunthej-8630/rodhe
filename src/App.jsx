@@ -14,6 +14,7 @@ import { CollectionPage } from './components/CollectionPage';
 import { ProductDetailPage } from './components/ProductDetailPage';
 import { BrandStoryPage } from './components/BrandStoryPage';
 import { ContactConciergePage } from './components/ContactConciergePage';
+import { LegalPolicyPage } from './components/LegalPolicyPage';
 import { AdminPortal } from './components/admin/AdminPortal';
 import { CartDrawer } from './components/CartDrawer';
 import { WishlistDrawer } from './components/WishlistDrawer';
@@ -42,6 +43,8 @@ const MainLayout = () => {
           navigateTo('story');
         } else if (hash.includes('contact') || hash.includes('concierge')) {
           navigateTo('contact');
+        } else if (hash.includes('policy') || hash.includes('privacy') || hash.includes('terms') || hash.includes('shipping') || hash.includes('returns')) {
+          navigateTo('policies');
         } else if (hash.includes('product')) {
           const match = window.location.hash.match(/product\/([a-zA-Z0-9_-]+)/i);
           if (match && match[1]) {
@@ -103,6 +106,7 @@ const MainLayout = () => {
           {currentPage === 'product' && <ProductDetailPage productId={selectedProductId} />}
           {currentPage === 'story' && <BrandStoryPage />}
           {currentPage === 'contact' && <ContactConciergePage />}
+          {currentPage === 'policies' && <LegalPolicyPage />}
         </main>
 
         {/* Modals & Slide-Over Drawers */}

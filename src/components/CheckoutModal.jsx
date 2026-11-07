@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, CheckCircle2, ShieldCheck, Truck, CreditCard, Smartphone, Building, Banknote, ArrowRight, ArrowLeft, Sparkles } from 'lucide-react';
+import { X, CheckCircle2, ShieldCheck, Truck, CreditCard, Smartphone, Building, Banknote, ArrowRight, ArrowLeft, Sparkles, MessageCircle, AlertCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useShop } from '../context/ShopContext';
+import { storeService } from '../services/storeService';
 
 export const CheckoutModal = () => {
   const {
@@ -16,26 +17,32 @@ export const CheckoutModal = () => {
     giftWrapFee,
     total,
     clearCart,
-    navigateTo
+    navigateTo,
+    patronUser
   } = useShop();
 
   const [step, setStep] = useState(1); // 1: Contact, 2: Address, 3: Payment, 4: Confirmation
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderId, setOrderId] = useState('');
+  const [createdOrder, setCreatedOrder] = useState(null);
+  const [orderError, setOrderError] = useState('');
 
-  // Form State
-  const [formData, setFormData] = useState({
-    firstName: 'Ananya',
-    lastName: 'Deshmukh',
-    email: 'ananya.deshmukh@example.com',
-    phone: '9490658858',
-    pincode: '560001',
-    address: 'Flat 402, Heritage Enclave, Lavelle Road',
-    landmark: 'Near Bangalore Club',
-    city: 'Bengaluru',
-    state: 'Karnataka',
-    paymentMethod: 'upi', // 'upi' | 'card' | 'netbanking' | 'cod'
-    upiId: 'ananya@okhdfcbank'
+  // Form State - dynamically populated from patron session if present
+  const [formData, setFormData] = useState(() => {
+    const patronNameParts = patronUser?.name ? patronUser.name.split(' ') : [];
+    return {
+      firstName: patronNameParts[0] || 'Ananya',
+      lastName: patronNameParts.slice(1).join(' ') || (patronNameParts.length > 0 ? '' : 'Deshmukh'),
+      email: patronUser?.email || 'ananya.deshmukh@example.com',
+      phone: patronUser?.phone || '9490658858',
+      pincode: patronUser?.pincode || '560001',
+      address: patronUser?.address || 'Flat 402, Heritage Enclave, Lavelle Road',
+      landmark: patronUser?.landmark || 'Near Bangalore Club',
+      city: patronUser?.city || 'Bengaluru',
+      state: patronUser?.state || 'Karnataka',
+      paymentMethod: 'upi', // 'upi' | 'card' | 'netbanking' | 'cod'
+      upiId: patronUser?.upiId || 'ananya@okhdfcbank'
+    };
   });
 
   if (!isCheckoutOpen) return null;
@@ -58,15 +65,56 @@ export const CheckoutModal = () => {
     }
   };
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     setIsProcessing(true);
+    setOrderError('');
 
-    setTimeout(() => {
-      const generatedId = `RODHE-IND-${Math.floor(100000 + Math.random() * 900000)}`;
-      setOrderId(generatedId);
-      setIsProcessing(false);
+    try {
+      const orderPayload = {
+        customerName: `${formData.firstName} ${formData.lastName}`.trim(),
+        customerEmail: formData.email,
+        customerPhone: formData.phone,
+        shippingAddress: {
+          addressLine1: formData.address,
+          landmark: formData.landmark,
+          city: formData.city,
+          state: formData.state,
+          pincode: formData.pincode
+        },
+        items: cart,
+        subtotal: subtotal,
+        discountAmount: discountAmount,
+        shippingFee: shippingFee,
+        giftWrap: giftWrap,
+        giftWrapFee: giftWrapFee,
+        grandTotal: total,
+        appliedCoupon: appliedCoupon?.code || null,
+        paymentMethod: formData.paymentMethod
+      };
+
+      const result = await storeService.createOrder(orderPayload);
+      const generatedNumber = result.orderNumber || result.order_number;
+      setOrderId(generatedNumber);
+      setCreatedOrder(result);
       setStep(4);
       clearCart();
+
+      // Persist shipping address for patron convenience
+      try {
+        const existingPatron = JSON.parse(localStorage.getItem('rodhe_patron_session') || '{}');
+        const updatedPatron = {
+          ...existingPatron,
+          name: `${formData.firstName} ${formData.lastName}`.trim(),
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          landmark: formData.landmark,
+          city: formData.city,
+          state: formData.state,
+          pincode: formData.pincode
+        };
+        localStorage.setItem('rodhe_patron_session', JSON.stringify(updatedPatron));
+      } catch (e) {}
 
       // Trigger Celebration Confetti
       try {
@@ -77,7 +125,12 @@ export const CheckoutModal = () => {
           colors: ['#B88D4A', '#EADAB5', '#4B3024', '#C98278']
         });
       } catch (e) {}
-    }, 1400);
+    } catch (err) {
+      console.error('Order creation error:', err);
+      setOrderError(err.message || 'Unable to secure order in cloud database. Your shopping bag has been preserved.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -246,23 +299,56 @@ export const CheckoutModal = () => {
                   <span style={{ fontWeight: 600, color: '#4B3024', textTransform: 'uppercase' }}>{formData.paymentMethod}</span>
                 </div>
                 <div className="confirmation-spec-row" style={{ borderTop: '1px solid rgba(75, 48, 36, 0.1)', paddingTop: '0.65rem' }}>
-                  <span style={{ color: '#4B3024', fontWeight: 600 }}>Amount Paid:</span>
+                  <span style={{ color: '#4B3024', fontWeight: 600 }}>Amount {formData.paymentMethod === 'cod' ? 'Payable on Delivery' : 'Paid'}:</span>
                   <span style={{ fontWeight: 700, color: '#4B3024', fontFamily: 'var(--font-serif)', fontSize: '1.15rem' }}>
-                    ₹{total.toLocaleString('en-IN')}
+                    ₹{(createdOrder?.grandTotal ?? total).toLocaleString('en-IN')}
                   </span>
                 </div>
               </div>
 
-              <button
-                onClick={() => {
-                  setIsCheckoutOpen(false);
-                  navigateTo('home');
-                }}
-                className="btn btn-primary"
-                style={{ width: '100%', maxWidth: '320px' }}
-              >
-                Return to RODHE Home
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
+                <a
+                  href={`https://wa.me/919490658858?text=${encodeURIComponent(
+                    `Namaste RODHE Concierge,\n\nI have placed an order on your boutique:\n` +
+                    `• Order No: #${orderId}\n` +
+                    `• Patron: ${formData.firstName} ${formData.lastName}\n` +
+                    `• Amount: ₹${(createdOrder?.grandTotal ?? total).toLocaleString('en-IN')}\n` +
+                    `• Payment: ${formData.paymentMethod.toUpperCase()}\n\n` +
+                    `Please share insured courier dispatch & tracking updates.`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn"
+                  style={{
+                    width: '100%',
+                    maxWidth: '340px',
+                    backgroundColor: '#25D366',
+                    color: '#FFFFFF',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                    padding: '0.75rem 1.25rem',
+                    borderRadius: '4px'
+                  }}
+                >
+                  <MessageCircle size={18} />
+                  Track Order on WhatsApp Concierge
+                </a>
+
+                <button
+                  onClick={() => {
+                    setIsCheckoutOpen(false);
+                    navigateTo('home');
+                  }}
+                  className="btn btn-primary"
+                  style={{ width: '100%', maxWidth: '340px' }}
+                >
+                  Return to RODHE Home
+                </button>
+              </div>
             </div>
           ) : (
             <>
@@ -556,6 +642,27 @@ export const CheckoutModal = () => {
                       </label>
                     </div>
 
+                    {/* Order Placement Error Notice */}
+                    {orderError && (
+                      <div
+                        style={{
+                          padding: '0.85rem 1rem',
+                          backgroundColor: 'rgba(201, 130, 120, 0.15)',
+                          border: '1px solid #C98278',
+                          color: '#8A2A20',
+                          fontSize: '0.82rem',
+                          borderRadius: '3px',
+                          marginBottom: '1rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem'
+                        }}
+                      >
+                        <AlertCircle size={16} color="#8A2A20" style={{ flexShrink: 0 }} />
+                        <span>{orderError}</span>
+                      </div>
+                    )}
+
                     {/* Payment Integration Notice */}
                     <div
                       style={{
@@ -568,7 +675,7 @@ export const CheckoutModal = () => {
                         marginBottom: '1.25rem'
                       }}
                     >
-                      <strong style={{ color: '#4B3024' }}>Sandbox Notice:</strong> Verified Concierge Mode active. Production connects to Razorpay via <code>VITE_RAZORPAY_KEY_ID</code>.
+                      <strong style={{ color: '#4B3024' }}>Notice:</strong> Electronic orders are recorded in the boutique registry with <code>pending_payment</code> status until official gateway settlement. Cash on Delivery is confirmed as <code>pending_cod</code>.
                     </div>
 
                     <div style={{ display: 'flex', gap: '0.75rem' }}>

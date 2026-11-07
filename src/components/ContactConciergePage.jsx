@@ -21,11 +21,13 @@ export const ContactConciergePage = () => {
 
     // Save inquiry to backend store
     try {
-      await storeService.createEnquiry({
+      await storeService.submitEnquiry({
         name: formData.name,
+        customer_name: formData.name,
         email: formData.email,
         phone: formData.phone,
         subject: formData.subject,
+        saree_interest: formData.subject,
         message: formData.message,
         source: 'contact_page'
       });

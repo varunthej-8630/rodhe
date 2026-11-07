@@ -2,15 +2,22 @@ import React, { useState } from 'react';
 import { ArrowRight, ShieldCheck, Check, Sparkles } from 'lucide-react';
 import { InstagramIcon, FacebookIcon, PinterestIcon, YoutubeIcon } from './SocialIcons';
 import { useShop } from '../context/ShopContext';
+import { storeService } from '../services/storeService';
 
 export const Footer = () => {
   const { navigateTo, setSelectedCraft, showToast } = useShop();
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
 
-  const handleSubscribe = (e) => {
+  const handleSubscribe = async (e) => {
     e.preventDefault();
-    if (!newsletterEmail.trim()) return;
+    const cleanEmail = newsletterEmail.trim();
+    if (!cleanEmail) return;
+    try {
+      await storeService.joinCircle(cleanEmail);
+    } catch (err) {
+      console.warn('Newsletter subscription notice:', err);
+    }
     setIsSubscribed(true);
     showToast('Thank you for joining the RODHE textile society.');
   };
@@ -309,17 +316,17 @@ export const Footer = () => {
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => navigateTo('contact')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                  <button onClick={() => navigateTo('policies', 'shipping')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
                     Shipping & Insured Delivery
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => navigateTo('contact')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                  <button onClick={() => navigateTo('policies', 'returns')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
                     7-Day Easy Exchange Policy
                   </button>
                 </li>
                 <li>
-                  <button onClick={() => navigateTo('contact')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                  <button onClick={() => navigateTo('policies', 'care')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
                     Saree Care & Wash Guide
                   </button>
                 </li>
@@ -348,12 +355,12 @@ export const Footer = () => {
             }}
           >
             <div>
-              © 2026 RODHE. All rights reserved. “Woven with Trust” is a registered trademark.
+              © 2026 RODHE. “Woven with Trust” • Handcrafted in India. All rights reserved.
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-              <span style={{ cursor: 'pointer' }} onClick={() => navigateTo('contact')}>Privacy Policy</span>
-              <span style={{ cursor: 'pointer' }} onClick={() => navigateTo('contact')}>Terms of Service</span>
+              <span style={{ cursor: 'pointer' }} onClick={() => navigateTo('policies', 'privacy')}>Privacy Policy</span>
+              <span style={{ cursor: 'pointer' }} onClick={() => navigateTo('policies', 'terms')}>Terms of Service</span>
               <span style={{ cursor: 'pointer' }} onClick={() => navigateTo('story')}>Authentication Certificate</span>
               <button
                 onClick={() => navigateTo('admin')}

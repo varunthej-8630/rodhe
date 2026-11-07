@@ -98,7 +98,7 @@ export const CollectionPage = () => {
     selectedCraft !== 'all' ||
     selectedColor !== 'all' ||
     selectedFabric !== 'all' ||
-    priceMax < 8000 ||
+    priceMax < 2000 ||
     !!priceRangeFilter ||
     inStockOnly;
 
@@ -268,7 +268,7 @@ export const CollectionPage = () => {
               </span>
             )}
 
-            {priceMax < 8000 && (
+            {priceMax < 2000 && (
               <span
                 style={{
                   display: 'inline-flex',
@@ -281,7 +281,7 @@ export const CollectionPage = () => {
                 }}
               >
                 Under ₹{priceMax.toLocaleString('en-IN')}
-                <X size={12} style={{ cursor: 'pointer' }} onClick={() => setPriceMax(8000)} />
+                <X size={12} style={{ cursor: 'pointer' }} onClick={() => setPriceMax(2000)} />
               </span>
             )}
 
@@ -453,8 +453,8 @@ export const CollectionPage = () => {
               <input
                 type="range"
                 min="500"
-                max="8000"
-                step="100"
+                max="2000"
+                step="50"
                 value={priceMax}
                 onChange={(e) => setPriceMax(Number(e.target.value))}
                 style={{ width: '100%', accentColor: '#B88D4A' }}
@@ -645,8 +645,8 @@ export const CollectionPage = () => {
                 <input
                   type="range"
                   min="500"
-                  max="8000"
-                  step="100"
+                  max="2000"
+                  step="50"
                   value={priceMax}
                   onChange={(e) => setPriceMax(Number(e.target.value))}
                   style={{ width: '100%', accentColor: '#B88D4A' }}

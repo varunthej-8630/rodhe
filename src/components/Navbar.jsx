@@ -12,6 +12,7 @@ export const Navbar = () => {
     setIsWishlistOpen,
     setIsSearchOpen,
     setIsAuthOpen,
+    patronUser,
     setSelectedCraft,
     PRODUCTS
   } = useShop();
@@ -331,10 +332,11 @@ export const Navbar = () => {
             {/* Account (Desktop & Tablet only; mobile has it in drawer) */}
             <button
               onClick={() => setIsAuthOpen(true)}
-              aria-label="Customer account"
+              aria-label={patronUser ? `Patron Account: ${patronUser.name}` : "Customer account"}
+              title={patronUser ? `Patron: ${patronUser.name}` : "Sign In / Register"}
               className="d-md-flex header-nav-btn"
               style={{
-                color: '#4B3024',
+                color: patronUser ? '#B88D4A' : '#4B3024',
                 transition: 'color 0.2s',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -343,14 +345,29 @@ export const Navbar = () => {
                 minWidth: '38px',
                 minHeight: '38px',
                 borderRadius: '50%',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer'
+                background: patronUser ? 'rgba(184, 141, 74, 0.08)' : 'none',
+                border: patronUser ? '1px solid rgba(184, 141, 74, 0.4)' : 'none',
+                cursor: 'pointer',
+                position: 'relative'
               }}
               onMouseEnter={(e) => (e.currentTarget.style.color = '#B88D4A')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = '#4B3024')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = patronUser ? '#B88D4A' : '#4B3024')}
             >
               <User size={19} strokeWidth={1.8} />
+              {patronUser && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    bottom: '2px',
+                    right: '2px',
+                    width: '7px',
+                    height: '7px',
+                    borderRadius: '50%',
+                    backgroundColor: '#B88D4A',
+                    border: '1.5px solid #FFFDF9'
+                  }}
+                />
+              )}
             </button>
 
             {/* Wishlist */}
@@ -527,7 +544,7 @@ export const Navbar = () => {
                   }}
                 >
                   <User size={15} color="#B88D4A" />
-                  <span>Sign In / Account</span>
+                  <span>{patronUser ? `Patron (${patronUser.name ? patronUser.name.split(' ')[0] : 'Profile'})` : 'Sign In / Account'}</span>
                 </button>
                 <button
                   onClick={() => {

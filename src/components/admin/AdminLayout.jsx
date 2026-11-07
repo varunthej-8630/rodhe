@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { 
   LayoutDashboard, 
+  ShoppingBag,
   Package, 
   Upload, 
   FolderTree, 
@@ -24,6 +25,7 @@ export const AdminLayout = ({ children, activeTab, setActiveTab, onNavigateToSto
 
   const navItems = [
     { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
+    { id: 'orders', label: 'Orders & Shipments', icon: ShoppingBag },
     { id: 'products', label: 'Saree Inventory', icon: Package },
     { id: 'bulk-import', label: 'Bulk Import & CSV', icon: Upload },
     { id: 'collections', label: 'Collections', icon: FolderTree },

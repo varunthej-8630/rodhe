@@ -186,7 +186,7 @@ export const AdminSettings = () => {
           </div>
           <p style={{ fontSize: '0.8rem', color: '#8F7263', margin: 0, lineHeight: 1.6 }}>
             Status: <strong>{isSupabaseConfigured ? 'Active & Synchronized' : 'Local Persistence Engine Active'}</strong>.
-            Database table: <code>public.admin_users</code> manages CRM administrator credentials with initial username <code>rodhe</code> and password <code>rodhe@admin</code>.
+            Database table: <code>public.admin_users</code> manages CRM administrator authorization and access privileges.
           </p>
         </div>
 
@@ -221,7 +221,7 @@ const AdminSecuritySection = () => {
 
     setSecLoading(true);
     try {
-      const res = await authService.resetPassword(currentUsername, newPassword);
+      const res = await authService.updatePassword(newPassword);
       if (res.success) {
         setSecSuccess(res.message || 'Password successfully updated!');
         setNewPassword('');

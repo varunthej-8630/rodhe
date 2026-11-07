@@ -20,11 +20,11 @@ export const AdminBulkImport = ({ onImportComplete }) => {
   const [importSuccess, setImportSuccess] = useState(false);
   const [publishImmediately, setPublishImmediately] = useState(true);
 
-  // Sample CSV Template content
+  // Sample CSV Template content (Aligned with ₹500–₹2,000 Pure Cotton Architecture)
   const sampleCsvContent = `name,sku,originalPrice,sellingPrice,craft,craftCategory,fabric,color,colorFamily,stockCount,primaryImage,tagline
-"Vanamali Forest Olive Chanderi",RODHE-OLV-001,6200,5400,"Chanderi Weave",chanderi,"Handwoven Cotton Silk","Forest Olive",olive,8,"/assets/products/saree_forest_olive.jpg","Gossamer olive sheer drape with pomegranate rind dyes"
-"Raktika Madder Red Bagru Saree",RODHE-MAD-002,4800,3950,"Handblock Print",handblock,"Pure Mulmul Cotton","Madder Red",madder,12,"/assets/products/saree_madder_red.jpg","Natural terracotta madder root handblock print"
-"Hemangi Muted Gold Tussar Saree",RODHE-GLD-003,7400,6200,"Chanderi Weave",chanderi,"Tussar Cotton Silk","Muted Gold",gold,6,"/assets/products/saree_muted_gold.jpg","Wild tussar tones illuminated with temple zari border"`;
+"Vanamali Forest Olive Mulmul Saree",RODHE-OLV-001,1450,1150,"Botanical Block Print",handblock,"100% Breathable Mulmul Cotton","Forest Olive",olive,8,"/assets/products/saree_forest_olive.jpg","Gossamer olive sheer drape with pomegranate rind dyes"
+"Raktika Madder Red Bagru Saree",RODHE-MAD-002,1650,1350,"Bagru Mud-Resist",handblock,"Pure Handloom Mulmul Cotton","Madder Red",madder,12,"/assets/products/saree_madder_red.jpg","Natural terracotta madder root handblock print"
+"Hemangi Muted Gold Kota Saree",RODHE-GLD-003,1200,990,"Kota Doria Cotton",chanderi,"Authentic Kota Doria Cotton","Muted Gold",gold,6,"/assets/products/saree_muted_gold.jpg","Natural golden earthen tones with delicate woven temple border"`;
 
   const handleDownloadTemplate = () => {
     const blob = new Blob([sampleCsvContent], { type: 'text/csv;charset=utf-8;' });

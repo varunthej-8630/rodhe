@@ -1,196 +1,176 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 
 const AUTH_SESSION_KEY = 'rodhe_admin_session';
-const AUTH_CREDENTIALS_KEY = 'rodhe_crm_admin_credentials';
-
-// Default CRM Credentials requested by user:
-// Username: rodhe
-// Password: rodhe@admin
-const DEFAULT_CREDENTIALS = {
-  username: 'rodhe',
-  email: 'rodhe@rodhe.in',
-  password: 'rodhe@admin',
-  role: 'super_admin',
-  name: 'RODHE Administrator'
-};
-
-const getLocalCredentials = () => {
-  try {
-    const raw = localStorage.getItem(AUTH_CREDENTIALS_KEY);
-    return raw ? JSON.parse(raw) : DEFAULT_CREDENTIALS;
-  } catch (e) {
-    return DEFAULT_CREDENTIALS;
-  }
-};
-
-const setLocalCredentials = (creds) => {
-  try {
-    localStorage.setItem(AUTH_CREDENTIALS_KEY, JSON.stringify(creds));
-  } catch (e) {}
-};
 
 export const authService = {
-  getCurrentSession() {
+  /**
+   * Retrieves the current active administrative session.
+   * Prioritizes genuine Supabase Auth sessions.
+   */
+  async getCurrentSession() {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          // Verify with database that the user is an authorized administrator
+          const { data: isAdmin } = await supabase.rpc('is_admin');
+          if (isAdmin) {
+            return {
+              id: session.user.id,
+              email: session.user.email,
+              role: 'super_admin',
+              name: (session.user.user_metadata?.name || session.user.email.split('@')[0]).toUpperCase(),
+              token: session.access_token
+            };
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase session inspection notice:', err);
+      }
+    }
+
+    // Read stored verified session if available
     try {
       const raw = localStorage.getItem(AUTH_SESSION_KEY);
       return raw ? JSON.parse(raw) : null;
-    } catch (e) {
+    } catch {
       return null;
     }
   },
 
+  /**
+   * Authenticates administrator using genuine Supabase Auth.
+   * Verifies database authorization via public.is_admin() RPC.
+   */
   async login(identifier, password) {
     const cleanId = (identifier || '').trim().toLowerCase();
     const cleanPass = (password || '').trim();
 
     if (!cleanId || !cleanPass) {
-      return { success: false, message: 'Please provide both username and password.' };
+      return { success: false, message: 'Please provide both username/email and password.' };
     }
 
-    // 1. Try Supabase Database (admin_users table)
+    const emailToUse = cleanId.includes('@') ? cleanId : `${cleanId}@rodhe.in`;
+
+    // 1. Genuine Supabase GoTrue Authentication
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase
-          .from('admin_users')
-          .select('*')
-          .or(`username.ilike.${cleanId},email.ilike.${cleanId}`)
-          .eq('password_hash', cleanPass)
-          .maybeSingle();
+        const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({
+          email: emailToUse,
+          password: cleanPass
+        });
 
-        if (!error && data) {
+        if (authErr) {
+          return { success: false, message: authErr.message || 'Invalid credentials.' };
+        }
+
+        if (authData?.user) {
+          // Check database authorization
+          const { data: isAdmin, error: rpcErr } = await supabase.rpc('is_admin');
+          
+          if (rpcErr || !isAdmin) {
+            await supabase.auth.signOut();
+            return {
+              success: false,
+              message: 'Access denied: Your account does not have boutique administrator privileges.'
+            };
+          }
+
           const sessionUser = {
-            id: data.id || 'admin-rodhe',
-            username: data.username,
-            email: data.email,
-            role: data.role || 'super_admin',
-            name: data.username.toUpperCase(),
-            token: `rodhe_token_${Date.now()}`
+            id: authData.user.id,
+            email: authData.user.email,
+            role: 'super_admin',
+            name: (authData.user.user_metadata?.name || cleanId).toUpperCase(),
+            token: authData.session?.access_token
           };
+
           localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(sessionUser));
           return { success: true, user: sessionUser };
         }
       } catch (err) {
-        console.warn('Supabase admin_users query notice:', err);
+        console.warn('Supabase GoTrue auth error:', err);
+        return { success: false, message: 'Authentication service unreachable.' };
       }
-    }
-
-    // 2. Local Synchronized Database Verification
-    const currentCreds = getLocalCredentials();
-    const isUsernameMatch = cleanId === (currentCreds.username || '').toLowerCase();
-    const isEmailMatch = cleanId === (currentCreds.email || '').toLowerCase();
-    const isPassMatch = cleanPass === currentCreds.password;
-
-    // Also support default rodhe / rodhe@admin and legacy admin@rodhe.in
-    const isDefaultFallback = 
-      (cleanId === 'rodhe' && cleanPass === 'rodhe@admin') ||
-      (cleanId === 'admin@rodhe.in' && (cleanPass === 'WovenWithTrust2026!' || cleanPass === 'rodhe@admin'));
-
-    if ((isUsernameMatch || isEmailMatch) && isPassMatch) {
-      const sessionUser = {
-        id: 'admin-rodhe',
-        username: currentCreds.username,
-        email: currentCreds.email,
-        role: currentCreds.role || 'super_admin',
-        name: currentCreds.username.toUpperCase(),
-        loggedInAt: new Date().toISOString()
-      };
-      localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(sessionUser));
-      return { success: true, user: sessionUser };
-    } else if (isDefaultFallback) {
-      const sessionUser = {
-        id: 'admin-rodhe',
-        username: 'rodhe',
-        email: 'rodhe@rodhe.in',
-        role: 'super_admin',
-        name: 'RODHE',
-        loggedInAt: new Date().toISOString()
-      };
-      localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(sessionUser));
-      return { success: true, user: sessionUser };
     }
 
     return {
       success: false,
-      message: 'Invalid administrative credentials. Please verify your username and password.'
+      message: 'Supabase authentication service is not configured. Please check environment variables.'
     };
   },
 
-  async resetPassword(identifier, newPassword) {
-    const cleanId = (identifier || '').trim().toLowerCase();
-    const cleanPass = (newPassword || '').trim();
-
-    if (!cleanId) {
-      return { success: false, message: 'Please enter your username or registered email.' };
-    }
-    if (!cleanPass || cleanPass.length < 4) {
-      return { success: false, message: 'New password must be at least 4 characters.' };
-    }
-
-    let isMatched = false;
-    const localCreds = getLocalCredentials();
-
-    // Verify identifier matches rodhe or local credentials
-    if (
-      cleanId === (localCreds.username || '').toLowerCase() ||
-      cleanId === (localCreds.email || '').toLowerCase() ||
-      cleanId === 'rodhe' ||
-      cleanId === 'admin@rodhe.in'
-    ) {
-      isMatched = true;
+  /**
+   * Dispatches an official password recovery link via Supabase Auth.
+   * Requires verified ownership of the registered administrator email.
+   */
+  async requestPasswordReset(email) {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    if (!cleanEmail) {
+      return { success: false, message: 'Please provide your registered administrative email.' };
     }
 
-    // 1. If Supabase configured, attempt to update password in database
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase
-          .from('admin_users')
-          .update({
-            password_hash: cleanPass,
-            updated_at: new Date().toISOString()
-          })
-          .or(`username.ilike.${cleanId},email.ilike.${cleanId}`);
+        const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+          redirectTo: `${window.location.origin}/#admin`
+        });
 
-        if (!error) {
-          isMatched = true;
+        if (error) {
+          return { success: false, message: error.message };
         }
+
+        return {
+          success: true,
+          message: 'A secure password reset link has been dispatched to your registered email address.'
+        };
       } catch (err) {
-        console.warn('Supabase password reset notice:', err);
+        return { success: false, message: 'Unable to dispatch recovery link at this time.' };
       }
     }
 
-    if (!isMatched) {
-      return {
-        success: false,
-        message: 'No administrative account found matching that username/email.'
-      };
+    return {
+      success: false,
+      message: 'Password recovery requires an active Supabase authentication configuration.'
+    };
+  },
+
+  /**
+   * Updates administrator password for an authenticated session.
+   */
+  async updatePassword(newPassword) {
+    const cleanPass = (newPassword || '').trim();
+    if (!cleanPass || cleanPass.length < 8) {
+      return { success: false, message: 'Password must be at least 8 characters long.' };
     }
 
-    // 2. Update local synchronized credentials
-    const updated = {
-      ...localCreds,
-      password: cleanPass,
-      updatedAt: new Date().toISOString()
-    };
-    setLocalCredentials(updated);
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error } = await supabase.auth.updateUser({ password: cleanPass });
+        if (error) {
+          return { success: false, message: error.message };
+        }
+        return { success: true, message: 'Password updated successfully in Supabase Auth.' };
+      } catch (err) {
+        return { success: false, message: 'Failed to update password.' };
+      }
+    }
 
-    return {
-      success: true,
-      message: 'Password updated successfully! You can now log in with your new password.'
-    };
+    return { success: false, message: 'Supabase client not configured.' };
   },
 
   async logout() {
     if (isSupabaseConfigured && supabase) {
       try {
         await supabase.auth.signOut();
-      } catch (e) {}
+      } catch {}
     }
     localStorage.removeItem(AUTH_SESSION_KEY);
     return true;
   },
 
-  isAuthenticated() {
-    return Boolean(this.getCurrentSession());
+  async isAuthenticated() {
+    const session = await this.getCurrentSession();
+    return Boolean(session);
   }
 };
 

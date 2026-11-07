@@ -3,6 +3,7 @@ import { authService } from '../../services/authService';
 import { AdminLogin } from './AdminLogin';
 import { AdminLayout } from './AdminLayout';
 import { AdminDashboard } from './AdminDashboard';
+import { AdminOrders } from './AdminOrders';
 import { AdminProductList } from './AdminProductList';
 import { AdminProductForm } from './AdminProductForm';
 import { AdminBulkImport } from './AdminBulkImport';
@@ -77,6 +78,8 @@ export const AdminPortal = ({ onNavigateToStorefront }) => {
           onEditProduct={handleEditProduct}
         />
       )}
+
+      {activeTab === 'orders' && <AdminOrders />}
 
       {activeTab === 'products' && (
         isCreatingProduct || editingProduct ? (

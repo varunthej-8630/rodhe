@@ -89,15 +89,40 @@ export const ShopProvider = ({ children }) => {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState(null);
 
+  // Patron Session State
+  const [patronUser, setPatronUserState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('rodhe_patron_session');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  const loginPatron = (patronData) => {
+    setPatronUserState(patronData);
+    try {
+      localStorage.setItem('rodhe_patron_session', JSON.stringify(patronData));
+    } catch (e) {}
+  };
+
+  const logoutPatron = () => {
+    setPatronUserState(null);
+    try {
+      localStorage.removeItem('rodhe_patron_session');
+    } catch (e) {}
+    showToast('Signed out of patron account.', 'info');
+  };
+
   // Filters State
   const [selectedCraft, setSelectedCraft] = useState('all');
   const [selectedColor, setSelectedColor] = useState('all');
   const [selectedFabric, setSelectedFabric] = useState('all');
-  const [priceMax, setPriceMax] = useState(8000);
+  const [priceMax, setPriceMax] = useState(2000);
   const [inStockOnly, setInStockOnly] = useState(false);
   const [sortBy, setSortBy] = useState('featured');
   const [searchQuery, setSearchQuery] = useState('');
-  const [priceRangeFilter, setPriceRangeFilter] = useState(null); // 'under2k' | '2k-4k' | '4k-6k' | null
+  const [priceRangeFilter, setPriceRangeFilter] = useState(null); // 'under800' | '800-1200' | '1200-1600' | '1600-2000' | null
 
   // Discount & Gift Wrap
   const [appliedCoupon, setAppliedCoupon] = useState(null);
@@ -259,6 +284,8 @@ export const ShopProvider = ({ children }) => {
           window.location.hash = 'story';
         } else if (page === 'contact') {
           window.location.hash = 'contact';
+        } else if (page === 'policies') {
+          window.location.hash = productId ? `policies-${productId}` : 'policies';
         } else if (page === 'home') {
           if (window.location.hash) {
             history.replaceState(null, '', window.location.pathname + window.location.search);
@@ -273,7 +300,7 @@ export const ShopProvider = ({ children }) => {
     setSelectedCraft('all');
     setSelectedColor('all');
     setSelectedFabric('all');
-    setPriceMax(8000);
+    setPriceMax(2000);
     setPriceRangeFilter(null);
     setInStockOnly(false);
     setSortBy('featured');
@@ -326,6 +353,9 @@ export const ShopProvider = ({ children }) => {
         setIsSearchOpen,
         isAuthOpen,
         setIsAuthOpen,
+        patronUser,
+        loginPatron,
+        logoutPatron,
         isCheckoutOpen,
         setIsCheckoutOpen,
         quickViewProduct,

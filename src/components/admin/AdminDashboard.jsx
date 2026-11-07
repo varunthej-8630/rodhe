@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Package, 
+  ShoppingBag,
   Sparkles, 
   Tag, 
   Mail, 
@@ -27,9 +28,13 @@ export const AdminDashboard = ({ onNavigateTab, onNewProduct, onEditProduct }) =
     lowStockCount: 0,
     activePromotions: 0,
     totalEnquiries: 0,
-    totalSignups: 0
+    totalSignups: 0,
+    totalOrders: 0,
+    unfulfilledOrders: 0,
+    totalRevenue: 0
   });
   const [recentProducts, setRecentProducts] = useState([]);
+  const [recentOrders, setRecentOrders] = useState([]);
   const [settings, setSettings] = useState(null);
 
   useEffect(() => {
@@ -38,12 +43,15 @@ export const AdminDashboard = ({ onNavigateTab, onNewProduct, onEditProduct }) =
       const promos = await storeService.getPromotions();
       const enquiries = await storeService.getEnquiries();
       const signups = await storeService.getSignups();
+      const orders = await storeService.getOrders();
       const storeSettings = await storeService.getSettings();
 
       const published = products.filter(p => p.status === 'published');
       const drafts = products.filter(p => p.status === 'draft');
       const lowStock = products.filter(p => (p.stockCount || 0) <= 5);
       const activePromos = promos.filter(p => p.isActive);
+      const unfulfilled = orders.filter(o => (o.fulfillmentStatus || o.fulfillment_status) === 'unfulfilled');
+      const revenue = orders.reduce((sum, o) => sum + (Number(o.grandTotal || o.grand_total) || 0), 0);
 
       setStats({
         totalProducts: products.length,
@@ -52,10 +60,14 @@ export const AdminDashboard = ({ onNavigateTab, onNewProduct, onEditProduct }) =
         lowStockCount: lowStock.length,
         activePromotions: activePromos.length,
         totalEnquiries: enquiries.length,
-        totalSignups: signups.length
+        totalSignups: signups.length,
+        totalOrders: orders.length,
+        unfulfilledOrders: unfulfilled.length,
+        totalRevenue: revenue
       });
 
       setRecentProducts(products.slice(0, 5));
+      setRecentOrders(orders.slice(0, 4));
       setSettings(storeSettings);
     };
 
@@ -104,7 +116,27 @@ export const AdminDashboard = ({ onNavigateTab, onNewProduct, onEditProduct }) =
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.65rem' }}>
+        <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => onNavigateTab('orders')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.55rem 0.95rem',
+              backgroundColor: '#B88D4A',
+              border: 'none',
+              borderRadius: '3px',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              color: '#2A1A13',
+              cursor: 'pointer'
+            }}
+          >
+            <ShoppingBag size={14} color="#2A1A13" />
+            <span>Fulfill Orders ({stats.unfulfilledOrders})</span>
+          </button>
+
           <button
             onClick={() => onNavigateTab('bulk-import')}
             style={{
@@ -155,6 +187,36 @@ export const AdminDashboard = ({ onNavigateTab, onNewProduct, onEditProduct }) =
           gap: '1.25rem'
         }}
       >
+        {/* Metric 0: Customer Orders & Fulfillment (Clickable) */}
+        <div 
+          onClick={() => onNavigateTab && onNavigateTab('orders')}
+          style={{ 
+            backgroundColor: '#FFFDF9', 
+            padding: '1.5rem', 
+            borderRadius: '4px', 
+            border: '1px solid rgba(184, 141, 74, 0.35)', 
+            display: 'flex', 
+            flexDirection: 'column',
+            cursor: 'pointer',
+            boxShadow: '0 4px 15px rgba(184, 141, 74, 0.08)',
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#B88D4A' }}>Orders & Fulfillment</span>
+            <ShoppingBag size={18} color="#B88D4A" />
+          </div>
+          <div style={{ fontSize: '2rem', fontWeight: 600, fontFamily: 'var(--font-serif)', color: '#4B3024', lineHeight: 1 }}>
+            {stats.totalOrders}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
+            <span style={{ fontSize: '0.72rem', color: stats.unfulfilledOrders > 0 ? '#C98278' : '#525B3A', fontWeight: 600 }}>
+              {stats.unfulfilledOrders} awaiting dispatch
+            </span>
+            <span style={{ fontSize: '0.72rem', color: '#B88D4A', fontWeight: 600 }}>View Orders →</span>
+          </div>
+        </div>
+
         {/* Metric 1: Published Sarees */}
         <div style={{ backgroundColor: '#FFFDF9', padding: '1.5rem', borderRadius: '4px', border: '1px solid rgba(75, 48, 36, 0.1)', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
