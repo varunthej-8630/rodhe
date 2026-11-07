@@ -50,14 +50,15 @@ export const CartDrawer = () => {
   };
 
   const handleWhatsAppOrder = async () => {
+    if (cart.length === 0) return;
     const settings = await storeService.getSettings();
     const phone = (settings?.whatsappNumber || '919490658858').replace(/[^0-9]/g, '');
 
     const itemsText = cart.map((item, idx) => {
-      const p = item.product;
+      const p = item.product || item;
       const unit = Number(p.price ?? p.sellingPrice ?? p.selling_price ?? 990) || 990;
       const itemSubtotal = unit * item.quantity;
-      return `${idx + 1}. ${p.name}\n   SKU: ${p.sku || 'RODHE-SAR'}\n   Qty: ${item.quantity} × ₹${unit.toLocaleString('en-IN')} = ₹${itemSubtotal.toLocaleString('en-IN')}`;
+      return `${idx + 1}. ${p.name}\n   SKU: ${p.sku || 'RDH-SAR'}\n   Qty: ${item.quantity} × ₹${unit.toLocaleString('en-IN')} = ₹${itemSubtotal.toLocaleString('en-IN')}`;
     }).join('\n\n');
 
     let summaryText = `\n\n-------------------------\nBag Subtotal: ₹${subtotal.toLocaleString('en-IN')}`;
@@ -65,15 +66,30 @@ export const CartDrawer = () => {
       summaryText += `\nCoupon (${appliedCoupon?.code}): -₹${discountAmount.toLocaleString('en-IN')}`;
     }
     if (giftWrap) {
-      summaryText += `\nHeritage Gift Box: +₹${giftWrapFee}`;
+      summaryText += `\nHeritage Keepsake Box: +₹${giftWrapFee}`;
     }
-    summaryText += `\nShipping: ${isFreeShipping ? 'FREE' : `₹${shippingFee}`}`;
-    summaryText += `\nTotal: ₹${total.toLocaleString('en-IN')}`;
+    summaryText += `\nShipping: ${isFreeShipping ? 'Complimentary (FREE)' : `₹${shippingFee}`}`;
+    summaryText += `\nTotal Amount: ₹${total.toLocaleString('en-IN')}`;
 
-    const fullMessage = `Namaste RODHE Team,\n\nI would like to place an order enquiry for the following handcrafted saree(s):\n\n${itemsText}${summaryText}\n\nPlease confirm stock availability and share payment/delivery details. Thank you!`;
+    let patronText = '';
+    try {
+      const patron = JSON.parse(localStorage.getItem('rodhe_patron_session') || '{}');
+      if (patron.name || patron.phone || patron.city) {
+        patronText = `\n\nPatron Details:\n• Name: ${patron.name || 'Patron'}\n• Contact: ${patron.phone ? `+91 ${patron.phone}` : 'Via chat'}`;
+        if (patron.city || patron.pincode) {
+          patronText += `\n• Destination: ${patron.city || ''}${patron.state ? `, ${patron.state}` : ''}${patron.pincode ? ` (${patron.pincode})` : ''}`;
+        }
+      }
+    } catch (e) {}
+
+    const fullMessage = `Namaste RODHE Team,\n\nI would like to order the following handcrafted saree(s):\n\n${itemsText}${summaryText}${patronText}\n\nPlease confirm fabric availability and share direct payment details (UPI / Bank Transfer) for dispatch. Thank you!`;
 
     const encoded = encodeURIComponent(fullMessage);
-    window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
+    const url = `https://wa.me/${phone}?text=${encoded}`;
+    const opened = window.open(url, '_blank');
+    if (!opened) {
+      window.location.href = url;
+    }
   };
 
   return (
@@ -446,7 +462,7 @@ export const CartDrawer = () => {
               </span>
             </div>
 
-            {/* Dual Checkout Actions */}
+            {/* WhatsApp Checkout Actions */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
               <button
                 onClick={handleWhatsAppOrder}
@@ -474,15 +490,15 @@ export const CartDrawer = () => {
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#525B3A')}
               >
                 <MessageCircle size={18} color="#D4AC68" />
-                <span>Order via WhatsApp</span>
+                <span>Continue on WhatsApp (+91 9490658858)</span>
               </button>
 
               <button
                 onClick={handleCheckoutClick}
                 className="btn btn-outline"
-                style={{ width: '100%', padding: '0.75rem', minHeight: '42px', fontSize: '0.8rem' }}
+                style={{ width: '100%', padding: '0.75rem', minHeight: '42px', fontSize: '0.8rem', color: '#4B3024' }}
               >
-                <span>Pay Online (UPI / Card / NetBanking)</span>
+                <span>Add Delivery Address & Details</span>
                 <ArrowRight size={14} />
               </button>
             </div>

@@ -15,17 +15,20 @@ DROP SEQUENCE IF EXISTS public.rodhe_order_seq;
 
 -- 3. Drop RLS Policies
 DROP POLICY IF EXISTS "Orders Insert Guest and Patron" ON public.orders;
+DROP POLICY IF EXISTS "Orders Admin Insert" ON public.orders;
 DROP POLICY IF EXISTS "Orders Admin Select" ON public.orders;
 DROP POLICY IF EXISTS "Orders Customer Select Own" ON public.orders;
 DROP POLICY IF EXISTS "Orders Admin Update" ON public.orders;
 DROP POLICY IF EXISTS "Orders Admin Delete" ON public.orders;
 
 DROP POLICY IF EXISTS "Order Items Insert" ON public.order_items;
+DROP POLICY IF EXISTS "Order Items Admin Insert" ON public.order_items;
 DROP POLICY IF EXISTS "Order Items Admin Select" ON public.order_items;
 DROP POLICY IF EXISTS "Order Items Customer Select Own" ON public.order_items;
 DROP POLICY IF EXISTS "Order Items Admin Manage" ON public.order_items;
 
 DROP POLICY IF EXISTS "Payments Insert Checkout" ON public.payments;
+DROP POLICY IF EXISTS "Payments Admin Insert" ON public.payments;
 DROP POLICY IF EXISTS "Payments Customer Select Own" ON public.payments;
 DROP POLICY IF EXISTS "Payments Admin Manage" ON public.payments;
 

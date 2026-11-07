@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { X, CheckCircle2, ShieldCheck, Truck, CreditCard, Smartphone, Building, Banknote, ArrowRight, ArrowLeft, Sparkles, MessageCircle, AlertCircle } from 'lucide-react';
-import confetti from 'canvas-confetti';
+import { X, ShieldCheck, Truck, ArrowRight, ArrowLeft, MessageCircle, AlertCircle, ShoppingBag, Sparkles } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { storeService } from '../services/storeService';
 
@@ -16,32 +15,29 @@ export const CheckoutModal = () => {
     giftWrap,
     giftWrapFee,
     total,
-    clearCart,
     navigateTo,
     patronUser
   } = useShop();
 
-  const [step, setStep] = useState(1); // 1: Contact, 2: Address, 3: Payment, 4: Confirmation
+  const [step, setStep] = useState(1); // 1: Contact, 2: Address, 3: Review & Send to WhatsApp, 4: Status Sent
   const [isProcessing, setIsProcessing] = useState(false);
-  const [orderId, setOrderId] = useState('');
-  const [createdOrder, setCreatedOrder] = useState(null);
+  const [lastWhatsAppUrl, setLastWhatsAppUrl] = useState('');
   const [orderError, setOrderError] = useState('');
 
   // Form State - dynamically populated from patron session if present
   const [formData, setFormData] = useState(() => {
     const patronNameParts = patronUser?.name ? patronUser.name.split(' ') : [];
     return {
-      firstName: patronNameParts[0] || 'Ananya',
-      lastName: patronNameParts.slice(1).join(' ') || (patronNameParts.length > 0 ? '' : 'Deshmukh'),
-      email: patronUser?.email || 'ananya.deshmukh@example.com',
-      phone: patronUser?.phone || '9490658858',
-      pincode: patronUser?.pincode || '560001',
-      address: patronUser?.address || 'Flat 402, Heritage Enclave, Lavelle Road',
-      landmark: patronUser?.landmark || 'Near Bangalore Club',
-      city: patronUser?.city || 'Bengaluru',
-      state: patronUser?.state || 'Karnataka',
-      paymentMethod: 'upi', // 'upi' | 'card' | 'netbanking' | 'cod'
-      upiId: patronUser?.upiId || 'ananya@okhdfcbank'
+      firstName: patronNameParts[0] || '',
+      lastName: patronNameParts.slice(1).join(' ') || '',
+      email: patronUser?.email || '',
+      phone: patronUser?.phone || '',
+      pincode: patronUser?.pincode || '',
+      address: patronUser?.address || '',
+      landmark: patronUser?.landmark || '',
+      city: patronUser?.city || '',
+      state: patronUser?.state || '',
+      notes: ''
     };
   });
 
@@ -65,145 +61,93 @@ export const CheckoutModal = () => {
     }
   };
 
-  const finalizeOrderSuccess = (result) => {
-    const generatedNumber = result.orderNumber || result.order_number;
-    setOrderId(generatedNumber);
-    setCreatedOrder(result);
-    setStep(4);
-    clearCart();
+  const buildWhatsAppUrl = async () => {
+    const settings = await storeService.getSettings();
+    const phone = (settings?.whatsappNumber || '919490658858').replace(/[^0-9]/g, '');
 
-    // Persist shipping address for patron convenience
-    try {
-      const existingPatron = JSON.parse(localStorage.getItem('rodhe_patron_session') || '{}');
-      const updatedPatron = {
-        ...existingPatron,
-        name: `${formData.firstName} ${formData.lastName}`.trim(),
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
-        landmark: formData.landmark,
-        city: formData.city,
-        state: formData.state,
-        pincode: formData.pincode
-      };
-      localStorage.setItem('rodhe_patron_session', JSON.stringify(updatedPatron));
-    } catch (e) {}
+    const itemsText = cart.map((item, idx) => {
+      const p = item.product || item;
+      const unit = Number(p.price ?? p.sellingPrice ?? p.selling_price ?? 990) || 990;
+      const itemSubtotal = unit * item.quantity;
+      return `${idx + 1}. ${p.name}\n   SKU: ${p.sku || 'RDH-SAR'}\n   Qty: ${item.quantity} × ₹${unit.toLocaleString('en-IN')} = ₹${itemSubtotal.toLocaleString('en-IN')}`;
+    }).join('\n\n');
 
-    // Trigger Celebration Confetti
-    try {
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#B88D4A', '#EADAB5', '#4B3024', '#C98278']
-      });
-    } catch (e) {}
+    let summaryText = `\n\n-------------------------\nBag Subtotal: ₹${subtotal.toLocaleString('en-IN')}`;
+    if (discountAmount > 0) {
+      summaryText += `\nCoupon (${appliedCoupon?.code}): -₹${discountAmount.toLocaleString('en-IN')}`;
+    }
+    if (giftWrap) {
+      summaryText += `\nHeritage Gift Box: +₹${giftWrapFee}`;
+    }
+    summaryText += `\nShipping: ${shippingFee === 0 ? 'Complimentary (FREE)' : `₹${shippingFee}`}`;
+    summaryText += `\nTotal Amount: ₹${total.toLocaleString('en-IN')}`;
+
+    let patronText = '';
+    const fullName = `${formData.firstName} ${formData.lastName}`.trim();
+    if (fullName || formData.phone || formData.city) {
+      patronText = `\n\nPatron Details:\n• Name: ${fullName || 'Patron'}\n• Contact / WhatsApp: ${formData.phone ? `+91 ${formData.phone}` : 'Provided in chat'}`;
+      if (formData.city || formData.pincode) {
+        patronText += `\n• Delivery Destination: ${formData.city || ''}, ${formData.state || ''}${formData.pincode ? ` - ${formData.pincode}` : ''}`;
+      }
+      if (formData.address) {
+        patronText += `\n• Address: ${formData.address}${formData.landmark ? ` (Landmark: ${formData.landmark})` : ''}`;
+      }
+      if (formData.email) {
+        patronText += `\n• Email for invoice: ${formData.email}`;
+      }
+      if (formData.notes) {
+        patronText += `\n• Note to Atelier: ${formData.notes}`;
+      }
+    }
+
+    const fullMessage = `Namaste RODHE Team,\n\nI would like to order the following handcrafted saree(s):\n\n${itemsText}${summaryText}${patronText}\n\nPlease confirm availability and share direct payment details (UPI / Bank Transfer) for dispatch. Thank you!`;
+
+    const encoded = encodeURIComponent(fullMessage);
+    return `https://wa.me/${phone}?text=${encoded}`;
   };
 
-  const handlePlaceOrder = async () => {
+  const handleSendToWhatsApp = async () => {
+    if (cart.length === 0) {
+      setOrderError('Your shopping bag is empty. Please add a saree to proceed.');
+      return;
+    }
+
     setIsProcessing(true);
     setOrderError('');
 
     try {
-      const orderPayload = {
-        customerName: `${formData.firstName} ${formData.lastName}`.trim(),
-        customerEmail: formData.email,
-        customerPhone: formData.phone,
-        shippingAddress: {
-          addressLine1: formData.address,
+      const url = await buildWhatsAppUrl();
+      setLastWhatsAppUrl(url);
+
+      // Save patron contact details locally for future visits
+      try {
+        const existingPatron = JSON.parse(localStorage.getItem('rodhe_patron_session') || '{}');
+        const updatedPatron = {
+          ...existingPatron,
+          name: `${formData.firstName} ${formData.lastName}`.trim(),
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
           landmark: formData.landmark,
           city: formData.city,
           state: formData.state,
           pincode: formData.pincode
-        },
-        items: cart,
-        subtotal: subtotal,
-        discountAmount: discountAmount,
-        shippingFee: shippingFee,
-        giftWrap: giftWrap,
-        giftWrapFee: giftWrapFee,
-        grandTotal: total,
-        appliedCoupon: appliedCoupon?.code || null,
-        paymentMethod: formData.paymentMethod
-      };
-
-      // 1. Cash on Delivery handling
-      if (formData.paymentMethod === 'cod') {
-        const codPayload = {
-          ...orderPayload,
-          paymentStatus: 'pending_cod'
         };
-        const result = await storeService.createOrder(codPayload);
-        finalizeOrderSuccess(result);
-        return;
+        localStorage.setItem('rodhe_patron_session', JSON.stringify(updatedPatron));
+      } catch (e) {}
+
+      // Open WhatsApp window (works across iOS, Android, and Desktop)
+      const opened = window.open(url, '_blank');
+      if (!opened) {
+        // In case popups are blocked by browser, provide direct navigation fallback
+        window.location.href = url;
       }
 
-      // 2. Razorpay Gateway Handling
-      const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID;
-      const isRazorpayConfigured = razorpayKey && razorpayKey.startsWith('rzp_') && typeof window !== 'undefined' && window.Razorpay;
-
-      if (isRazorpayConfigured) {
-        const options = {
-          key: razorpayKey,
-          amount: Math.round(total * 100), // In paise
-          currency: 'INR',
-          name: 'RODHE — Woven with Trust',
-          description: `Order of ${cart.length} Handcrafted Saree${cart.length > 1 ? 's' : ''}`,
-          image: '/assets/01_Primary_logo_transparent.png',
-          handler: async function (response) {
-            try {
-              const verifiedPayload = {
-                ...orderPayload,
-                paymentStatus: 'captured',
-                gatewayPaymentId: response.razorpay_payment_id,
-                gatewayOrderId: response.razorpay_order_id,
-                gatewaySignature: response.razorpay_signature
-              };
-              const result = await storeService.createOrder(verifiedPayload);
-              finalizeOrderSuccess(result);
-            } catch (err) {
-              console.error('Order finalization error post-payment:', err);
-              setIsProcessing(false);
-              setOrderError(err.message || 'Payment recorded, but cloud order registry sync failed. Please notify concierge@rodhe.in');
-            }
-          },
-          prefill: {
-            name: `${formData.firstName} ${formData.lastName}`.trim(),
-            email: formData.email,
-            contact: formData.phone
-          },
-          theme: {
-            color: '#4B3024'
-          },
-          modal: {
-            ondismiss: function () {
-              setIsProcessing(false);
-              setOrderError('Payment process was dismissed. Your shopping bag has been safely preserved.');
-            }
-          }
-        };
-
-        const rzp = new window.Razorpay(options);
-        rzp.on('payment.failed', function (failRes) {
-          setIsProcessing(false);
-          setOrderError(`Payment failed: ${failRes.error?.description || 'Gateway transaction declined.'}`);
-        });
-        rzp.open();
-        return;
-      }
-
-      // 3. Fallback / Test Simulation Mode (when live gateway key is pending)
-      const simPayload = {
-        ...orderPayload,
-        paymentStatus: 'pending_payment',
-        notes: 'Test Mode: Gateway pending merchant activation. Order reserved with pending_payment status.'
-      };
-      const result = await storeService.createOrder(simPayload);
-      finalizeOrderSuccess(result);
-
+      // Transition to honest status screen (does NOT clear cart!)
+      setStep(4);
     } catch (err) {
-      console.error('Order creation error:', err);
-      setOrderError(err.message || 'Unable to secure order in cloud database. Your shopping bag has been preserved.');
+      console.error('Error generating WhatsApp concierge link:', err);
+      setOrderError('Unable to open WhatsApp automatically. Please contact our concierge directly at +91 9490658858.');
     } finally {
       setIsProcessing(false);
     }
@@ -243,7 +187,7 @@ export const CheckoutModal = () => {
               style={{ height: 'clamp(24px, 5vw, 32px)' }}
             />
             <span style={{ fontSize: '0.74rem', color: '#B88D4A', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              • Secure Concierge
+              • WhatsApp Concierge Checkout
             </span>
           </div>
 
@@ -256,7 +200,7 @@ export const CheckoutModal = () => {
           </button>
         </div>
 
-        {/* Checkout Steps Progress Indicator */}
+        {/* Steps Progress Indicator */}
         {step < 4 && (
           <div
             style={{
@@ -272,9 +216,9 @@ export const CheckoutModal = () => {
             }}
           >
             {[
-              { num: 1, label: 'Details', fullLabel: 'Patron Details' },
-              { num: 2, label: 'Address', fullLabel: 'Delivery Address' },
-              { num: 3, label: 'Payment', fullLabel: 'Payment Gateway' }
+              { num: 1, label: 'Patron Details' },
+              { num: 2, label: 'Delivery Address' },
+              { num: 3, label: 'Review & WhatsApp' }
             ].map((s) => (
               <div
                 key={s.num}
@@ -307,7 +251,7 @@ export const CheckoutModal = () => {
                 >
                   {s.num}
                 </div>
-                <span className="checkout-step-text">{s.label}</span>
+                <span>{s.label}</span>
               </div>
             ))}
           </div>
@@ -315,7 +259,7 @@ export const CheckoutModal = () => {
 
         {/* Modal Main Content */}
         <div className="checkout-main-content">
-          {/* Step 4: Confirmation Screen */}
+          {/* Step 4: Honest WhatsApp Status Screen (NO fake confirmation) */}
           {step === 4 ? (
             <div style={{ padding: 'clamp(2rem, 5vw, 3.5rem) clamp(1rem, 3vw, 2rem)', textAlign: 'center', maxWidth: '640px', margin: '0 auto', width: '100%' }}>
               <div
@@ -323,34 +267,35 @@ export const CheckoutModal = () => {
                   width: '64px',
                   height: '64px',
                   borderRadius: '50%',
-                  backgroundColor: 'rgba(184, 141, 74, 0.15)',
+                  backgroundColor: 'rgba(37, 211, 102, 0.15)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   margin: '0 auto 1.25rem',
-                  color: '#B88D4A'
+                  color: '#25D366'
                 }}
               >
-                <CheckCircle2 size={38} />
+                <MessageCircle size={38} />
               </div>
 
-              <div style={{ fontSize: '0.76rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#B88D4A', fontWeight: 700, marginBottom: '0.5rem' }}>
-                Order Placed With Trust
+              <div style={{ fontSize: '0.76rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: '#525B3A', fontWeight: 700, marginBottom: '0.5rem' }}>
+                WhatsApp Concierge Opened
               </div>
 
               <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(1.8rem, 4vw, 2.4rem)', color: '#4B3024', marginBottom: '0.75rem' }}>
-                Thank You, {formData.firstName}!
+                Tap "Send" in WhatsApp
               </h2>
 
               <p style={{ fontSize: '0.9rem', color: '#6F4E3E', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-                Your handcrafted saree order <strong>#{orderId}</strong> has been received by our artisan guild. A confirmation email has been dispatched to <strong>{formData.email}</strong>.
+                We have generated your order message and opened WhatsApp with our boutique atelier (+91 9490658858).
+                Please tap <strong>Send</strong> in your chat window to deliver your inquiry.
               </p>
 
-              {/* Order Specs Box */}
+              {/* Honest Status Notice Box */}
               <div
                 style={{
                   backgroundColor: '#FAF6EE',
-                  border: '1px solid rgba(184, 141, 74, 0.25)',
+                  border: '1px solid rgba(184, 141, 74, 0.3)',
                   padding: '1.25rem',
                   textAlign: 'left',
                   fontSize: '0.84rem',
@@ -361,58 +306,51 @@ export const CheckoutModal = () => {
                 }}
               >
                 <div className="confirmation-spec-row">
-                  <span style={{ color: '#8F7263' }}>Delivery Address:</span>
-                  <span style={{ fontWeight: 600, color: '#4B3024' }}>
-                    {formData.address}, {formData.city}, {formData.state} - {formData.pincode}
-                  </span>
+                  <span style={{ color: '#8F7263' }}>Order Status:</span>
+                  <span style={{ fontWeight: 600, color: '#B88D4A' }}>Awaiting Atelier Confirmation</span>
                 </div>
                 <div className="confirmation-spec-row">
-                  <span style={{ color: '#8F7263' }}>Estimated Dispatch:</span>
-                  <span style={{ fontWeight: 600, color: '#4B3024' }}>Within 24 Hours (Insured Courier)</span>
+                  <span style={{ color: '#8F7263' }}>Payment Mode:</span>
+                  <span style={{ fontWeight: 600, color: '#4B3024' }}>Direct with Atelier (UPI / Bank Transfer)</span>
                 </div>
                 <div className="confirmation-spec-row">
-                  <span style={{ color: '#8F7263' }}>Payment Method:</span>
-                  <span style={{ fontWeight: 600, color: '#4B3024', textTransform: 'uppercase' }}>{formData.paymentMethod}</span>
+                  <span style={{ color: '#8F7263' }}>Shopping Bag:</span>
+                  <span style={{ fontWeight: 600, color: '#525B3A' }}>Preserved in your browser ({cart.length} items)</span>
                 </div>
                 <div className="confirmation-spec-row" style={{ borderTop: '1px solid rgba(75, 48, 36, 0.1)', paddingTop: '0.65rem' }}>
-                  <span style={{ color: '#4B3024', fontWeight: 600 }}>Amount {formData.paymentMethod === 'cod' ? 'Payable on Delivery' : 'Paid'}:</span>
+                  <span style={{ color: '#4B3024', fontWeight: 600 }}>Estimated Bag Total:</span>
                   <span style={{ fontWeight: 700, color: '#4B3024', fontFamily: 'var(--font-serif)', fontSize: '1.15rem' }}>
-                    ₹{(createdOrder?.grandTotal ?? total).toLocaleString('en-IN')}
+                    ₹{total.toLocaleString('en-IN')}
                   </span>
                 </div>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
-                <a
-                  href={`https://wa.me/919490658858?text=${encodeURIComponent(
-                    `Namaste RODHE Concierge,\n\nI have placed an order on your boutique:\n` +
-                    `• Order No: #${orderId}\n` +
-                    `• Patron: ${formData.firstName} ${formData.lastName}\n` +
-                    `• Amount: ₹${(createdOrder?.grandTotal ?? total).toLocaleString('en-IN')}\n` +
-                    `• Payment: ${formData.paymentMethod.toUpperCase()}\n\n` +
-                    `Please share insured courier dispatch & tracking updates.`
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn"
-                  style={{
-                    width: '100%',
-                    maxWidth: '340px',
-                    backgroundColor: '#25D366',
-                    color: '#FFFFFF',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    fontWeight: 600,
-                    textDecoration: 'none',
-                    padding: '0.75rem 1.25rem',
-                    borderRadius: '4px'
-                  }}
-                >
-                  <MessageCircle size={18} />
-                  Track Order on WhatsApp Concierge
-                </a>
+                {lastWhatsAppUrl && (
+                  <a
+                    href={lastWhatsAppUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn"
+                    style={{
+                      width: '100%',
+                      maxWidth: '340px',
+                      backgroundColor: '#25D366',
+                      color: '#FFFFFF',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      fontWeight: 600,
+                      textDecoration: 'none',
+                      padding: '0.85rem 1.25rem',
+                      borderRadius: '4px'
+                    }}
+                  >
+                    <MessageCircle size={18} />
+                    Reopen WhatsApp Chat
+                  </a>
+                )}
 
                 <button
                   onClick={() => {
@@ -433,17 +371,20 @@ export const CheckoutModal = () => {
                 {/* Step 1: Contact Details */}
                 {step === 1 && (
                   <div>
-                    <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.45rem', color: '#4B3024', marginBottom: '1.25rem' }}>
-                      Contact Information
+                    <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.45rem', color: '#4B3024', marginBottom: '0.35rem' }}>
+                      Patron Contact Details
                     </h3>
+                    <p style={{ fontSize: '0.8rem', color: '#8F7263', marginBottom: '1.25rem' }}>
+                      Our atelier connects directly with you to verify your drape requirements.
+                    </p>
 
                     <div className="form-two-col">
                       <div className="form-group">
-                        <label className="form-label">First Name</label>
+                        <label className="form-label">First Name *</label>
                         <input
                           type="text"
                           required
-                          autoComplete="given-name"
+                          placeholder="e.g. Ananya"
                           className="form-input"
                           value={formData.firstName}
                           onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
@@ -453,8 +394,7 @@ export const CheckoutModal = () => {
                         <label className="form-label">Last Name</label>
                         <input
                           type="text"
-                          required
-                          autoComplete="family-name"
+                          placeholder="e.g. Deshmukh"
                           className="form-input"
                           value={formData.lastName}
                           onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
@@ -463,19 +403,7 @@ export const CheckoutModal = () => {
                     </div>
 
                     <div className="form-group">
-                      <label className="form-label">Email Address (for invoice & care guide)</label>
-                      <input
-                        type="email"
-                        required
-                        autoComplete="email"
-                        className="form-input"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label className="form-label">Phone Number (for SMS & updates)</label>
+                      <label className="form-label">WhatsApp Contact Number *</label>
                       <div style={{ display: 'flex' }}>
                         <span style={{ padding: '0.85rem 0.85rem', backgroundColor: '#F4ECE1', border: '1px solid rgba(75, 48, 36, 0.15)', fontSize: '0.88rem', fontWeight: 600 }}>
                           +91
@@ -484,93 +412,118 @@ export const CheckoutModal = () => {
                           type="tel"
                           required
                           inputMode="numeric"
-                          autoComplete="tel"
+                          placeholder="10-digit mobile number"
                           className="form-input"
                           style={{ borderLeft: 'none' }}
                           value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/[^0-9]/g, '').slice(0, 10) })}
                         />
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => setStep(2)}
-                      className="btn btn-primary"
-                      style={{ width: '100%', marginTop: '1rem', minHeight: '48px' }}
-                    >
-                      <span>Continue to Delivery Address</span>
-                      <ArrowRight size={16} />
-                    </button>
+                    <div className="form-group">
+                      <label className="form-label">Email Address (Optional, for dispatch invoice & care guide)</label>
+                      <input
+                        type="email"
+                        placeholder="e.g. ananya@example.com"
+                        className="form-input"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', marginTop: '1.25rem' }}>
+                      <button
+                        onClick={() => setStep(2)}
+                        className="btn btn-primary"
+                        style={{ width: '100%', minHeight: '48px' }}
+                      >
+                        <span>Continue to Delivery Address</span>
+                        <ArrowRight size={16} />
+                      </button>
+
+                      <button
+                        onClick={handleSendToWhatsApp}
+                        disabled={isProcessing}
+                        className="btn btn-outline"
+                        style={{ width: '100%', minHeight: '42px', fontSize: '0.8rem', color: '#525B3A', borderColor: '#525B3A' }}
+                      >
+                        <MessageCircle size={15} />
+                        <span>Skip Address & Connect Directly on WhatsApp</span>
+                      </button>
+                    </div>
                   </div>
                 )}
 
                 {/* Step 2: Shipping Address */}
                 {step === 2 && (
                   <div>
-                    <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.45rem', color: '#4B3024', marginBottom: '1.25rem' }}>
-                      Shipping Address (India)
+                    <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.45rem', color: '#4B3024', marginBottom: '0.35rem' }}>
+                      Delivery Destination (India)
                     </h3>
+                    <p style={{ fontSize: '0.8rem', color: '#8F7263', marginBottom: '1.25rem' }}>
+                      Insured express courier delivery across all serviceable Indian pincodes.
+                    </p>
 
                     <div className="form-group">
-                      <label className="form-label">PIN Code (6-digit)</label>
+                      <label className="form-label">PIN Code (6-digit) *</label>
                       <input
                         type="text"
                         maxLength={6}
                         required
                         inputMode="numeric"
-                        autoComplete="postal-code"
                         className="form-input"
                         value={formData.pincode}
-                        onChange={(e) => handlePincodeLookup(e.target.value)}
+                        onChange={(e) => handlePincodeLookup(e.target.value.replace(/[^0-9]/g, ''))}
                         placeholder="e.g. 560001"
                       />
+                    </div>
+
+                    <div className="form-two-col">
+                      <div className="form-group">
+                        <label className="form-label">City *</label>
+                        <input
+                          type="text"
+                          required
+                          className="form-input"
+                          value={formData.city}
+                          onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                          placeholder="e.g. Bengaluru"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">State *</label>
+                        <input
+                          type="text"
+                          required
+                          className="form-input"
+                          value={formData.state}
+                          onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                          placeholder="e.g. Karnataka"
+                        />
+                      </div>
                     </div>
 
                     <div className="form-group">
                       <label className="form-label">Apartment / House / Street Address</label>
                       <input
                         type="text"
-                        required
-                        autoComplete="street-address"
                         className="form-input"
                         value={formData.address}
                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        placeholder="e.g. Flat 402, Heritage Enclave, Lavelle Road"
                       />
                     </div>
 
                     <div className="form-group">
-                      <label className="form-label">Landmark</label>
+                      <label className="form-label">Landmark (Optional)</label>
                       <input
                         type="text"
                         className="form-input"
                         value={formData.landmark}
                         onChange={(e) => setFormData({ ...formData, landmark: e.target.value })}
+                        placeholder="e.g. Near Bangalore Club"
                       />
-                    </div>
-
-                    <div className="form-two-col">
-                      <div className="form-group">
-                        <label className="form-label">City</label>
-                        <input
-                          type="text"
-                          required
-                          autoComplete="address-level2"
-                          className="form-input"
-                          value={formData.city}
-                          onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">State</label>
-                        <input
-                          type="text"
-                          required
-                          autoComplete="address-level1"
-                          className="form-input"
-                          value={formData.state}
-                          onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                        />
-                      </div>
                     </div>
 
                     <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
@@ -586,139 +539,97 @@ export const CheckoutModal = () => {
                         className="btn btn-primary"
                         style={{ flexGrow: 1, minHeight: '48px' }}
                       >
-                        <span>Continue to Payment</span>
+                        <span>Review & Proceed to WhatsApp</span>
                         <ArrowRight size={16} />
                       </button>
                     </div>
                   </div>
                 )}
 
-                {/* Step 3: Payment Options & Boundary */}
+                {/* Step 3: Review & Dispatch to WhatsApp */}
                 {step === 3 && (
                   <div>
-                    <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.45rem', color: '#4B3024', marginBottom: '0.4rem' }}>
-                      Payment Method
+                    <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.45rem', color: '#4B3024', marginBottom: '0.35rem' }}>
+                      Review & Connect with Atelier
                     </h3>
                     <p style={{ fontSize: '0.8rem', color: '#8F7263', marginBottom: '1.15rem' }}>
-                      Transactions are securely encrypted with 256-bit SSL.
+                      RODHE slow-luxury sarees are confirmed individually by our master craftspeople.
                     </p>
 
-                    {/* Payment Gateways List */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                      {/* UPI */}
-                      <label
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.85rem',
-                          padding: '0.85rem clamp(0.75rem, 2vw, 1rem)',
-                          border: formData.paymentMethod === 'upi' ? '2px solid #B88D4A' : '1px solid rgba(75, 48, 36, 0.12)',
-                          backgroundColor: formData.paymentMethod === 'upi' ? '#FAF6EE' : '#FFFDF9',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <input
-                          type="radio"
-                          name="payment"
-                          checked={formData.paymentMethod === 'upi'}
-                          onChange={() => setFormData({ ...formData, paymentMethod: 'upi' })}
-                          style={{ accentColor: '#B88D4A' }}
-                        />
-                        <Smartphone size={20} color="#B88D4A" style={{ flexShrink: 0 }} />
-                        <div style={{ flexGrow: 1 }}>
-                          <div style={{ fontSize: '0.86rem', fontWeight: 600, color: '#4B3024' }}>
-                            Instant UPI (GPay, PhonePe, Paytm)
-                          </div>
-                          <span style={{ fontSize: '0.72rem', color: '#8F7263' }}>Zero surcharge</span>
+                    {/* Order Review Box */}
+                    <div
+                      style={{
+                        backgroundColor: '#FAF6EE',
+                        border: '1px solid rgba(184, 141, 74, 0.25)',
+                        padding: '1rem',
+                        marginBottom: '1.25rem',
+                        fontSize: '0.82rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.5rem'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#8F7263' }}>Patron:</span>
+                        <strong style={{ color: '#4B3024' }}>
+                          {`${formData.firstName} ${formData.lastName}`.trim() || 'Patron'}
+                        </strong>
+                      </div>
+                      {formData.phone && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#8F7263' }}>WhatsApp:</span>
+                          <span style={{ color: '#4B3024' }}>+91 {formData.phone}</span>
                         </div>
-                      </label>
-
-                      {/* Cards */}
-                      <label
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.85rem',
-                          padding: '0.85rem clamp(0.75rem, 2vw, 1rem)',
-                          border: formData.paymentMethod === 'card' ? '2px solid #B88D4A' : '1px solid rgba(75, 48, 36, 0.12)',
-                          backgroundColor: formData.paymentMethod === 'card' ? '#FAF6EE' : '#FFFDF9',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <input
-                          type="radio"
-                          name="payment"
-                          checked={formData.paymentMethod === 'card'}
-                          onChange={() => setFormData({ ...formData, paymentMethod: 'card' })}
-                          style={{ accentColor: '#B88D4A' }}
-                        />
-                        <CreditCard size={20} color="#B88D4A" style={{ flexShrink: 0 }} />
-                        <div style={{ flexGrow: 1 }}>
-                          <div style={{ fontSize: '0.86rem', fontWeight: 600, color: '#4B3024' }}>
-                            Card (Visa, Mastercard, RuPay)
-                          </div>
-                          <span style={{ fontSize: '0.72rem', color: '#8F7263' }}>Domestic & International</span>
+                      )}
+                      {(formData.city || formData.pincode) && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#8F7263' }}>Destination:</span>
+                          <span style={{ color: '#4B3024' }}>
+                            {formData.city}, {formData.state} {formData.pincode ? `(${formData.pincode})` : ''}
+                          </span>
                         </div>
-                      </label>
-
-                      {/* Net Banking */}
-                      <label
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.85rem',
-                          padding: '0.85rem clamp(0.75rem, 2vw, 1rem)',
-                          border: formData.paymentMethod === 'netbanking' ? '2px solid #B88D4A' : '1px solid rgba(75, 48, 36, 0.12)',
-                          backgroundColor: formData.paymentMethod === 'netbanking' ? '#FAF6EE' : '#FFFDF9',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <input
-                          type="radio"
-                          name="payment"
-                          checked={formData.paymentMethod === 'netbanking'}
-                          onChange={() => setFormData({ ...formData, paymentMethod: 'netbanking' })}
-                          style={{ accentColor: '#B88D4A' }}
-                        />
-                        <Building size={20} color="#B88D4A" style={{ flexShrink: 0 }} />
-                        <div style={{ flexGrow: 1 }}>
-                          <div style={{ fontSize: '0.86rem', fontWeight: 600, color: '#4B3024' }}>
-                            Net Banking (All Major Banks)
-                          </div>
-                          <span style={{ fontSize: '0.72rem', color: '#8F7263' }}>HDFC, ICICI, SBI, Axis</span>
+                      )}
+                      {formData.address && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#8F7263' }}>Address:</span>
+                          <span style={{ color: '#4B3024', textAlign: 'right', maxWidth: '240px' }}>
+                            {formData.address}
+                          </span>
                         </div>
-                      </label>
-
-                      {/* Cash on Delivery */}
-                      <label
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.85rem',
-                          padding: '0.85rem clamp(0.75rem, 2vw, 1rem)',
-                          border: formData.paymentMethod === 'cod' ? '2px solid #B88D4A' : '1px solid rgba(75, 48, 36, 0.12)',
-                          backgroundColor: formData.paymentMethod === 'cod' ? '#FAF6EE' : '#FFFDF9',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <input
-                          type="radio"
-                          name="payment"
-                          checked={formData.paymentMethod === 'cod'}
-                          onChange={() => setFormData({ ...formData, paymentMethod: 'cod' })}
-                          style={{ accentColor: '#B88D4A' }}
-                        />
-                        <Banknote size={20} color="#B88D4A" style={{ flexShrink: 0 }} />
-                        <div style={{ flexGrow: 1 }}>
-                          <div style={{ fontSize: '0.86rem', fontWeight: 600, color: '#4B3024' }}>
-                            Cash on Delivery
-                          </div>
-                          <span style={{ fontSize: '0.72rem', color: '#8F7263' }}>Inspect drape on arrival</span>
-                        </div>
-                      </label>
+                      )}
                     </div>
 
-                    {/* Order Placement Error Notice */}
+                    {/* Note to Atelier */}
+                    <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                      <label className="form-label">Note for Atelier (Optional: blouse stitching, drape query)</label>
+                      <textarea
+                        rows={2}
+                        className="form-input"
+                        placeholder="e.g. Please confirm if zari border is tested or unstitched blouse piece is included."
+                        value={formData.notes}
+                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                        style={{ resize: 'none' }}
+                      />
+                    </div>
+
+                    {/* Honest Commerce Notice */}
+                    <div
+                      style={{
+                        padding: '0.85rem 1rem',
+                        backgroundColor: '#F4ECE1',
+                        borderLeft: '3px solid #525B3A',
+                        fontSize: '0.78rem',
+                        color: '#4B3024',
+                        lineHeight: 1.5,
+                        marginBottom: '1.25rem'
+                      }}
+                    >
+                      <strong>How RODHE Orders Work:</strong>
+                      <p style={{ margin: '0.35rem 0 0', color: '#6F4E3E' }}>
+                        Clicking below opens WhatsApp (+91 9490658858) with your selected sarees. Our concierge will verify artisan reserve, share drape videos if requested, and provide direct payment details (UPI / Bank Transfer) before shipping.
+                      </p>
+                    </div>
+
                     {orderError && (
                       <div
                         style={{
@@ -739,28 +650,6 @@ export const CheckoutModal = () => {
                       </div>
                     )}
 
-                    {/* Payment Integration Notice */}
-                    <div
-                      style={{
-                        padding: '0.85rem',
-                        backgroundColor: '#FAF6EE',
-                        border: '1px dashed #B88D4A',
-                        fontSize: '0.74rem',
-                        color: '#6F4E3E',
-                        lineHeight: 1.5,
-                        marginBottom: '1.25rem'
-                      }}
-                    >
-                      <strong style={{ color: '#4B3024' }}>Commerce Architecture:</strong>{' '}
-                      {formData.paymentMethod === 'cod' ? (
-                        <span>Cash on Delivery is confirmed as <code>pending_cod</code> and verified prior to atelier dispatch.</span>
-                      ) : import.meta.env.VITE_RAZORPAY_KEY_ID ? (
-                        <span>Razorpay Standard Checkout active. UPI, Credit/Debit Cards, and Net Banking supported with 256-bit SSL encryption.</span>
-                      ) : (
-                        <span>Development Mode: Razorpay test simulation enabled. Orders transition safely with verifiable <code>pending_payment</code> ledger.</span>
-                      )}
-                    </div>
-
                     <div style={{ display: 'flex', gap: '0.75rem' }}>
                       <button
                         onClick={() => setStep(2)}
@@ -770,13 +659,32 @@ export const CheckoutModal = () => {
                         <ArrowLeft size={16} />
                       </button>
                       <button
-                        onClick={handlePlaceOrder}
+                        onClick={handleSendToWhatsApp}
                         disabled={isProcessing}
-                        className="btn btn-gold"
-                        style={{ flexGrow: 1, minHeight: '48px' }}
+                        className="btn"
+                        style={{
+                          flexGrow: 1,
+                          minHeight: '48px',
+                          backgroundColor: '#525B3A',
+                          color: '#FAF6EE',
+                          border: 'none',
+                          borderRadius: '3px',
+                          fontSize: '0.88rem',
+                          fontWeight: 600,
+                          letterSpacing: '0.06em',
+                          textTransform: 'uppercase',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.65rem',
+                          cursor: 'pointer',
+                          boxShadow: '0 8px 20px rgba(82, 91, 58, 0.25)'
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3E462B')}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#525B3A')}
                       >
-                        <span>{isProcessing ? 'Securing...' : `Pay ₹${total.toLocaleString('en-IN')}`}</span>
-                        <ArrowRight size={16} />
+                        <MessageCircle size={18} color="#D4AC68" />
+                        <span>{isProcessing ? 'Opening WhatsApp...' : 'Continue on WhatsApp'}</span>
                       </button>
                     </div>
                   </div>
@@ -786,14 +694,14 @@ export const CheckoutModal = () => {
               {/* Right Column: Order Summary */}
               <div style={{ padding: 'clamp(1.25rem, 3.5vw, 2rem)', backgroundColor: '#FAF6EE', minWidth: 0 }} className="checkout-summary-column">
                 <h4 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', color: '#4B3024', marginBottom: '1rem' }}>
-                  Order Summary ({cart.length} items)
+                  Shopping Bag ({cart.length} {cart.length === 1 ? 'drape' : 'drapes'})
                 </h4>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '200px', overflowY: 'auto', marginBottom: '1.25rem' }}>
                   {cart.map((item) => (
-                    <div key={item.product.id} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <div key={item.product?.id || item.id} style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                       <img
-                        src={item.product.primaryImage || item.product.primary_image || '/assets/products/saree_ivory_mulmul.jpg'}
+                        src={item.product?.primaryImage || item.product?.primary_image || item.primaryImage || '/assets/products/saree_ivory_mulmul.jpg'}
                         alt=""
                         style={{ width: '42px', height: '54px', objectFit: 'cover', flexShrink: 0 }}
                         onError={(e) => {
@@ -803,12 +711,12 @@ export const CheckoutModal = () => {
                       />
                       <div style={{ flexGrow: 1, minWidth: 0 }}>
                         <h5 style={{ fontSize: '0.82rem', fontWeight: 600, color: '#4B3024', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {item.product.name}
+                          {item.product?.name || item.name}
                         </h5>
                         <span style={{ fontSize: '0.72rem', color: '#8F7263' }}>Qty: {item.quantity}</span>
                       </div>
                       <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#4B3024', flexShrink: 0 }}>
-                        ₹{((Number(item.product.price ?? item.product.sellingPrice ?? item.product.selling_price ?? 990) || 990) * item.quantity).toLocaleString('en-IN')}
+                        ₹{((Number(item.product?.price ?? item.product?.sellingPrice ?? item.product?.selling_price ?? item.unitPrice ?? 990) || 990) * item.quantity).toLocaleString('en-IN')}
                       </span>
                     </div>
                   ))}
@@ -830,7 +738,7 @@ export const CheckoutModal = () => {
 
                   {giftWrap && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6F4E3E' }}>
-                      <span>Heritage Gift Box</span>
+                      <span>Heritage Keepsake Box</span>
                       <span>+₹{giftWrapFee}</span>
                     </div>
                   )}

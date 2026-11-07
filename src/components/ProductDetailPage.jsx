@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Heart, ShoppingBag, Star, ShieldCheck, Truck, RotateCcw, Sparkles, ChevronRight, Share2, Check, ArrowRight, MessageCircle } from 'lucide-react';
 import { ProductCard } from './ProductCard';
 import { useShop } from '../context/ShopContext';
@@ -28,6 +28,88 @@ export const ProductDetailPage = ({ productId }) => {
 
   const unitPrice = Number(product.price ?? product.sellingPrice ?? product.selling_price ?? 990) || 990;
   const originalPrice = product.originalPrice ? (Number(product.originalPrice) || null) : (product.original_price ? (Number(product.original_price) || null) : null);
+
+  // Dynamic SEO metadata & Schema.org Product/BreadcrumbList injection
+  useEffect(() => {
+    if (!product) return;
+    document.title = `${product.name} — Handcrafted Saree | RODHE`;
+
+    const scriptId = 'rodhe-product-schema';
+    let script = document.getElementById(scriptId);
+    if (!script) {
+      script = document.createElement('script');
+      script.id = scriptId;
+      script.type = 'application/ld+json';
+      document.head.appendChild(script);
+    }
+
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const schemaData = {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Product",
+          "name": product.name,
+          "image": images.map((img) => img.startsWith('http') ? img : `${origin}${img}`),
+          "description": product.description || product.tagline,
+          "sku": product.sku || 'RDH-SAR',
+          "brand": {
+            "@type": "Brand",
+            "name": "RODHE"
+          },
+          "material": product.fabric || 'Mulmul Cotton',
+          "color": product.color,
+          "offers": {
+            "@type": "Offer",
+            "price": unitPrice,
+            "priceCurrency": "INR",
+            "itemCondition": "https://schema.org/NewCondition",
+            "availability": product.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+            "seller": {
+              "@type": "Organization",
+              "name": "RODHE"
+            }
+          }
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Home",
+              "item": `${origin}/`
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Sarees",
+              "item": `${origin}/?page=shop`
+            },
+            {
+              "@type": "ListItem",
+              "position": 3,
+              "name": product.craft || 'Handcrafted',
+              "item": `${origin}/?page=shop&craft=${product.craftCategory || 'all'}`
+            },
+            {
+              "@type": "ListItem",
+              "position": 4,
+              "name": product.name
+            }
+          ]
+        }
+      ]
+    };
+
+    script.textContent = JSON.stringify(schemaData);
+
+    return () => {
+      const el = document.getElementById(scriptId);
+      if (el) el.remove();
+      document.title = 'RODHE — Woven with Trust | Handcrafted Luxury Sarees';
+    };
+  }, [product, images, unitPrice]);
 
   const handleBuyNow = () => {
     addToCart(product, quantity, false);

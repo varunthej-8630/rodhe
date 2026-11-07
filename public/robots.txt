@@ -1,0 +1,15 @@
+# ============================================================================
+# RODHE — Woven with Trust
+# Robots.txt for Search Engine Crawlers
+# Handcrafted Slow-Luxury Indian Sarees
+# ============================================================================
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /api/
+
+# Sitemap directive (automatically resolved by search engines upon domain connection)
+Sitemap: /sitemap.xml
+

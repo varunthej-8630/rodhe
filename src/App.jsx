@@ -15,6 +15,7 @@ import { ProductDetailPage } from './components/ProductDetailPage';
 import { BrandStoryPage } from './components/BrandStoryPage';
 import { ContactConciergePage } from './components/ContactConciergePage';
 import { LegalPolicyPage } from './components/LegalPolicyPage';
+import { NotFoundPage } from './components/NotFoundPage';
 import { AdminPortal } from './components/admin/AdminPortal';
 import { CartDrawer } from './components/CartDrawer';
 import { WishlistDrawer } from './components/WishlistDrawer';
@@ -108,6 +109,7 @@ const MainLayout = () => {
           {currentPage === 'story' && <BrandStoryPage />}
           {currentPage === 'contact' && <ContactConciergePage />}
           {currentPage === 'policies' && <LegalPolicyPage />}
+          {!['home', 'shop', 'collections', 'product', 'story', 'contact', 'policies'].includes(currentPage) && <NotFoundPage />}
         </main>
 
         {/* Modals & Slide-Over Drawers */}

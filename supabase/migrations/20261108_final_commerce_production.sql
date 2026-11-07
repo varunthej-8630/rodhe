@@ -261,18 +261,18 @@ DROP POLICY IF EXISTS "Public Create Orders" ON public.orders;
 DROP POLICY IF EXISTS "Public Read Own Order" ON public.orders;
 DROP POLICY IF EXISTS "Admin Full Access Orders" ON public.orders;
 DROP POLICY IF EXISTS "Orders Insert Guest and Patron" ON public.orders;
+DROP POLICY IF EXISTS "Orders Admin Insert" ON public.orders;
 DROP POLICY IF EXISTS "Orders Admin Select" ON public.orders;
 DROP POLICY IF EXISTS "Orders Customer Select Own" ON public.orders;
 DROP POLICY IF EXISTS "Orders Admin Update" ON public.orders;
 DROP POLICY IF EXISTS "Orders Admin Delete" ON public.orders;
 
-CREATE POLICY "Orders Insert Guest and Patron" ON public.orders
-    FOR INSERT
-    WITH CHECK (
-        grand_total >= 0 
-        AND customer_email IS NOT NULL 
-        AND customer_phone IS NOT NULL
-    );
+-- Direct table INSERT restricted to authenticated admins.
+-- Unauthenticated guest & patron orders MUST use the atomic RPC public.create_order_atomic()
+-- which runs as SECURITY DEFINER with row locks, stock validation, and audit tracking.
+CREATE POLICY "Orders Admin Insert" ON public.orders
+    FOR INSERT TO authenticated
+    WITH CHECK (public.is_admin());
 
 CREATE POLICY "Orders Admin Select" ON public.orders
     FOR SELECT TO authenticated
@@ -299,13 +299,15 @@ DROP POLICY IF EXISTS "Public Create Order Items" ON public.order_items;
 DROP POLICY IF EXISTS "Public Read Own Order Items" ON public.order_items;
 DROP POLICY IF EXISTS "Admin Full Access Order Items" ON public.order_items;
 DROP POLICY IF EXISTS "Order Items Insert" ON public.order_items;
+DROP POLICY IF EXISTS "Order Items Admin Insert" ON public.order_items;
 DROP POLICY IF EXISTS "Order Items Admin Select" ON public.order_items;
 DROP POLICY IF EXISTS "Order Items Customer Select Own" ON public.order_items;
 DROP POLICY IF EXISTS "Order Items Admin Manage" ON public.order_items;
 
-CREATE POLICY "Order Items Insert" ON public.order_items
-    FOR INSERT
-    WITH CHECK (unit_price >= 0 AND quantity > 0);
+-- Direct table INSERT restricted to authenticated admins (guest orders use create_order_atomic)
+CREATE POLICY "Order Items Admin Insert" ON public.order_items
+    FOR INSERT TO authenticated
+    WITH CHECK (public.is_admin());
 
 CREATE POLICY "Order Items Admin Select" ON public.order_items
     FOR SELECT TO authenticated
@@ -333,12 +335,14 @@ CREATE POLICY "Order Items Admin Manage" ON public.order_items
 DROP POLICY IF EXISTS "Public Create Payments" ON public.payments;
 DROP POLICY IF EXISTS "Admin Full Access Payments" ON public.payments;
 DROP POLICY IF EXISTS "Payments Insert Checkout" ON public.payments;
+DROP POLICY IF EXISTS "Payments Admin Insert" ON public.payments;
 DROP POLICY IF EXISTS "Payments Admin Manage" ON public.payments;
 DROP POLICY IF EXISTS "Payments Customer Select Own" ON public.payments;
 
-CREATE POLICY "Payments Insert Checkout" ON public.payments
-    FOR INSERT
-    WITH CHECK (amount >= 0);
+-- Direct table INSERT restricted to authenticated admins (checkout transactions use create_order_atomic)
+CREATE POLICY "Payments Admin Insert" ON public.payments
+    FOR INSERT TO authenticated
+    WITH CHECK (public.is_admin());
 
 CREATE POLICY "Payments Customer Select Own" ON public.payments
     FOR SELECT TO authenticated
