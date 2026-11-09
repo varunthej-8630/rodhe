@@ -164,236 +164,236 @@ export const Footer = () => {
       >
         {/* Main Footer Links */}
         <div style={{ padding: 'clamp(2.5rem, 5vw, 4.5rem) 0 2.5rem' }}>
-        <div className="container">
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))',
-              gap: 'clamp(1.75rem, 3.5vw, 3rem)'
-            }}
-          >
-            {/* Col 1: Brand & Tagline */}
-            <div style={{ maxWidth: '300px' }}>
-              <div
-                onClick={() => navigateTo('home')}
-                style={{ cursor: 'pointer', marginBottom: '1.25rem', display: 'inline-block' }}
-              >
-                <img
-                  src="/assets/RODHE Woven Luxury Wordmark.png"
-                  alt="RODHE — Woven with Trust"
+          <div className="container">
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))',
+                gap: 'clamp(1.75rem, 3.5vw, 3rem)'
+              }}
+            >
+              {/* Col 1: Brand & Tagline */}
+              <div style={{ maxWidth: '300px' }}>
+                <div
+                  onClick={() => navigateTo('home')}
+                  style={{ cursor: 'pointer', marginBottom: '1.25rem', display: 'inline-block' }}
+                >
+                  <img
+                    src="/assets/RODHE Woven Luxury Wordmark.png"
+                    alt="RODHE — Woven with Trust"
+                    style={{
+                      height: 'clamp(38px, 6vw, 48px)',
+                      filter: 'brightness(0) invert(1) drop-shadow(0 2px 8px rgba(0,0,0,0.3))'
+                    }}
+                  />
+                </div>
+
+                <p style={{ fontSize: '0.85rem', color: 'rgba(250, 246, 238, 0.75)', lineHeight: 1.7, marginBottom: '1.25rem' }}>
+                  Handcrafted luxury sarees inspired by nature, woven by generational artisans, and draped in botanical dyes.
+                </p>
+
+                <div style={{ fontSize: '0.78rem', color: '#D4AC68', fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>
+                  WOVEN WITH TRUST
+                </div>
+
+                <div style={{ display: 'flex', gap: '1rem', color: 'rgba(250, 246, 238, 0.8)' }}>
+                  <a href="#instagram" aria-label="Instagram" style={{ transition: 'color 0.2s', padding: '0.25rem' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#D4AC68')} onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(250, 246, 238, 0.8)')}>
+                    <InstagramIcon size={20} />
+                  </a>
+                  <a href="#facebook" aria-label="Facebook" style={{ transition: 'color 0.2s', padding: '0.25rem' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#D4AC68')} onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(250, 246, 238, 0.8)')}>
+                    <FacebookIcon size={20} />
+                  </a>
+                  <a href="#pinterest" aria-label="Pinterest" style={{ transition: 'color 0.2s', padding: '0.25rem' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#D4AC68')} onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(250, 246, 238, 0.8)')}>
+                    <PinterestIcon size={20} />
+                  </a>
+                  <a href="#youtube" aria-label="YouTube" style={{ transition: 'color 0.2s', padding: '0.25rem' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#D4AC68')} onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(250, 246, 238, 0.8)')}>
+                    <YoutubeIcon size={20} />
+                  </a>
+                </div>
+              </div>
+
+              {/* Col 2: The Saree Atelier */}
+              <div>
+                <h4
                   style={{
-                    height: 'clamp(38px, 6vw, 48px)',
-                    filter: 'brightness(0) invert(1) drop-shadow(0 2px 8px rgba(0,0,0,0.3))'
+                    fontFamily: 'var(--font-serif)',
+                    fontSize: '1.25rem',
+                    color: '#EADAB5',
+                    marginBottom: '1rem',
+                    fontWeight: 500
                   }}
-                />
+                >
+                  The Saree Atelier
+                </h4>
+                <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.85rem' }}>
+                  <li>
+                    <button onClick={() => navigateTo('shop')} style={{ color: 'rgba(250, 246, 238, 0.8)', transition: 'color 0.2s', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      All Sarees (8)
+                    </button>
+                  </li>
+                  <li>
+                    <button onClick={() => handleCraftClick('tie-dye')} style={{ color: 'rgba(250, 246, 238, 0.8)', transition: 'color 0.2s', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      Indigo & Shibori Tie-Dye
+                    </button>
+                  </li>
+                  <li>
+                    <button onClick={() => handleCraftClick('handblock')} style={{ color: 'rgba(250, 246, 238, 0.8)', transition: 'color 0.2s', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      Bagru Mud-Resist & Dabu
+                    </button>
+                  </li>
+                  <li>
+                    <button onClick={() => handleCraftClick('chanderi')} style={{ color: 'rgba(250, 246, 238, 0.8)', transition: 'color 0.2s', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      Chanderi Sheer Silk & Zari
+                    </button>
+                  </li>
+                  <li>
+                    <button onClick={() => handleCraftClick('mulmul')} style={{ color: 'rgba(250, 246, 238, 0.8)', transition: 'color 0.2s', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      Pure Mulmul Cotton Drapes
+                    </button>
+                  </li>
+                </ul>
               </div>
 
-              <p style={{ fontSize: '0.85rem', color: 'rgba(250, 246, 238, 0.75)', lineHeight: 1.7, marginBottom: '1.25rem' }}>
-                Handcrafted luxury sarees inspired by nature, woven by generational artisans, and draped in botanical dyes.
-              </p>
-
-              <div style={{ fontSize: '0.78rem', color: '#D4AC68', fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>
-                WOVEN WITH TRUST
+              {/* Col 3: Craft & Brand Story */}
+              <div>
+                <h4
+                  style={{
+                    fontFamily: 'var(--font-serif)',
+                    fontSize: '1.25rem',
+                    color: '#EADAB5',
+                    marginBottom: '1rem',
+                    fontWeight: 500
+                  }}
+                >
+                  Our Journey
+                </h4>
+                <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.85rem' }}>
+                  <li>
+                    <button onClick={() => navigateTo('story')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      The RODHE Manifesto
+                    </button>
+                  </li>
+                  <li>
+                    <button onClick={() => navigateTo('story')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      Seed to Saree Story
+                    </button>
+                  </li>
+                  <li>
+                    <button onClick={() => navigateTo('story')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      Botanical Dyes Guide
+                    </button>
+                  </li>
+                  <li>
+                    <button onClick={() => navigateTo('story')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      Artisan Lineage
+                    </button>
+                  </li>
+                  <li>
+                    <button onClick={() => navigateTo('contact')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      Sustainable Packaging
+                    </button>
+                  </li>
+                </ul>
               </div>
 
-              <div style={{ display: 'flex', gap: '1rem', color: 'rgba(250, 246, 238, 0.8)' }}>
-                <a href="#instagram" aria-label="Instagram" style={{ transition: 'color 0.2s', padding: '0.25rem' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#D4AC68')} onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(250, 246, 238, 0.8)')}>
-                  <InstagramIcon size={20} />
-                </a>
-                <a href="#facebook" aria-label="Facebook" style={{ transition: 'color 0.2s', padding: '0.25rem' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#D4AC68')} onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(250, 246, 238, 0.8)')}>
-                  <FacebookIcon size={20} />
-                </a>
-                <a href="#pinterest" aria-label="Pinterest" style={{ transition: 'color 0.2s', padding: '0.25rem' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#D4AC68')} onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(250, 246, 238, 0.8)')}>
-                  <PinterestIcon size={20} />
-                </a>
-                <a href="#youtube" aria-label="YouTube" style={{ transition: 'color 0.2s', padding: '0.25rem' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#D4AC68')} onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(250, 246, 238, 0.8)')}>
-                  <YoutubeIcon size={20} />
-                </a>
+              {/* Col 4: Concierge & Policies */}
+              <div>
+                <h4
+                  style={{
+                    fontFamily: 'var(--font-serif)',
+                    fontSize: '1.25rem',
+                    color: '#EADAB5',
+                    marginBottom: '1rem',
+                    fontWeight: 500
+                  }}
+                >
+                  Client Concierge
+                </h4>
+                <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.85rem' }}>
+                  <li>
+                    <button onClick={() => setIsTrackOrderOpen(true)} style={{ color: '#D4AC68', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      Track Your Order
+                    </button>
+                  </li>
+                  <li>
+                    <button onClick={() => navigateTo('contact')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      Customer Support
+                    </button>
+                  </li>
+                  <li>
+                    <button onClick={() => navigateTo('policies', 'shipping')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      Shipping & Insured Delivery
+                    </button>
+                  </li>
+                  <li>
+                    <button onClick={() => navigateTo('policies', 'returns')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      7-Day Easy Exchange Policy
+                    </button>
+                  </li>
+                  <li>
+                    <button onClick={() => navigateTo('policies', 'care')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      Saree Care & Wash Guide
+                    </button>
+                  </li>
+                  <li>
+                    <span style={{ color: '#D4AC68', fontSize: '0.82rem' }}>
+                      Email: rodhesaree@gmail.com
+                    </span>
+                  </li>
+                </ul>
               </div>
             </div>
 
-            {/* Col 2: The Saree Atelier */}
-            <div>
-              <h4
-                style={{
-                  fontFamily: 'var(--font-serif)',
-                  fontSize: '1.25rem',
-                  color: '#EADAB5',
-                  marginBottom: '1rem',
-                  fontWeight: 500
-                }}
-              >
-                The Saree Atelier
-              </h4>
-              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.85rem' }}>
-                <li>
-                  <button onClick={() => navigateTo('shop')} style={{ color: 'rgba(250, 246, 238, 0.8)', transition: 'color 0.2s', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                    All Sarees (8)
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => handleCraftClick('tie-dye')} style={{ color: 'rgba(250, 246, 238, 0.8)', transition: 'color 0.2s', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                    Indigo & Shibori Tie-Dye
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => handleCraftClick('handblock')} style={{ color: 'rgba(250, 246, 238, 0.8)', transition: 'color 0.2s', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                    Bagru Mud-Resist & Dabu
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => handleCraftClick('chanderi')} style={{ color: 'rgba(250, 246, 238, 0.8)', transition: 'color 0.2s', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                    Chanderi Sheer Silk & Zari
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => handleCraftClick('mulmul')} style={{ color: 'rgba(250, 246, 238, 0.8)', transition: 'color 0.2s', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                    Pure Mulmul Cotton Drapes
-                  </button>
-                </li>
-              </ul>
-            </div>
+            {/* Bottom Copyright & Security Row */}
+            <div
+              style={{
+                marginTop: 'clamp(2.5rem, 5vw, 4rem)',
+                paddingTop: '1.5rem',
+                borderTop: '1px solid rgba(234, 218, 181, 0.12)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '1rem',
+                fontSize: '0.78rem',
+                color: 'rgba(250, 246, 238, 0.65)'
+              }}
+            >
+              <div>
+                © 2026 RODHE. “Woven with Trust” • Handcrafted in India. All rights reserved.
+              </div>
 
-            {/* Col 3: Craft & Brand Story */}
-            <div>
-              <h4
-                style={{
-                  fontFamily: 'var(--font-serif)',
-                  fontSize: '1.25rem',
-                  color: '#EADAB5',
-                  marginBottom: '1rem',
-                  fontWeight: 500
-                }}
-              >
-                Our Journey
-              </h4>
-              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.85rem' }}>
-                <li>
-                  <button onClick={() => navigateTo('story')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                    The RODHE Manifesto
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => navigateTo('story')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                    Seed to Saree Story
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => navigateTo('story')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                    Botanical Dyes Guide
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => navigateTo('story')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                    Artisan Lineage
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => navigateTo('contact')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                    Sustainable Packaging
-                  </button>
-                </li>
-              </ul>
-            </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                <span style={{ cursor: 'pointer' }} onClick={() => navigateTo('policies', 'privacy')}>Privacy Policy</span>
+                <span style={{ cursor: 'pointer' }} onClick={() => navigateTo('policies', 'terms')}>Terms of Service</span>
+                <span style={{ cursor: 'pointer' }} onClick={() => navigateTo('story')}>Authentication Certificate</span>
+                <button
+                  onClick={() => navigateTo('admin')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    color: '#D4AC68',
+                    cursor: 'pointer',
+                    fontSize: '0.78rem',
+                    fontWeight: 500,
+                    letterSpacing: '0.04em',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  CRM Portal
+                </button>
+              </div>
 
-            {/* Col 4: Concierge & Policies */}
-            <div>
-              <h4
-                style={{
-                  fontFamily: 'var(--font-serif)',
-                  fontSize: '1.25rem',
-                  color: '#EADAB5',
-                  marginBottom: '1rem',
-                  fontWeight: 500
-                }}
-              >
-                Client Concierge
-              </h4>
-              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.85rem' }}>
-                <li>
-                  <button onClick={() => setIsTrackOrderOpen(true)} style={{ color: '#D4AC68', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                    Track Your Order
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => navigateTo('contact')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                    Customer Support
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => navigateTo('policies', 'shipping')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                    Shipping & Insured Delivery
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => navigateTo('policies', 'returns')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                    7-Day Easy Exchange Policy
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => navigateTo('policies', 'care')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                    Saree Care & Wash Guide
-                  </button>
-                </li>
-                <li>
-                  <span style={{ color: '#D4AC68', fontSize: '0.82rem' }}>
-                    Email: rodhesaree@gmail.com
-                  </span>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Bottom Copyright & Security Row */}
-          <div
-            style={{
-              marginTop: 'clamp(2.5rem, 5vw, 4rem)',
-              paddingTop: '1.5rem',
-              borderTop: '1px solid rgba(234, 218, 181, 0.12)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '1rem',
-              fontSize: '0.78rem',
-              color: 'rgba(250, 246, 238, 0.65)'
-            }}
-          >
-            <div>
-              © 2026 RODHE. “Woven with Trust” • Handcrafted in India. All rights reserved.
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-              <span style={{ cursor: 'pointer' }} onClick={() => navigateTo('policies', 'privacy')}>Privacy Policy</span>
-              <span style={{ cursor: 'pointer' }} onClick={() => navigateTo('policies', 'terms')}>Terms of Service</span>
-              <span style={{ cursor: 'pointer' }} onClick={() => navigateTo('story')}>Authentication Certificate</span>
-              <button
-                onClick={() => navigateTo('admin')}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: 0,
-                  color: '#D4AC68',
-                  cursor: 'pointer',
-                  fontSize: '0.78rem',
-                  fontWeight: 500,
-                  letterSpacing: '0.04em',
-                  textDecoration: 'underline'
-                }}
-              >
-                Client CRM Portal
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#D4AC68' }}>
-              <ShieldCheck size={16} style={{ flexShrink: 0 }} />
-              <span>100% Genuine Handloom & Botanical Dye Guarantee</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#D4AC68' }}>
+                <ShieldCheck size={16} style={{ flexShrink: 0 }} />
+                <span>100% Genuine Handloom & Botanical Dye Guarantee</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <style>{`
+        <style>{`
         .footer-newsletter-form {
           display: flex;
           gap: 0.5rem;
@@ -405,7 +405,7 @@ export const Footer = () => {
           }
         }
       `}</style>
-    </footer>
+      </footer>
     </>
   );
 };
