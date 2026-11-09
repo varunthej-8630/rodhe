@@ -5,4 +5,26 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react()],
   envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'vendor-react';
+            }
+            if (id.includes('@supabase')) {
+              return 'vendor-supabase';
+            }
+            if (id.includes('lucide-react')) {
+              return 'vendor-icons';
+            }
+            if (id.includes('gsap')) {
+              return 'vendor-gsap';
+            }
+          }
+        }
+      }
+    }
+  }
 })

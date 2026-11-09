@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { ShopProvider, useShop } from './context/ShopContext';
 import { Navbar } from './components/Navbar';
 import { ScrollIntroExperience } from './components/ScrollIntroExperience';
@@ -12,11 +12,6 @@ import { CustomerReviewsSection } from './components/CustomerReviewsSection';
 import { EditorialLookbookSection } from './components/EditorialLookbookSection';
 import { CollectionPage } from './components/CollectionPage';
 import { ProductDetailPage } from './components/ProductDetailPage';
-import { BrandStoryPage } from './components/BrandStoryPage';
-import { ContactConciergePage } from './components/ContactConciergePage';
-import { LegalPolicyPage } from './components/LegalPolicyPage';
-import { NotFoundPage } from './components/NotFoundPage';
-import { AdminPortal } from './components/admin/AdminPortal';
 import { CartDrawer } from './components/CartDrawer';
 import { WishlistDrawer } from './components/WishlistDrawer';
 import { SearchModal } from './components/SearchModal';
@@ -27,15 +22,56 @@ import { ProductQuickViewModal } from './components/ProductQuickViewModal';
 import { Toast } from './components/Toast';
 import { Footer } from './components/Footer';
 
-const MainLayout = () => {
-  const { currentPage, selectedProductId, navigateTo, isTrackOrderOpen, setIsTrackOrderOpen } = useShop();
+// Code-split non-critical and administrative views to optimize initial bundle size & LCP
+const BrandStoryPage = lazy(() => import('./components/BrandStoryPage').then((m) => ({ default: m.BrandStoryPage })));
+const ContactConciergePage = lazy(() => import('./components/ContactConciergePage').then((m) => ({ default: m.ContactConciergePage })));
+const LegalPolicyPage = lazy(() => import('./components/LegalPolicyPage').then((m) => ({ default: m.LegalPolicyPage })));
+const NotFoundPage = lazy(() => import('./components/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
+const AdminPortal = lazy(() => import('./components/admin/AdminPortal').then((m) => ({ default: m.AdminPortal })));
 
-  // URL route sync: check for #admin, #shop, #collections, #product, etc. on mount and hashchange
+const SuspenseFallback = () => (
+  <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4B3024', fontFamily: 'var(--font-serif)', fontSize: '1.2rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+      <div style={{ width: '36px', height: '36px', border: '2px solid rgba(184, 141, 74, 0.2)', borderTopColor: '#B88D4A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <span>Loading RODHE...</span>
+    </div>
+  </div>
+);
+
+const MainLayout = () => {
+  const { currentPage, selectedProductId, navigateTo, setSelectedCraft, isTrackOrderOpen, setIsTrackOrderOpen } = useShop();
+
+  // URL route sync: checks query parameters (?product=..., ?page=...) and hash routes
   useEffect(() => {
     const syncRouteFromUrl = () => {
       try {
         const path = window.location.pathname.toLowerCase();
         const hash = window.location.hash.toLowerCase();
+        const search = window.location.search;
+        const searchParams = new URLSearchParams(search);
+
+        const productQuery = searchParams.get('product');
+        const pageQuery = searchParams.get('page');
+        const craftQuery = searchParams.get('craft');
+
+        if (productQuery) {
+          navigateTo('product', productQuery);
+          return;
+        }
+
+        if (pageQuery) {
+          if (['shipping-delivery', 'returns-exchanges', 'privacy-policy', 'terms-of-service'].includes(pageQuery)) {
+            navigateTo('policies', pageQuery);
+          } else if (pageQuery === 'shop' || pageQuery === 'collections') {
+            if (craftQuery && typeof setSelectedCraft === 'function') {
+              setSelectedCraft(craftQuery);
+            }
+            navigateTo('shop');
+          } else if (['story', 'contact', 'home'].includes(pageQuery)) {
+            navigateTo(pageQuery);
+          }
+          return;
+        }
 
         if (path.includes('/admin') || hash.includes('admin')) {
           navigateTo('admin');
@@ -60,8 +96,12 @@ const MainLayout = () => {
 
     syncRouteFromUrl();
     window.addEventListener('hashchange', syncRouteFromUrl);
-    return () => window.removeEventListener('hashchange', syncRouteFromUrl);
-  }, [navigateTo]);
+    window.addEventListener('popstate', syncRouteFromUrl);
+    return () => {
+      window.removeEventListener('hashchange', syncRouteFromUrl);
+      window.removeEventListener('popstate', syncRouteFromUrl);
+    };
+  }, [navigateTo, setSelectedCraft]);
 
   // Scroll to top on page change
   useEffect(() => {
@@ -72,7 +112,9 @@ const MainLayout = () => {
   if (currentPage === 'admin') {
     return (
       <div className="rodhe-admin-app" style={{ minHeight: '100vh', backgroundColor: '#1A1412' }}>
-        <AdminPortal onNavigateToStorefront={(target = 'home') => navigateTo(target)} />
+        <Suspense fallback={<SuspenseFallback />}>
+          <AdminPortal onNavigateToStorefront={(target = 'home') => navigateTo(target)} />
+        </Suspense>
         <Toast />
       </div>
     );
@@ -106,10 +148,26 @@ const MainLayout = () => {
           {currentPage === 'shop' && <CollectionPage />}
           {currentPage === 'collections' && <CollectionPage />}
           {currentPage === 'product' && <ProductDetailPage productId={selectedProductId} />}
-          {currentPage === 'story' && <BrandStoryPage />}
-          {currentPage === 'contact' && <ContactConciergePage />}
-          {currentPage === 'policies' && <LegalPolicyPage />}
-          {!['home', 'shop', 'collections', 'product', 'story', 'contact', 'policies'].includes(currentPage) && <NotFoundPage />}
+          {currentPage === 'story' && (
+            <Suspense fallback={<SuspenseFallback />}>
+              <BrandStoryPage />
+            </Suspense>
+          )}
+          {currentPage === 'contact' && (
+            <Suspense fallback={<SuspenseFallback />}>
+              <ContactConciergePage />
+            </Suspense>
+          )}
+          {currentPage === 'policies' && (
+            <Suspense fallback={<SuspenseFallback />}>
+              <LegalPolicyPage />
+            </Suspense>
+          )}
+          {!['home', 'shop', 'collections', 'product', 'story', 'contact', 'policies'].includes(currentPage) && (
+            <Suspense fallback={<SuspenseFallback />}>
+              <NotFoundPage />
+            </Suspense>
+          )}
         </main>
 
         {/* Modals & Slide-Over Drawers */}

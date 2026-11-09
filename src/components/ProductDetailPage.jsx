@@ -32,8 +32,42 @@ export const ProductDetailPage = ({ productId }) => {
   // Dynamic SEO metadata & Schema.org Product/BreadcrumbList injection
   useEffect(() => {
     if (!product) return;
-    document.title = `${product.name} — Handcrafted Saree | RODHE`;
+    const previousTitle = document.title;
+    document.title = `${product.name} — Handcrafted Luxury Saree | RODHE`;
 
+    const canonicalUrl = `https://www.rodhe.in/?product=${product.id}`;
+    const primaryImgUrl = images[0]?.startsWith('http') ? images[0] : `https://www.rodhe.in${images[0] || '/assets/products/saree_ivory_mulmul.jpg'}`;
+    const descText = product.description || product.tagline || 'Slow-luxury Indian cotton saree handcrafted by generational artisans.';
+
+    // Canonical link tag
+    let canonicalLink = document.querySelector('link[rel="canonical"]');
+    const prevCanonicalHref = canonicalLink ? canonicalLink.getAttribute('href') : 'https://www.rodhe.in/';
+    if (!canonicalLink) {
+      canonicalLink = document.createElement('link');
+      canonicalLink.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonicalLink);
+    }
+    canonicalLink.setAttribute('href', canonicalUrl);
+
+    // Meta Description
+    let metaDesc = document.querySelector('meta[name="description"]');
+    const prevMetaDesc = metaDesc ? metaDesc.getAttribute('content') : '';
+    if (metaDesc) {
+      metaDesc.setAttribute('content', descText);
+    }
+
+    // Open Graph updates
+    const ogUrl = document.querySelector('meta[property="og:url"]');
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    const ogImage = document.querySelector('meta[property="og:image"]');
+
+    if (ogUrl) ogUrl.setAttribute('content', canonicalUrl);
+    if (ogTitle) ogTitle.setAttribute('content', `${product.name} | RODHE`);
+    if (ogDesc) ogDesc.setAttribute('content', descText);
+    if (ogImage) ogImage.setAttribute('content', primaryImgUrl);
+
+    // Schema Script
     const scriptId = 'rodhe-product-schema';
     let script = document.getElementById(scriptId);
     if (!script) {
@@ -43,16 +77,17 @@ export const ProductDetailPage = ({ productId }) => {
       document.head.appendChild(script);
     }
 
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const schemaData = {
       "@context": "https://schema.org",
       "@graph": [
         {
           "@type": "Product",
+          "@id": `${canonicalUrl}#product`,
           "name": product.name,
-          "image": images.map((img) => img.startsWith('http') ? img : `${origin}${img}`),
-          "description": product.description || product.tagline,
+          "image": images.map((img) => img.startsWith('http') ? img : `https://www.rodhe.in${img}`),
+          "description": descText,
           "sku": product.sku || 'RDH-SAR',
+          "url": canonicalUrl,
           "brand": {
             "@type": "Brand",
             "name": "RODHE"
@@ -61,10 +96,12 @@ export const ProductDetailPage = ({ productId }) => {
           "color": product.color,
           "offers": {
             "@type": "Offer",
+            "@id": `${canonicalUrl}#offer`,
             "price": unitPrice,
             "priceCurrency": "INR",
             "itemCondition": "https://schema.org/NewCondition",
             "availability": product.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+            "url": canonicalUrl,
             "seller": {
               "@type": "Organization",
               "name": "RODHE"
@@ -73,29 +110,31 @@ export const ProductDetailPage = ({ productId }) => {
         },
         {
           "@type": "BreadcrumbList",
+          "@id": `${canonicalUrl}#breadcrumb`,
           "itemListElement": [
             {
               "@type": "ListItem",
               "position": 1,
               "name": "Home",
-              "item": `${origin}/`
+              "item": "https://www.rodhe.in/"
             },
             {
               "@type": "ListItem",
               "position": 2,
               "name": "Sarees",
-              "item": `${origin}/?page=shop`
+              "item": "https://www.rodhe.in/?page=shop"
             },
             {
               "@type": "ListItem",
               "position": 3,
               "name": product.craft || 'Handcrafted',
-              "item": `${origin}/?page=shop&craft=${product.craftCategory || 'all'}`
+              "item": `https://www.rodhe.in/?page=shop&craft=${product.craftCategory || 'all'}`
             },
             {
               "@type": "ListItem",
               "position": 4,
-              "name": product.name
+              "name": product.name,
+              "item": canonicalUrl
             }
           ]
         }
@@ -107,7 +146,13 @@ export const ProductDetailPage = ({ productId }) => {
     return () => {
       const el = document.getElementById(scriptId);
       if (el) el.remove();
-      document.title = 'RODHE — Woven with Trust | Handcrafted Luxury Sarees';
+      document.title = previousTitle || 'RODHE — Woven with Trust | Handcrafted Luxury Sarees';
+      if (canonicalLink) canonicalLink.setAttribute('href', prevCanonicalHref || 'https://www.rodhe.in/');
+      if (metaDesc && prevMetaDesc) metaDesc.setAttribute('content', prevMetaDesc);
+      if (ogUrl) ogUrl.setAttribute('content', 'https://www.rodhe.in/');
+      if (ogTitle) ogTitle.setAttribute('content', 'RODHE — Woven with Trust | Handcrafted Luxury Sarees');
+      if (ogDesc) ogDesc.setAttribute('content', 'Discover pure mulmul, handblock Bagru, natural indigo shibori, and sheer Chanderi sarees. Nature-inspired Indian textiles handcrafted by generational artisans.');
+      if (ogImage) ogImage.setAttribute('content', 'https://www.rodhe.in/assets/RODHE%20Woven%20Luxury%20Wordmark.png');
     };
   }, [product, images, unitPrice]);
 

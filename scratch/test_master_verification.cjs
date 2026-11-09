@@ -157,19 +157,22 @@ async function runMasterVerification() {
   assert(fs.existsSync(robotsPath), 'dist/robots.txt deployed');
   const robotsContent = fs.readFileSync(robotsPath, 'utf8');
   assert(robotsContent.includes('Disallow: /admin'), 'robots.txt disallows /admin');
-  assert(robotsContent.includes('Sitemap: /sitemap.xml'), 'robots.txt references /sitemap.xml');
+  assert(robotsContent.includes('Sitemap: https://www.rodhe.in/sitemap.xml'), 'robots.txt references canonical https://www.rodhe.in/sitemap.xml');
 
   const sitemapPath = path.resolve(__dirname, '../dist/sitemap.xml');
   assert(fs.existsSync(sitemapPath), 'dist/sitemap.xml deployed');
   const sitemapContent = fs.readFileSync(sitemapPath, 'utf8');
   assert(sitemapContent.includes('<?xml version="1.0" encoding="UTF-8"?>'), 'sitemap.xml valid XML header');
-  assert(sitemapContent.includes('nilambari-shibori-saree'), 'sitemap.xml includes authentic product slugs');
-  assert(sitemapContent.includes('?page=story'), 'sitemap.xml includes brand story page');
-  assert(sitemapContent.includes('?page=contact'), 'sitemap.xml includes concierge page');
+  assert(sitemapContent.includes('https://www.rodhe.in/?product=mrittika-bagru-cotton-saree'), 'sitemap.xml includes authentic canonical product URLs');
+  assert(sitemapContent.includes('https://www.rodhe.in/?page=story'), 'sitemap.xml includes canonical brand story page');
+  assert(sitemapContent.includes('https://www.rodhe.in/?page=contact'), 'sitemap.xml includes canonical concierge/contact page');
+  assert(!sitemapContent.includes('/admin'), 'sitemap.xml excludes admin portal');
+  assert(!sitemapContent.includes('/checkout'), 'sitemap.xml excludes checkout route');
 
   const indexHtmlPath = path.resolve(__dirname, '../dist/index.html');
   const indexHtml = fs.readFileSync(indexHtmlPath, 'utf8');
   assert(indexHtml.includes('RODHE — Woven with Trust'), 'index.html has brand title');
+  assert(indexHtml.includes('<link rel="canonical" href="https://www.rodhe.in/" />'), 'index.html has canonical link to https://www.rodhe.in/');
   assert(indexHtml.includes('ClothingStore'), 'index.html contains factual Organization JSON-LD');
   assert(!indexHtml.includes('checkout.razorpay.com'), 'index.html free of external payment gateway SDK');
 

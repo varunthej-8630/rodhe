@@ -1,322 +1,322 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>/</loc>
+    <loc>https://www.rodhe.in/</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>/?page=shop</loc>
+    <loc>https://www.rodhe.in/?page=shop</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>/?page=collections</loc>
+    <loc>https://www.rodhe.in/?page=collections</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>/?page=story</loc>
+    <loc>https://www.rodhe.in/?page=story</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>/?page=contact</loc>
+    <loc>https://www.rodhe.in/?page=contact</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>/?page=shipping-delivery</loc>
+    <loc>https://www.rodhe.in/?page=shipping-delivery</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>/?page=returns-exchanges</loc>
+    <loc>https://www.rodhe.in/?page=returns-exchanges</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>/?page=privacy-policy</loc>
+    <loc>https://www.rodhe.in/?page=privacy-policy</loc>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>/?page=terms-of-service</loc>
+    <loc>https://www.rodhe.in/?page=terms-of-service</loc>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>/?page=shop&amp;craft=all</loc>
+    <loc>https://www.rodhe.in/?page=shop&amp;craft=all</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>/?page=shop&amp;craft=tie-dye</loc>
+    <loc>https://www.rodhe.in/?page=shop&amp;craft=tie-dye</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>/?page=shop&amp;craft=handblock</loc>
+    <loc>https://www.rodhe.in/?page=shop&amp;craft=handblock</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>/?page=shop&amp;craft=chanderi</loc>
+    <loc>https://www.rodhe.in/?page=shop&amp;craft=chanderi</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>/?page=shop&amp;craft=mulmul</loc>
+    <loc>https://www.rodhe.in/?page=shop&amp;craft=mulmul</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>/?product=nilambari-shibori-saree</loc>
+    <loc>https://www.rodhe.in/?product=nilambari-shibori-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=mrittika-bagru-cotton-saree</loc>
+    <loc>https://www.rodhe.in/?product=mrittika-bagru-cotton-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=chandrika-raw-ivory-saree</loc>
+    <loc>https://www.rodhe.in/?product=chandrika-raw-ivory-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=keshava-madder-red-saree</loc>
+    <loc>https://www.rodhe.in/?product=keshava-madder-red-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=vanashri-forest-olive-saree</loc>
+    <loc>https://www.rodhe.in/?product=vanashri-forest-olive-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=gulabi-raag-mulmul-saree</loc>
+    <loc>https://www.rodhe.in/?product=gulabi-raag-mulmul-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=vasantika-haldi-gold-saree</loc>
+    <loc>https://www.rodhe.in/?product=vasantika-haldi-gold-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=shyamali-deep-indigo-saree</loc>
+    <loc>https://www.rodhe.in/?product=shyamali-deep-indigo-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=mayura-dabu-peacock-saree</loc>
+    <loc>https://www.rodhe.in/?product=mayura-dabu-peacock-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=malati-rose-bagru-saree</loc>
+    <loc>https://www.rodhe.in/?product=malati-rose-bagru-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=tarini-indigo-wave-saree</loc>
+    <loc>https://www.rodhe.in/?product=tarini-indigo-wave-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=avani-terracotta-dabu-saree</loc>
+    <loc>https://www.rodhe.in/?product=avani-terracotta-dabu-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=rohini-ivory-zari-saree</loc>
+    <loc>https://www.rodhe.in/?product=rohini-ivory-zari-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=rohana-madder-geometric-saree</loc>
+    <loc>https://www.rodhe.in/?product=rohana-madder-geometric-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=vrinda-olive-leaf-saree</loc>
+    <loc>https://www.rodhe.in/?product=vrinda-olive-leaf-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=neel-kamal-lotus-saree</loc>
+    <loc>https://www.rodhe.in/?product=neel-kamal-lotus-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=kanaka-sandalwood-kota-saree</loc>
+    <loc>https://www.rodhe.in/?product=kanaka-sandalwood-kota-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=padmashri-blush-rose-saree</loc>
+    <loc>https://www.rodhe.in/?product=padmashri-blush-rose-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=dhara-charcoal-dabu-saree</loc>
+    <loc>https://www.rodhe.in/?product=dhara-charcoal-dabu-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=alaknanda-river-shibori-saree</loc>
+    <loc>https://www.rodhe.in/?product=alaknanda-river-shibori-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=hansini-cloud-mulmul-saree</loc>
+    <loc>https://www.rodhe.in/?product=hansini-cloud-mulmul-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=rudrani-crimson-block-saree</loc>
+    <loc>https://www.rodhe.in/?product=rudrani-crimson-block-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=kanan-moss-botanical-saree</loc>
+    <loc>https://www.rodhe.in/?product=kanan-moss-botanical-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=sagarika-diamond-buti-saree</loc>
+    <loc>https://www.rodhe.in/?product=sagarika-diamond-buti-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=swarna-mustard-handloom-saree</loc>
+    <loc>https://www.rodhe.in/?product=swarna-mustard-handloom-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=kasturi-coral-dabu-saree</loc>
+    <loc>https://www.rodhe.in/?product=kasturi-coral-dabu-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=godavari-slate-block-saree</loc>
+    <loc>https://www.rodhe.in/?product=godavari-slate-block-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=maitreyi-earth-jaal-saree</loc>
+    <loc>https://www.rodhe.in/?product=maitreyi-earth-jaal-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=shweta-pearl-kota-saree</loc>
+    <loc>https://www.rodhe.in/?product=shweta-pearl-kota-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=raktika-crimson-bagru-saree</loc>
+    <loc>https://www.rodhe.in/?product=raktika-crimson-bagru-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=aranya-forest-fern-saree</loc>
+    <loc>https://www.rodhe.in/?product=aranya-forest-fern-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=jalaja-ripple-shibori-saree</loc>
+    <loc>https://www.rodhe.in/?product=jalaja-ripple-shibori-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=vasudha-golden-wheat-saree</loc>
+    <loc>https://www.rodhe.in/?product=vasudha-golden-wheat-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=ananya-rose-petal-saree</loc>
+    <loc>https://www.rodhe.in/?product=ananya-rose-petal-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=yamuna-deep-teal-saree</loc>
+    <loc>https://www.rodhe.in/?product=yamuna-deep-teal-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=bhumika-rustic-rust-saree</loc>
+    <loc>https://www.rodhe.in/?product=bhumika-rustic-rust-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=chandrahas-cotton-buti-saree</loc>
+    <loc>https://www.rodhe.in/?product=chandrahas-cotton-buti-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=sindhur-scarlet-block-saree</loc>
+    <loc>https://www.rodhe.in/?product=sindhur-scarlet-block-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=kadambari-sage-mulmul-saree</loc>
+    <loc>https://www.rodhe.in/?product=kadambari-sage-mulmul-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=meenakshi-indigo-peacock-saree</loc>
+    <loc>https://www.rodhe.in/?product=meenakshi-indigo-peacock-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=hiranmayi-amber-gold-saree</loc>
+    <loc>https://www.rodhe.in/?product=hiranmayi-amber-gold-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=manjula-dusty-pink-saree</loc>
+    <loc>https://www.rodhe.in/?product=manjula-dusty-pink-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=kaveri-cobalt-shibori-saree</loc>
+    <loc>https://www.rodhe.in/?product=kaveri-cobalt-shibori-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=mridula-warm-umber-saree</loc>
+    <loc>https://www.rodhe.in/?product=mridula-warm-umber-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=mallika-offwhite-thread-saree</loc>
+    <loc>https://www.rodhe.in/?product=mallika-offwhite-thread-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=tamra-copper-terracotta-saree</loc>
+    <loc>https://www.rodhe.in/?product=tamra-copper-terracotta-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=harini-mint-botanical-saree</loc>
+    <loc>https://www.rodhe.in/?product=harini-mint-botanical-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=indulekha-indigo-crescent-saree</loc>
+    <loc>https://www.rodhe.in/?product=indulekha-indigo-crescent-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=revati-ochre-handloom-saree</loc>
+    <loc>https://www.rodhe.in/?product=revati-ochre-handloom-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>/?product=sharanya-magenta-madder-saree</loc>
+    <loc>https://www.rodhe.in/?product=sharanya-magenta-madder-saree</loc>
     <changefreq>weekly</changefreq>
     <priority>0.85</priority>
   </url>

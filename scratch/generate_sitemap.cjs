@@ -27,12 +27,14 @@ const productRoutes = PRODUCTS.map(p => ({
 }));
 
 const allRoutes = [...staticRoutes, ...craftRoutes, ...productRoutes];
+const canonicalBase = 'https://www.rodhe.in';
 
 const xml = '<?xml version="1.0" encoding="UTF-8"?>\n' +
   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
   allRoutes.map(r => {
+    const locUrl = r.path ? `${canonicalBase}/${r.path}` : `${canonicalBase}/`;
     return '  <url>\n' +
-      '    <loc>/' + r.path + '</loc>\n' +
+      '    <loc>' + locUrl + '</loc>\n' +
       '    <changefreq>' + r.changefreq + '</changefreq>\n' +
       '    <priority>' + r.priority + '</priority>\n' +
       '  </url>';

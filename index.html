@@ -8,21 +8,24 @@
     <title>RODHE — Woven with Trust | Handcrafted Luxury Sarees</title>
     <meta name="title" content="RODHE — Woven with Trust | Handcrafted Luxury Sarees" />
     <meta name="description" content="Discover pure mulmul, handblock Bagru, natural indigo shibori, and sheer Chanderi sarees. Nature-inspired Indian textiles handcrafted by generational artisans." />
+    <link rel="canonical" href="https://www.rodhe.in/" />
     <meta name="theme-color" content="#FAF6EE" />
     <meta name="robots" content="index, follow" />
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://rodhe.com/" />
-    <meta property="og:title" content="RODHE — Woven with Trust" />
+    <meta property="og:url" content="https://www.rodhe.in/" />
+    <meta property="og:title" content="RODHE — Woven with Trust | Handcrafted Luxury Sarees" />
     <meta property="og:description" content="Cinematic, nature-inspired luxury sarees. Nature → Cotton → Thread → Natural Colour → Handcrafted Patterns → Saree." />
-    <meta property="og:image" content="/assets/RODHE Woven Luxury Wordmark.png" />
+    <meta property="og:image" content="https://www.rodhe.in/assets/RODHE%20Woven%20Luxury%20Wordmark.png" />
+    <meta property="og:site_name" content="RODHE" />
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:title" content="RODHE — Woven with Trust" />
+    <meta property="twitter:url" content="https://www.rodhe.in/" />
+    <meta property="twitter:title" content="RODHE — Woven with Trust | Handcrafted Luxury Sarees" />
     <meta property="twitter:description" content="Handcrafted Indian luxury sarees draped in botanical colors." />
-    <meta property="twitter:image" content="/assets/RODHE Woven Luxury Wordmark.png" />
+    <meta property="twitter:image" content="https://www.rodhe.in/assets/RODHE%20Woven%20Luxury%20Wordmark.png" />
 
     <!-- Favicon & Brand Icons -->
     <link rel="icon" type="image/png" href="/assets/01_Primary_logo_transparent.png" />
@@ -33,25 +36,43 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600&family=Marcellus&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
-    <!-- Structured Data: Organization & Store (Factual - Client WhatsApp Concierge Model) -->
+    <!-- Structured Data: Organization & WebSite (Factual - Client WhatsApp Concierge Model) -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "ClothingStore",
-      "name": "RODHE",
-      "slogan": "Woven with Trust",
-      "description": "Artisanal slow-luxury Indian sarees handcrafted with organic cotton, natural botanical dyes, and heritage weaving traditions.",
-      "telephone": "+91-9490658858",
-      "email": "concierge@rodhe.in",
-      "priceRange": "₹₹",
-      "currenciesAccepted": "INR",
-      "paymentAccepted": "Direct WhatsApp Concierge (UPI / Direct Bank Transfer)",
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "telephone": "+91-9490658858",
-        "contactType": "customer service",
-        "availableLanguage": ["English", "Hindi", "Telugu"]
-      }
+      "@graph": [
+        {
+          "@type": "ClothingStore",
+          "@id": "https://www.rodhe.in/#organization",
+          "name": "RODHE",
+          "slogan": "Woven with Trust",
+          "description": "Artisanal slow-luxury Indian sarees handcrafted with organic cotton, natural botanical dyes, and heritage weaving traditions.",
+          "url": "https://www.rodhe.in/",
+          "logo": "https://www.rodhe.in/assets/01_Primary_logo_transparent.png",
+          "image": "https://www.rodhe.in/assets/RODHE%20Woven%20Luxury%20Wordmark.png",
+          "telephone": "+91-9490658858",
+          "email": "concierge@rodhe.in",
+          "priceRange": "₹₹",
+          "currenciesAccepted": "INR",
+          "paymentAccepted": "Direct WhatsApp Concierge (UPI / Direct Bank Transfer)",
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "telephone": "+91-9490658858",
+            "contactType": "customer service",
+            "availableLanguage": ["English", "Hindi", "Telugu"]
+          }
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://www.rodhe.in/#website",
+          "url": "https://www.rodhe.in/",
+          "name": "RODHE — Woven with Trust",
+          "description": "Handcrafted Indian luxury cotton sarees loomed with botanical dyes.",
+          "publisher": {
+            "@id": "https://www.rodhe.in/#organization"
+          }
+        }
+      ]
     }
     </script>
   </head>
