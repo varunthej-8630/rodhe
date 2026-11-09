@@ -254,7 +254,7 @@ A signature technical implementation of RODHE is its **Dual-Engine Persistence A
 - Comprehensive artisan manifesto documenting the Deccan rain-fed cotton harvest, natural indigo fermentation, hand-carved teakwood blocks, and fair artisan compensation.
 
 ### 5.15 Contact & Styling Concierge (`ContactConciergePage`)
-- Direct WhatsApp direct link (`+91 94906 58858`), email concierge (`concierge@rodhe.in`), and interactive inquiry submission form.
+- Direct WhatsApp direct link (`+91 94906 58858`), email concierge (`rodhesaree@gmail.com`), and interactive inquiry submission form.
 
 ### 5.16 Legal & DPDP Privacy Policies (`LegalPolicyPage`)
 - **Component**: [`LegalPolicyPage.jsx`](file:///c:/Users/VARUN%20THEJ/OneDrive/Desktop/Rodhe/src/components/LegalPolicyPage.jsx)
@@ -548,7 +548,7 @@ VITE_STORE_WHATSAPP_NUMBER=919490658858
 VITE_STORE_NAME=RODHE
 VITE_STORE_TAGLINE=Woven with Trust
 VITE_STORE_CURRENCY=₹
-VITE_STORE_CONCIERGE_EMAIL=concierge@rodhe.in
+VITE_STORE_CONCIERGE_EMAIL=rodhesaree@gmail.com
 ```
 
 ### 4. Running the Development Server

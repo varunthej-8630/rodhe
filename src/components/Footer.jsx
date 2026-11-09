@@ -337,7 +337,7 @@ export const Footer = () => {
                 </li>
                 <li>
                   <span style={{ color: '#D4AC68', fontSize: '0.82rem' }}>
-                    Email: concierge@rodhe.in
+                    Email: rodhesaree@gmail.com
                   </span>
                 </li>
               </ul>

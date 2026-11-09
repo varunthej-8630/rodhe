@@ -122,8 +122,8 @@ export const ContactConciergePage = () => {
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: '0.74rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8F7263', fontWeight: 600 }}>Email</div>
-                  <a href="mailto:concierge@rodhe.in" style={{ fontSize: '0.95rem', fontWeight: 600, color: '#4B3024', wordBreak: 'break-word' }}>
-                    concierge@rodhe.in
+                  <a href="mailto:rodhesaree@gmail.com" style={{ fontSize: '0.95rem', fontWeight: 600, color: '#4B3024', wordBreak: 'break-word' }}>
+                    rodhesaree@gmail.com
                   </a>
                 </div>
               </div>

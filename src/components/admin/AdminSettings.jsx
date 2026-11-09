@@ -109,7 +109,7 @@ export const AdminSettings = () => {
                 type="email"
                 value={settings.conciergeEmail}
                 onChange={(e) => setSettings({ ...settings, conciergeEmail: e.target.value })}
-                placeholder="concierge@rodhe.in"
+                placeholder="rodhesaree@gmail.com"
                 style={{ width: '100%', padding: '0.7rem', border: '1px solid rgba(75, 48, 36, 0.2)', borderRadius: '3px', boxSizing: 'border-box' }}
               />
             </div>

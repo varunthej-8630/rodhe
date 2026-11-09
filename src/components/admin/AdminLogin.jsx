@@ -153,7 +153,7 @@ export const AdminLogin = ({ onLoginSuccess, onBackToStore }) => {
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="e.g. rodhe@rodhe.in"
+                    placeholder="e.g. rodhesaree@gmail.com"
                     required
                     style={{
                       width: '100%',
@@ -288,7 +288,7 @@ export const AdminLogin = ({ onLoginSuccess, onBackToStore }) => {
                   type="email"
                   value={resetEmail}
                   onChange={(e) => setResetEmail(e.target.value)}
-                  placeholder="e.g. rodhe@rodhe.in"
+                  placeholder="e.g. rodhesaree@gmail.com"
                   required
                   style={{
                     width: '100%',

@@ -40,7 +40,7 @@ CREATE POLICY "Allow Login Verification" ON public.admin_users
 -- Username: rodhe
 -- Password: rodhe@admin
 INSERT INTO public.admin_users (username, email, password_hash, role)
-VALUES ('rodhe', 'rodhe@rodhe.in', 'rodhe@admin', 'super_admin')
+VALUES ('rodhe', 'rodhesaree@gmail.com', 'rodhe@admin', 'super_admin')
 ON CONFLICT (username) DO UPDATE SET
     email = EXCLUDED.email,
     password_hash = EXCLUDED.password_hash,

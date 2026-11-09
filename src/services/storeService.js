@@ -20,7 +20,7 @@ const DEFAULT_SETTINGS = {
   storeName: 'RODHE',
   tagline: 'Woven with Trust',
   whatsappNumber: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_STORE_WHATSAPP_NUMBER) || '919490658858',
-  conciergeEmail: 'concierge@rodhe.in',
+  conciergeEmail: (typeof import.meta !== 'undefined' && import.meta.env?.VITE_STORE_CONCIERGE_EMAIL) || 'rodhesaree@gmail.com',
   currencySymbol: '₹',
   currencyCode: 'INR',
   freeShippingThreshold: 2999,

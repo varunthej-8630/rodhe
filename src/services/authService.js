@@ -83,7 +83,9 @@ export const authService = {
       return { success: false, message: 'Please provide both username/email and password.' };
     }
 
-    const emailToUse = cleanId.includes('@') ? cleanId : `${cleanId}@rodhe.in`;
+    const emailToUse = cleanId.includes('@')
+      ? cleanId
+      : (['rodhe', 'admin', 'rodhesaree'].includes(cleanId) ? 'rodhesaree@gmail.com' : `${cleanId}@gmail.com`);
 
     // 1. Genuine Supabase GoTrue Authentication
     if (isSupabaseConfigured && supabase) {
@@ -137,10 +139,14 @@ export const authService = {
    * Requires verified ownership of the registered administrator email.
    */
   async requestPasswordReset(email) {
-    const cleanEmail = (email || '').trim().toLowerCase();
-    if (!cleanEmail) {
+    const rawEmail = (email || '').trim().toLowerCase();
+    if (!rawEmail) {
       return { success: false, message: 'Please provide your registered administrative email.' };
     }
+
+    const cleanEmail = rawEmail.includes('@')
+      ? rawEmail
+      : (['rodhe', 'admin', 'rodhesaree'].includes(rawEmail) ? 'rodhesaree@gmail.com' : `${rawEmail}@gmail.com`);
 
     if (isSupabaseConfigured && supabase) {
       try {

@@ -215,7 +215,7 @@ export const LegalPolicyPage = ({ initialTab = 'shipping' }) => {
                   Hassle-Free Doorstep Pickup
                 </h3>
                 <p>
-                  To initiate an exchange or return, simply message our Concierge team on WhatsApp at <strong>+91 94906 58858</strong> or email <strong>concierge@rodhe.in</strong> with your Order Number. We will arrange a reverse pickup courier from your delivery address at no extra cost.
+                  To initiate an exchange or return, simply message our Concierge team on WhatsApp at <strong>+91 94906 58858</strong> or email <strong>rodhesaree@gmail.com</strong> with your Order Number. We will arrange a reverse pickup courier from your delivery address at no extra cost.
                 </p>
               </div>
             </div>
@@ -249,7 +249,7 @@ export const LegalPolicyPage = ({ initialTab = 'shipping' }) => {
                   Your Rights Under Indian Law
                 </h3>
                 <p>
-                  You may request a copy of your personal data or request deletion of your subscriber profile at any time by contacting <strong>concierge@rodhe.in</strong>.
+                  You may request a copy of your personal data or request deletion of your subscriber profile at any time by contacting <strong>rodhesaree@gmail.com</strong>.
                 </p>
               </div>
             </div>
