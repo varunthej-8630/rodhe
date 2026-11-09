@@ -646,48 +646,165 @@ export const storeService = {
   // COLLECTIONS
   // --------------------------------------------------------------------------
   async getCollections() {
-    return getLocalData(STORAGE_KEYS.COLLECTIONS, DEFAULT_COLLECTIONS);
+    const local = getLocalData(STORAGE_KEYS.COLLECTIONS, DEFAULT_COLLECTIONS);
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('collections')
+          .select('*')
+          .order('display_order', { ascending: true });
+        if (!error && Array.isArray(data) && data.length > 0) {
+          return data.map(c => ({
+            id: c.id,
+            slug: c.slug,
+            name: c.name,
+            description: c.description || '',
+            bannerImage: c.banner_image || '',
+            displayOrder: c.display_order ?? 0,
+            isPublished: c.is_published ?? true
+          }));
+        }
+      } catch (e) {
+        console.warn('Supabase getCollections notice:', e);
+      }
+    }
+    return local;
   },
 
   async saveCollection(collection) {
     const cols = getLocalData(STORAGE_KEYS.COLLECTIONS, DEFAULT_COLLECTIONS);
-    const idx = cols.findIndex(c => c.id === collection.id);
+    const colId = collection.id || `col-${Date.now()}`;
+    const normalized = {
+      ...collection,
+      id: colId,
+      displayOrder: Number(collection.displayOrder ?? collection.display_order ?? 0),
+      isPublished: Boolean(collection.isPublished ?? collection.is_published ?? true)
+    };
+    const idx = cols.findIndex(c => c.id === colId || c.slug === collection.slug);
     let updated;
     if (idx >= 0) {
       updated = [...cols];
-      updated[idx] = collection;
+      updated[idx] = normalized;
     } else {
-      updated = [...cols, { ...collection, id: `col-${Date.now()}` }];
+      updated = [...cols, normalized];
     }
     setLocalData(STORAGE_KEYS.COLLECTIONS, updated);
-    return collection;
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const dbPayload = {
+          slug: normalized.slug,
+          name: normalized.name,
+          description: normalized.description || '',
+          banner_image: normalized.bannerImage || normalized.banner_image || '',
+          display_order: normalized.displayOrder,
+          is_published: normalized.isPublished,
+          updated_at: new Date().toISOString()
+        };
+        await supabase.from('collections').upsert(dbPayload, { onConflict: 'slug' });
+      } catch (e) {
+        console.warn('Supabase saveCollection notice:', e);
+      }
+    }
+    return normalized;
+  },
+
+  async deleteCollection(idOrSlug) {
+    const cols = getLocalData(STORAGE_KEYS.COLLECTIONS, DEFAULT_COLLECTIONS);
+    const filtered = cols.filter(c => c.id !== idOrSlug && c.slug !== idOrSlug);
+    setLocalData(STORAGE_KEYS.COLLECTIONS, filtered);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('collections').delete().or(`id.eq.${idOrSlug},slug.eq.${idOrSlug}`);
+      } catch (e) {
+        console.warn('Supabase deleteCollection notice:', e);
+      }
+    }
+    return true;
   },
 
   // --------------------------------------------------------------------------
   // PROMOTIONS
   // --------------------------------------------------------------------------
   async getPromotions() {
-    return getLocalData(STORAGE_KEYS.PROMOTIONS, DEFAULT_PROMOTIONS);
+    const local = getLocalData(STORAGE_KEYS.PROMOTIONS, DEFAULT_PROMOTIONS);
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('promotions').select('*').order('created_at', { ascending: false });
+        if (!error && Array.isArray(data) && data.length > 0) {
+          return data.map(p => ({
+            id: p.id,
+            code: p.code,
+            label: p.label,
+            discountType: p.discount_type || 'percentage',
+            discountValue: Number(p.discount_value) || 10,
+            minOrderAmount: Number(p.min_order_amount || 0),
+            isActive: Boolean(p.is_active),
+            startDate: p.start_date,
+            endDate: p.end_date
+          }));
+        }
+      } catch (e) {
+        console.warn('Supabase getPromotions notice:', e);
+      }
+    }
+    return local;
   },
 
   async savePromotion(promotion) {
     const promos = getLocalData(STORAGE_KEYS.PROMOTIONS, DEFAULT_PROMOTIONS);
-    const idx = promos.findIndex(p => p.id === promotion.id || p.code === promotion.code);
+    const promoId = promotion.id || `promo-${Date.now()}`;
+    const code = (promotion.code || '').trim().toUpperCase();
+    const normalized = {
+      ...promotion,
+      id: promoId,
+      code,
+      discountType: promotion.discountType || 'percentage',
+      discountValue: Number(promotion.discountValue) || 10,
+      isActive: Boolean(promotion.isActive ?? true)
+    };
+    const idx = promos.findIndex(p => p.id === promoId || p.code === code);
     let updated;
     if (idx >= 0) {
       updated = [...promos];
-      updated[idx] = promotion;
+      updated[idx] = normalized;
     } else {
-      updated = [...promos, { ...promotion, id: `promo-${Date.now()}` }];
+      updated = [...promos, normalized];
     }
     setLocalData(STORAGE_KEYS.PROMOTIONS, updated);
-    return promotion;
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const dbPayload = {
+          code: normalized.code,
+          label: normalized.label || `${normalized.code} Offer`,
+          discount_type: normalized.discountType,
+          discount_value: normalized.discountValue,
+          min_order_amount: Number(normalized.minOrderAmount || 0),
+          is_active: normalized.isActive,
+          updated_at: new Date().toISOString()
+        };
+        await supabase.from('promotions').upsert(dbPayload, { onConflict: 'code' });
+      } catch (e) {
+        console.warn('Supabase savePromotion notice:', e);
+      }
+    }
+    return normalized;
   },
 
-  async deletePromotion(code) {
+  async deletePromotion(codeOrId) {
     const promos = getLocalData(STORAGE_KEYS.PROMOTIONS, DEFAULT_PROMOTIONS);
-    const updated = promos.filter(p => p.code !== code && p.id !== code);
-    setLocalData(STORAGE_KEYS.PROMOTIONS, updated);
+    const filtered = promos.filter(p => p.code !== codeOrId && p.id !== codeOrId);
+    setLocalData(STORAGE_KEYS.PROMOTIONS, filtered);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from('promotions').delete().or(`code.eq.${codeOrId},id.eq.${codeOrId}`);
+      } catch (e) {
+        console.warn('Supabase deletePromotion notice:', e);
+      }
+    }
     return true;
   },
 
@@ -695,13 +812,63 @@ export const storeService = {
   // HOMEPAGE CONFIG
   // --------------------------------------------------------------------------
   async getHomepageConfig() {
-    return getLocalData(STORAGE_KEYS.HOMEPAGE, DEFAULT_HOMEPAGE_CONFIG);
+    const local = getLocalData(STORAGE_KEYS.HOMEPAGE, DEFAULT_HOMEPAGE_CONFIG);
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('homepage_config').select('*').limit(1).maybeSingle();
+        if (!error && data) {
+          return {
+            heroEyebrow: data.hero_eyebrow || local.heroEyebrow,
+            heroHeadline: data.hero_headline || local.heroHeadline,
+            heroSubtext: data.hero_subtext || local.heroSubtext,
+            bestsellersTitle: data.bestsellers_title || local.bestsellersTitle,
+            bestsellersPromo: data.bestsellers_promo || local.bestsellersPromo,
+            mostCovetedTitle: data.most_coveted_title || local.mostCovetedTitle,
+            mostCovetedSubtext: data.most_coveted_subtext || local.mostCovetedSubtext,
+            newArrivalsTitle: data.new_arrivals_title || local.newArrivalsTitle,
+            isNatureChapterVisible: data.is_nature_chapter_visible ?? local.isNatureChapterVisible,
+            isColourChapterVisible: data.is_colour_chapter_visible ?? local.isColourChapterVisible,
+            isCraftChapterVisible: data.is_craft_chapter_visible ?? local.isCraftChapterVisible
+          };
+        }
+      } catch (e) {
+        console.warn('Supabase getHomepageConfig notice:', e);
+      }
+    }
+    return local;
   },
 
   async updateHomepageConfig(config) {
     const current = getLocalData(STORAGE_KEYS.HOMEPAGE, DEFAULT_HOMEPAGE_CONFIG);
     const updated = { ...current, ...config, updatedAt: new Date().toISOString() };
     setLocalData(STORAGE_KEYS.HOMEPAGE, updated);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const dbPayload = {
+          hero_eyebrow: updated.heroEyebrow,
+          hero_headline: updated.heroHeadline,
+          hero_subtext: updated.heroSubtext,
+          bestsellers_title: updated.bestsellersTitle,
+          bestsellers_promo: updated.bestsellersPromo,
+          most_coveted_title: updated.mostCovetedTitle,
+          most_coveted_subtext: updated.mostCovetedSubtext,
+          new_arrivals_title: updated.newArrivalsTitle,
+          is_nature_chapter_visible: updated.isNatureChapterVisible,
+          is_colour_chapter_visible: updated.isColourChapterVisible,
+          is_craft_chapter_visible: updated.isCraftChapterVisible,
+          updated_at: new Date().toISOString()
+        };
+        const { data: existing } = await supabase.from('homepage_config').select('id').limit(1).maybeSingle();
+        if (existing?.id) {
+          await supabase.from('homepage_config').update(dbPayload).eq('id', existing.id);
+        } else {
+          await supabase.from('homepage_config').insert([dbPayload]);
+        }
+      } catch (e) {
+        console.warn('Supabase updateHomepageConfig notice:', e);
+      }
+    }
     return updated;
   },
 
@@ -730,13 +897,64 @@ export const storeService = {
   // SETTINGS
   // --------------------------------------------------------------------------
   async getSettings() {
-    return getLocalData(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
+    const local = getLocalData(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('store_settings').select('*').limit(1).maybeSingle();
+        if (!error && data) {
+          return {
+            ...local,
+            storeName: data.store_name || local.storeName,
+            tagline: data.tagline || local.tagline,
+            whatsappNumber: (data.whatsapp_number || '').replace(/[^0-9]/g, '') || local.whatsappNumber,
+            conciergeEmail: data.contact_email || local.conciergeEmail,
+            currencyCode: data.currency_code || local.currencyCode,
+            currencySymbol: data.currency_symbol || local.currencySymbol,
+            freeShippingThreshold: Number(data.free_shipping_threshold ?? local.freeShippingThreshold),
+            standardShippingFee: Number(data.standard_shipping_fee ?? local.standardShippingFee),
+            giftWrapFee: Number(data.gift_wrap_fee ?? local.giftWrapFee),
+            sareesSoldCount: data.sarees_sold_count ?? local.sareesSoldCount,
+            customerRating: Number(data.customer_rating ?? local.customerRating)
+          };
+        }
+      } catch (e) {
+        console.warn('Supabase getSettings notice:', e);
+      }
+    }
+    return local;
   },
 
   async updateSettings(settings) {
     const current = getLocalData(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
     const updated = { ...current, ...settings, updatedAt: new Date().toISOString() };
     setLocalData(STORAGE_KEYS.SETTINGS, updated);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const dbPayload = {
+          store_name: updated.storeName,
+          tagline: updated.tagline,
+          whatsapp_number: updated.whatsappNumber.startsWith('+') ? updated.whatsappNumber : `+${updated.whatsappNumber}`,
+          contact_email: updated.conciergeEmail || 'rodhesaree@gmail.com',
+          currency_code: updated.currencyCode || 'INR',
+          currency_symbol: updated.currencySymbol || '₹',
+          free_shipping_threshold: Number(updated.freeShippingThreshold) || 2999,
+          standard_shipping_fee: Number(updated.standardShippingFee) || 199,
+          gift_wrap_fee: Number(updated.giftWrapFee) || 150,
+          sarees_sold_count: Number(updated.sareesSoldCount) || 1240,
+          customer_rating: Number(updated.customerRating) || 4.9,
+          updated_at: new Date().toISOString()
+        };
+        const { data: existing } = await supabase.from('store_settings').select('id').limit(1).maybeSingle();
+        if (existing?.id) {
+          await supabase.from('store_settings').update(dbPayload).eq('id', existing.id);
+        } else {
+          await supabase.from('store_settings').insert([dbPayload]);
+        }
+      } catch (e) {
+        console.warn('Supabase updateSettings notice:', e);
+      }
+    }
     return updated;
   },
 
@@ -749,26 +967,68 @@ export const storeService = {
       ...enquiry,
       id: `enq-${Date.now()}`,
       status: 'new',
+      notes: '',
       createdAt: new Date().toISOString()
     };
     setLocalData(STORAGE_KEYS.ENQUIRIES, [record, ...enquiries]);
 
     if (isSupabaseConfigured && supabase) {
       try {
-        await supabase.from('enquiries').insert([record]);
-      } catch (e) {}
+        await supabase.from('enquiries').insert([{
+          customer_name: record.customer_name || record.name || 'Patron',
+          email: record.email || '',
+          phone: record.phone || '',
+          saree_interest: record.saree_interest || record.sareeInterest || '',
+          message: record.message || '',
+          status: 'new'
+        }]);
+      } catch (e) {
+        console.warn('Supabase submitEnquiry notice:', e);
+      }
     }
     return record;
   },
 
   async getEnquiries() {
-    return getLocalData(STORAGE_KEYS.ENQUIRIES, []);
+    const local = getLocalData(STORAGE_KEYS.ENQUIRIES, []);
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase.from('enquiries').select('*').order('created_at', { ascending: false });
+        if (!error && Array.isArray(data) && data.length > 0) {
+          return data.map(e => ({
+            id: e.id,
+            name: e.customer_name,
+            customer_name: e.customer_name,
+            email: e.email,
+            phone: e.phone,
+            sareeInterest: e.saree_interest,
+            saree_interest: e.saree_interest,
+            message: e.message,
+            status: e.status || 'new',
+            notes: e.notes || '',
+            createdAt: e.created_at
+          }));
+        }
+      } catch (e) {
+        console.warn('Supabase getEnquiries notice:', e);
+      }
+    }
+    return local;
   },
 
-  async updateEnquiryStatus(id, status) {
+  async updateEnquiryStatus(id, status, notes = null) {
     const enquiries = getLocalData(STORAGE_KEYS.ENQUIRIES, []);
-    const updated = enquiries.map(e => e.id === id ? { ...e, status } : e);
+    const updated = enquiries.map(e => e.id === id ? { ...e, status, ...(notes !== null ? { notes } : {}) } : e);
     setLocalData(STORAGE_KEYS.ENQUIRIES, updated);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const patch = { status };
+        await supabase.from('enquiries').update(patch).eq('id', id);
+      } catch (e) {
+        console.warn('Supabase updateEnquiryStatus notice:', e);
+      }
+    }
     return true;
   },
 

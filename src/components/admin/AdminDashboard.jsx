@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Package, 
-  ShoppingBag,
   Sparkles, 
   Tag, 
   Mail, 
   AlertTriangle, 
   Plus, 
   Upload, 
-  LayoutTemplate, 
   Database, 
   ExternalLink,
-  CheckCircle2,
-  TrendingUp,
-  Clock
+  FolderTree,
+  XCircle
 } from 'lucide-react';
 import { storeService } from '../../services/storeService';
 import { isSupabaseConfigured } from '../../services/supabaseClient';
@@ -26,49 +23,50 @@ export const AdminDashboard = ({ onNavigateTab, onNewProduct, onEditProduct }) =
     publishedProducts: 0,
     draftProducts: 0,
     lowStockCount: 0,
+    outOfStockCount: 0,
     activePromotions: 0,
     totalEnquiries: 0,
-    totalSignups: 0,
-    totalOrders: 0,
-    unfulfilledOrders: 0,
-    totalRevenue: 0
+    newEnquiriesCount: 0,
+    totalCollections: 0
   });
   const [recentProducts, setRecentProducts] = useState([]);
-  const [recentOrders, setRecentOrders] = useState([]);
-  const [settings, setSettings] = useState(null);
 
   useEffect(() => {
     const loadDashboardData = async () => {
-      const products = await storeService.getProducts();
-      const promos = await storeService.getPromotions();
-      const enquiries = await storeService.getEnquiries();
-      const signups = await storeService.getSignups();
-      const orders = await storeService.getOrders();
-      const storeSettings = await storeService.getSettings();
+      try {
+        const [products, promos, enquiries, collections] = await Promise.all([
+          storeService.getProducts(),
+          storeService.getPromotions(),
+          storeService.getEnquiries(),
+          storeService.getCollections()
+        ]);
 
-      const published = products.filter(p => p.status === 'published');
-      const drafts = products.filter(p => p.status === 'draft');
-      const lowStock = products.filter(p => (p.stockCount || 0) <= 5);
-      const activePromos = promos.filter(p => p.isActive);
-      const unfulfilled = orders.filter(o => (o.fulfillmentStatus || o.fulfillment_status) === 'unfulfilled');
-      const revenue = orders.reduce((sum, o) => sum + (Number(o.grandTotal || o.grand_total) || 0), 0);
+        const published = products.filter(p => p.status === 'published');
+        const drafts = products.filter(p => p.status === 'draft');
+        const outOfStock = products.filter(p => (Number(p.stockCount ?? p.stock_count ?? 0) === 0) || p.inStock === false || p.in_stock === false);
+        const lowStock = products.filter(p => {
+          const count = Number(p.stockCount ?? p.stock_count ?? 0);
+          return count > 0 && count <= 5;
+        });
+        const activePromos = promos.filter(p => p.isActive);
+        const newEnquiries = enquiries.filter(e => e.status === 'new' || !e.status);
 
-      setStats({
-        totalProducts: products.length,
-        publishedProducts: published.length,
-        draftProducts: drafts.length,
-        lowStockCount: lowStock.length,
-        activePromotions: activePromos.length,
-        totalEnquiries: enquiries.length,
-        totalSignups: signups.length,
-        totalOrders: orders.length,
-        unfulfilledOrders: unfulfilled.length,
-        totalRevenue: revenue
-      });
+        setStats({
+          totalProducts: products.length,
+          publishedProducts: published.length,
+          draftProducts: drafts.length,
+          lowStockCount: lowStock.length,
+          outOfStockCount: outOfStock.length,
+          activePromotions: activePromos.length,
+          totalEnquiries: enquiries.length,
+          newEnquiriesCount: newEnquiries.length,
+          totalCollections: collections.length
+        });
 
-      setRecentProducts(products.slice(0, 5));
-      setRecentOrders(orders.slice(0, 4));
-      setSettings(storeSettings);
+        setRecentProducts(products.slice(0, 6));
+      } catch (err) {
+        console.warn('Dashboard load notice:', err);
+      }
     };
 
     loadDashboardData();
@@ -106,35 +104,36 @@ export const AdminDashboard = ({ onNavigateTab, onNewProduct, onEditProduct }) =
           </div>
           <div>
             <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#4B3024', marginBottom: '0.2rem' }}>
-              Backend State: {isSupabaseConfigured ? 'Connected to Supabase PostgreSQL' : 'Local High-Resilience Store Engine Active'}
+              Backend State: {isSupabaseConfigured ? 'Connected to Supabase PostgreSQL' : 'Local High-Resilience Mode Active'}
             </h3>
             <p style={{ fontSize: '0.78rem', color: '#8F7263', margin: 0 }}>
               {isSupabaseConfigured 
-                ? 'All catalog mutations sync directly with your production Supabase database & storage buckets.' 
-                : 'Operating in local persistence mode. Ready to plug into live Supabase via .env.example credentials.'}
+                ? 'Store catalog, collections, promotions, and settings synchronize with your live Supabase project (emtmzrjaygcrmzoatvfa).' 
+                : 'Operating in local persistence mode. All edits are permanently saved locally.'}
             </p>
           </div>
         </div>
 
+        {/* Header Action Shortcuts */}
         <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
           <button
-            onClick={() => onNavigateTab('orders')}
+            onClick={() => onNavigateTab('collections')}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.4rem',
               padding: '0.55rem 0.95rem',
-              backgroundColor: '#B88D4A',
-              border: 'none',
+              backgroundColor: '#FAF6EE',
+              border: '1px solid rgba(75, 48, 36, 0.2)',
               borderRadius: '3px',
               fontSize: '0.78rem',
-              fontWeight: 700,
-              color: '#2A1A13',
+              fontWeight: 600,
+              color: '#4B3024',
               cursor: 'pointer'
             }}
           >
-            <ShoppingBag size={14} color="#2A1A13" />
-            <span>Fulfill Orders ({stats.unfulfilledOrders})</span>
+            <FolderTree size={14} color="#B88D4A" />
+            <span>Collections ({stats.totalCollections})</span>
           </button>
 
           <button
@@ -179,318 +178,488 @@ export const AdminDashboard = ({ onNavigateTab, onNewProduct, onEditProduct }) =
         </div>
       </div>
 
-      {/* Metrics Row */}
+      {/* Metrics Row - 100% Real Database Values */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
           gap: '1.25rem'
         }}
       >
-        {/* Metric 0: Customer Orders & Fulfillment (Clickable) */}
+        {/* Metric 1: Published Sarees */}
         <div 
-          onClick={() => onNavigateTab && onNavigateTab('orders')}
+          onClick={() => onNavigateTab && onNavigateTab('products')}
           style={{ 
             backgroundColor: '#FFFDF9', 
             padding: '1.5rem', 
             borderRadius: '4px', 
-            border: '1px solid rgba(184, 141, 74, 0.35)', 
+            border: '1px solid rgba(75, 48, 36, 0.1)', 
             display: 'flex', 
             flexDirection: 'column',
             cursor: 'pointer',
-            boxShadow: '0 4px 15px rgba(184, 141, 74, 0.08)',
-            transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+            transition: 'border-color 0.2s'
           }}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#B88D4A')}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(75, 48, 36, 0.1)')}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#B88D4A' }}>Orders & Fulfillment</span>
-            <ShoppingBag size={18} color="#B88D4A" />
-          </div>
-          <div style={{ fontSize: '2rem', fontWeight: 600, fontFamily: 'var(--font-serif)', color: '#4B3024', lineHeight: 1 }}>
-            {stats.totalOrders}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
-            <span style={{ fontSize: '0.72rem', color: stats.unfulfilledOrders > 0 ? '#C98278' : '#525B3A', fontWeight: 600 }}>
-              {stats.unfulfilledOrders} awaiting dispatch
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8F7263' }}>
+              Published Sarees
             </span>
-            <span style={{ fontSize: '0.72rem', color: '#B88D4A', fontWeight: 600 }}>View Orders →</span>
-          </div>
-        </div>
-
-        {/* Metric 1: Published Sarees */}
-        <div style={{ backgroundColor: '#FFFDF9', padding: '1.5rem', borderRadius: '4px', border: '1px solid rgba(75, 48, 36, 0.1)', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8F7263' }}>Published Sarees</span>
             <Package size={18} color="#B88D4A" />
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: 600, fontFamily: 'var(--font-serif)', color: '#4B3024', lineHeight: 1 }}>
+          <div style={{ fontSize: '2.2rem', fontWeight: 600, fontFamily: 'var(--font-serif)', color: '#4B3024', lineHeight: 1 }}>
             {stats.publishedProducts}
           </div>
-          <span style={{ fontSize: '0.72rem', color: '#8F7263', marginTop: '0.5rem' }}>
-            {stats.draftProducts} drafts in preparation
-          </span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.65rem' }}>
+            <span style={{ fontSize: '0.72rem', color: '#8F7263' }}>
+              Live in Boutique Atelier
+            </span>
+            <span style={{ fontSize: '0.72rem', color: '#B88D4A', fontWeight: 600 }}>Manage →</span>
+          </div>
         </div>
 
-        {/* Metric 2: Low Stock Warning */}
-        <div style={{ backgroundColor: '#FFFDF9', padding: '1.5rem', borderRadius: '4px', border: '1px solid rgba(75, 48, 36, 0.1)', display: 'flex', flexDirection: 'column' }}>
+        {/* Metric 2: Draft Sarees */}
+        <div 
+          onClick={() => onNavigateTab && onNavigateTab('products')}
+          style={{ 
+            backgroundColor: '#FFFDF9', 
+            padding: '1.5rem', 
+            borderRadius: '4px', 
+            border: '1px solid rgba(75, 48, 36, 0.1)', 
+            display: 'flex', 
+            flexDirection: 'column',
+            cursor: 'pointer',
+            transition: 'border-color 0.2s'
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#B88D4A')}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(75, 48, 36, 0.1)')}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8F7263' }}>Low Stock Alert</span>
-            <AlertTriangle size={18} color="#C98278" />
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8F7263' }}>
+              Draft Sarees
+            </span>
+            <Sparkles size={18} color="#8F7263" />
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: 600, fontFamily: 'var(--font-serif)', color: stats.lowStockCount > 0 ? '#C98278' : '#4B3024', lineHeight: 1 }}>
+          <div style={{ fontSize: '2.2rem', fontWeight: 600, fontFamily: 'var(--font-serif)', color: '#4B3024', lineHeight: 1 }}>
+            {stats.draftProducts}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.65rem' }}>
+            <span style={{ fontSize: '0.72rem', color: '#8F7263' }}>
+              Unpublished creations
+            </span>
+            <span style={{ fontSize: '0.72rem', color: '#B88D4A', fontWeight: 600 }}>Review →</span>
+          </div>
+        </div>
+
+        {/* Metric 3: Low Stock Warning */}
+        <div 
+          onClick={() => onNavigateTab && onNavigateTab('products')}
+          style={{ 
+            backgroundColor: '#FFFDF9', 
+            padding: '1.5rem', 
+            borderRadius: '4px', 
+            border: '1px solid rgba(75, 48, 36, 0.1)', 
+            display: 'flex', 
+            flexDirection: 'column',
+            cursor: 'pointer',
+            transition: 'border-color 0.2s'
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#C98278')}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(75, 48, 36, 0.1)')}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8F7263' }}>
+              Low Stock (≤ 5)
+            </span>
+            <AlertTriangle size={18} color={stats.lowStockCount > 0 ? '#C98278' : '#8F7263'} />
+          </div>
+          <div style={{ fontSize: '2.2rem', fontWeight: 600, fontFamily: 'var(--font-serif)', color: stats.lowStockCount > 0 ? '#C98278' : '#4B3024', lineHeight: 1 }}>
             {stats.lowStockCount}
           </div>
-          <span style={{ fontSize: '0.72rem', color: '#8F7263', marginTop: '0.5rem' }}>
-            Sarees with ≤ 5 pieces remaining
-          </span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.65rem' }}>
+            <span style={{ fontSize: '0.72rem', color: '#8F7263' }}>
+              Nearing replenishment
+            </span>
+            <span style={{ fontSize: '0.72rem', color: '#C98278', fontWeight: 600 }}>Update →</span>
+          </div>
         </div>
 
-        {/* Metric 3: Active Promotions */}
-        <div style={{ backgroundColor: '#FFFDF9', padding: '1.5rem', borderRadius: '4px', border: '1px solid rgba(75, 48, 36, 0.1)', display: 'flex', flexDirection: 'column' }}>
+        {/* Metric 4: Out of Stock */}
+        <div 
+          onClick={() => onNavigateTab && onNavigateTab('products')}
+          style={{ 
+            backgroundColor: '#FFFDF9', 
+            padding: '1.5rem', 
+            borderRadius: '4px', 
+            border: '1px solid rgba(75, 48, 36, 0.1)', 
+            display: 'flex', 
+            flexDirection: 'column',
+            cursor: 'pointer',
+            transition: 'border-color 0.2s'
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#8F7263')}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(75, 48, 36, 0.1)')}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8F7263' }}>Active Offers</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8F7263' }}>
+              Out of Stock (0)
+            </span>
+            <XCircle size={18} color={stats.outOfStockCount > 0 ? '#C98278' : '#8F7263'} />
+          </div>
+          <div style={{ fontSize: '2.2rem', fontWeight: 600, fontFamily: 'var(--font-serif)', color: stats.outOfStockCount > 0 ? '#C98278' : '#4B3024', lineHeight: 1 }}>
+            {stats.outOfStockCount}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.65rem' }}>
+            <span style={{ fontSize: '0.72rem', color: '#8F7263' }}>
+              Currently unavailable
+            </span>
+            <span style={{ fontSize: '0.72rem', color: '#8F7263', fontWeight: 600 }}>Restock →</span>
+          </div>
+        </div>
+
+        {/* Metric 5: Active Offers */}
+        <div 
+          onClick={() => onNavigateTab && onNavigateTab('promotions')}
+          style={{ 
+            backgroundColor: '#FFFDF9', 
+            padding: '1.5rem', 
+            borderRadius: '4px', 
+            border: '1px solid rgba(75, 48, 36, 0.1)', 
+            display: 'flex', 
+            flexDirection: 'column',
+            cursor: 'pointer',
+            transition: 'border-color 0.2s'
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#B88D4A')}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(75, 48, 36, 0.1)')}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8F7263' }}>
+              Active Offers
+            </span>
             <Tag size={18} color="#B88D4A" />
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: 600, fontFamily: 'var(--font-serif)', color: '#4B3024', lineHeight: 1 }}>
+          <div style={{ fontSize: '2.2rem', fontWeight: 600, fontFamily: 'var(--font-serif)', color: '#4B3024', lineHeight: 1 }}>
             {stats.activePromotions}
           </div>
-          <span style={{ fontSize: '0.72rem', color: '#8F7263', marginTop: '0.5rem' }}>
-            Coupons running on storefront
-          </span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.65rem' }}>
+            <span style={{ fontSize: '0.72rem', color: '#8F7263' }}>
+              Active coupons & discounts
+            </span>
+            <span style={{ fontSize: '0.72rem', color: '#B88D4A', fontWeight: 600 }}>Manage →</span>
+          </div>
         </div>
 
-        {/* Metric 4: Inquiries & Concierge */}
-        <div style={{ backgroundColor: '#FFFDF9', padding: '1.5rem', borderRadius: '4px', border: '1px solid rgba(75, 48, 36, 0.1)', display: 'flex', flexDirection: 'column' }}>
+        {/* Metric 6: Customer Enquiries */}
+        <div 
+          onClick={() => onNavigateTab && onNavigateTab('enquiries')}
+          style={{ 
+            backgroundColor: '#FFFDF9', 
+            padding: '1.5rem', 
+            borderRadius: '4px', 
+            border: '1px solid rgba(75, 48, 36, 0.1)', 
+            display: 'flex', 
+            flexDirection: 'column',
+            cursor: 'pointer',
+            transition: 'border-color 0.2s'
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#525B3A')}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(75, 48, 36, 0.1)')}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8F7263' }}>Inquiries & WhatsApp</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8F7263' }}>
+              Concierge Inquiries
+            </span>
             <Mail size={18} color="#525B3A" />
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: 600, fontFamily: 'var(--font-serif)', color: '#4B3024', lineHeight: 1 }}>
+          <div style={{ fontSize: '2.2rem', fontWeight: 600, fontFamily: 'var(--font-serif)', color: '#4B3024', lineHeight: 1 }}>
             {stats.totalEnquiries}
           </div>
-          <span style={{ fontSize: '0.72rem', color: '#8F7263', marginTop: '0.5rem' }}>
-            Customer orders & concierge leads
-          </span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.65rem' }}>
+            <span style={{ fontSize: '0.72rem', color: stats.newEnquiriesCount > 0 ? '#525B3A' : '#8F7263', fontWeight: stats.newEnquiriesCount > 0 ? 600 : 400 }}>
+              {stats.newEnquiriesCount} new / pending
+            </span>
+            <span style={{ fontSize: '0.72rem', color: '#525B3A', fontWeight: 600 }}>View →</span>
+          </div>
         </div>
       </div>
 
-      {/* Two Column Layout: Recent Saree Inventory & Quick Controls */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '1.5rem' }}>
-        {/* Left Column: Recent Products */}
-        <div style={{ backgroundColor: '#FFFDF9', borderRadius: '4px', border: '1px solid rgba(75, 48, 36, 0.1)', padding: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#4B3024', margin: 0 }}>
+      {/* Quick Actions Shortcuts Grid */}
+      <div style={{ backgroundColor: '#FFFDF9', padding: '1.5rem', borderRadius: '4px', border: '1px solid rgba(75, 48, 36, 0.1)' }}>
+        <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#4B3024', margin: '0 0 1rem 0' }}>
+          Store Management Quick Actions
+        </h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
+          <button
+            onClick={onNewProduct}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              padding: '0.85rem 1rem',
+              backgroundColor: '#4B3024',
+              color: '#FAF6EE',
+              border: 'none',
+              borderRadius: '3px',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              textAlign: 'left'
+            }}
+          >
+            <Plus size={16} />
+            <span>Add Saree</span>
+          </button>
+
+          <button
+            onClick={() => onNavigateTab('products')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              padding: '0.85rem 1rem',
+              backgroundColor: '#FAF6EE',
+              color: '#4B3024',
+              border: '1px solid rgba(75, 48, 36, 0.2)',
+              borderRadius: '3px',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              textAlign: 'left'
+            }}
+          >
+            <Package size={16} color="#B88D4A" />
+            <span>Manage Sarees</span>
+          </button>
+
+          <button
+            onClick={() => onNavigateTab('collections')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              padding: '0.85rem 1rem',
+              backgroundColor: '#FAF6EE',
+              color: '#4B3024',
+              border: '1px solid rgba(75, 48, 36, 0.2)',
+              borderRadius: '3px',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              textAlign: 'left'
+            }}
+          >
+            <FolderTree size={16} color="#B88D4A" />
+            <span>Manage Collections</span>
+          </button>
+
+          <button
+            onClick={() => onNavigateTab('enquiries')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              padding: '0.85rem 1rem',
+              backgroundColor: '#FAF6EE',
+              color: '#4B3024',
+              border: '1px solid rgba(75, 48, 36, 0.2)',
+              borderRadius: '3px',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              textAlign: 'left'
+            }}
+          >
+            <Mail size={16} color="#525B3A" />
+            <span>View Inquiries</span>
+          </button>
+
+          <button
+            onClick={() => onNavigateTab('promotions')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              padding: '0.85rem 1rem',
+              backgroundColor: '#FAF6EE',
+              color: '#4B3024',
+              border: '1px solid rgba(75, 48, 36, 0.2)',
+              borderRadius: '3px',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              textAlign: 'left'
+            }}
+          >
+            <Tag size={16} color="#B88D4A" />
+            <span>Manage Offers</span>
+          </button>
+
+          <button
+            onClick={() => onNavigateTab('settings')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              padding: '0.85rem 1rem',
+              backgroundColor: '#FAF6EE',
+              color: '#4B3024',
+              border: '1px solid rgba(75, 48, 36, 0.2)',
+              borderRadius: '3px',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              textAlign: 'left'
+            }}
+          >
+            <Sparkles size={16} color="#B88D4A" />
+            <span>Store Settings</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Recent Saree Catalog Overview */}
+      <div style={{ backgroundColor: '#FFFDF9', borderRadius: '4px', border: '1px solid rgba(75, 48, 36, 0.1)', padding: '1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#4B3024', margin: '0 0 0.25rem 0' }}>
               Recent Saree Catalog
             </h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-              <button
-                onClick={() => navigateTo('shop')}
-                title="View all sarees on the public boutique collection"
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#B88D4A',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                  padding: '0.2rem 0.4rem'
-                }}
-              >
-                <span>Live Collection</span>
-                <ExternalLink size={12} />
-              </button>
-              <span style={{ color: 'rgba(75, 48, 36, 0.25)' }}>|</span>
-              <button
-                onClick={() => onNavigateTab('products')}
-                style={{ background: 'none', border: 'none', color: '#6F4E3E', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
-              >
-                View All ({stats.totalProducts}) →
-              </button>
-            </div>
+            <p style={{ fontSize: '0.78rem', color: '#8F7263', margin: 0 }}>
+              Latest sarees added or updated in your boutique collection.
+            </p>
           </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            {recentProducts.map((p) => (
-              <div
-                key={p.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '0.75rem 0.85rem',
-                  backgroundColor: '#FAF6EE',
-                  borderRadius: '3px',
-                  border: '1px solid rgba(75, 48, 36, 0.08)',
-                  flexWrap: 'wrap',
-                  gap: '0.5rem'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-                  <img
-                    src={p.primaryImage || p.primary_image || '/assets/products/saree_ivory_mulmul.jpg'}
-                    alt={p.name || 'Saree'}
-                    style={{ width: '44px', height: '44px', objectFit: 'cover', borderRadius: '2px', border: '1px solid rgba(75, 48, 36, 0.12)' }}
-                    onError={(e) => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src = '/assets/products/saree_ivory_mulmul.jpg';
-                    }}
-                  />
-                  <div>
-                    <h4 style={{ fontSize: '0.88rem', fontWeight: 600, color: '#4B3024', margin: 0 }}>
-                      {p.name}
-                    </h4>
-                    <span style={{ fontSize: '0.72rem', color: '#8F7263' }}>
-                      SKU: {p.sku} • {p.craft || 'Handloom'}
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: 'auto' }}>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#4B3024' }}>
-                      ₹{(Number(p.price ?? p.sellingPrice ?? p.selling_price ?? 990) || 990).toLocaleString('en-IN')}
-                    </div>
-                    <span
-                      style={{
-                        fontSize: '0.66rem',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        padding: '0.15rem 0.4rem',
-                        borderRadius: '2px',
-                        backgroundColor: p.status === 'published' ? 'rgba(82, 91, 58, 0.15)' : 'rgba(184, 141, 74, 0.15)',
-                        color: p.status === 'published' ? '#525B3A' : '#B88D4A'
-                      }}
-                    >
-                      {p.status}
-                    </span>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <button
-                      onClick={() => navigateTo('shop')}
-                      title={`View ${p.name} on the Live Boutique Collection`}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.25rem',
-                        padding: '0.35rem 0.6rem',
-                        backgroundColor: '#FFFDF9',
-                        border: '1px solid rgba(184, 141, 74, 0.4)',
-                        borderRadius: '2px',
-                        fontSize: '0.72rem',
-                        fontWeight: 600,
-                        color: '#4B3024',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <span>Live Store</span>
-                      <ExternalLink size={11} color="#B88D4A" />
-                    </button>
-
-                    {onEditProduct && (
-                      <button
-                        onClick={() => onEditProduct(p)}
-                        title="Edit Saree Details"
-                        style={{
-                          padding: '0.35rem 0.5rem',
-                          backgroundColor: 'transparent',
-                          border: '1px solid rgba(75, 48, 36, 0.18)',
-                          borderRadius: '2px',
-                          fontSize: '0.72rem',
-                          color: '#4B3024',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Edit
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <button
+              onClick={() => navigateTo('shop')}
+              title="View all sarees on the public boutique collection"
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#B88D4A',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                padding: '0.2rem 0.4rem'
+              }}
+            >
+              <span>Live Store</span>
+              <ExternalLink size={12} />
+            </button>
+            <span style={{ color: 'rgba(75, 48, 36, 0.25)' }}>|</span>
+            <button
+              onClick={() => onNavigateTab('products')}
+              style={{ background: 'none', border: 'none', color: '#6F4E3E', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}
+            >
+              View All ({stats.totalProducts}) →
+            </button>
           </div>
         </div>
 
-        {/* Right Column: Store Merchandising Shortcuts */}
-        <div style={{ backgroundColor: '#FFFDF9', borderRadius: '4px', border: '1px solid rgba(75, 48, 36, 0.1)', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#4B3024', margin: 0 }}>
-            Operational Shortcuts
-          </h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          {recentProducts.map((p) => (
+            <div
+              key={p.id || p.slug}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.75rem 0.85rem',
+                backgroundColor: '#FAF6EE',
+                borderRadius: '3px',
+                border: '1px solid rgba(75, 48, 36, 0.08)',
+                flexWrap: 'wrap',
+                gap: '0.5rem'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                <img
+                  src={p.primaryImage || p.primary_image || '/assets/products/saree_ivory_mulmul.jpg'}
+                  alt={p.name || 'Saree'}
+                  style={{ width: '44px', height: '44px', objectFit: 'cover', borderRadius: '2px', border: '1px solid rgba(75, 48, 36, 0.12)' }}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = '/assets/products/saree_ivory_mulmul.jpg';
+                  }}
+                />
+                <div>
+                  <h4 style={{ fontSize: '0.88rem', fontWeight: 600, color: '#4B3024', margin: 0 }}>
+                    {p.name}
+                  </h4>
+                  <span style={{ fontSize: '0.72rem', color: '#8F7263' }}>
+                    SKU: {p.sku} • {p.craft || 'Handloom'} • Stock: {p.stockCount ?? p.stock_count ?? 0}
+                  </span>
+                </div>
+              </div>
 
-          <div
-            onClick={() => onNavigateTab('homepage')}
-            style={{
-              padding: '1rem',
-              backgroundColor: '#FAF6EE',
-              borderRadius: '3px',
-              border: '1px solid rgba(184, 141, 74, 0.25)',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#B88D4A')}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(184, 141, 74, 0.25)')}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
-              <LayoutTemplate size={18} color="#B88D4A" />
-              <h4 style={{ fontSize: '0.88rem', fontWeight: 600, color: '#4B3024', margin: 0 }}>
-                Homepage Merchandiser
-              </h4>
-            </div>
-            <p style={{ fontSize: '0.76rem', color: '#8F7263', margin: 0 }}>
-              Adjust hero headline, trust counts, Bestsellers promotional banner, and Most Coveted selections.
-            </p>
-          </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: 'auto' }}>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#4B3024' }}>
+                    ₹{(Number(p.price ?? p.sellingPrice ?? p.selling_price ?? 990) || 990).toLocaleString('en-IN')}
+                  </div>
+                  <span
+                    style={{
+                      fontSize: '0.66rem',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      padding: '0.15rem 0.4rem',
+                      borderRadius: '2px',
+                      backgroundColor: p.status === 'published' ? 'rgba(82, 91, 58, 0.15)' : 'rgba(184, 141, 74, 0.15)',
+                      color: p.status === 'published' ? '#525B3A' : '#B88D4A'
+                    }}
+                  >
+                    {p.status}
+                  </span>
+                </div>
 
-          <div
-            onClick={() => onNavigateTab('bulk-import')}
-            style={{
-              padding: '1rem',
-              backgroundColor: '#FAF6EE',
-              borderRadius: '3px',
-              border: '1px solid rgba(184, 141, 74, 0.25)',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#B88D4A')}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(184, 141, 74, 0.25)')}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
-              <Upload size={18} color="#B88D4A" />
-              <h4 style={{ fontSize: '0.88rem', fontWeight: 600, color: '#4B3024', margin: 0 }}>
-                Bulk Catalog Importer
-              </h4>
-            </div>
-            <p style={{ fontSize: '0.76rem', color: '#8F7263', margin: 0 }}>
-              Upload up to 200+ sarees at once via CSV with automated image matching and price validation.
-            </p>
-          </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <button
+                    onClick={() => navigateTo('shop')}
+                    title={`View ${p.name} on the Live Boutique Collection`}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      padding: '0.35rem 0.6rem',
+                      backgroundColor: '#FFFDF9',
+                      border: '1px solid rgba(184, 141, 74, 0.4)',
+                      borderRadius: '2px',
+                      fontSize: '0.72rem',
+                      fontWeight: 600,
+                      color: '#4B3024',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span>Store</span>
+                    <ExternalLink size={11} color="#B88D4A" />
+                  </button>
 
-          <div
-            onClick={() => onNavigateTab('settings')}
-            style={{
-              padding: '1rem',
-              backgroundColor: '#FAF6EE',
-              borderRadius: '3px',
-              border: '1px solid rgba(184, 141, 74, 0.25)',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#B88D4A')}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(184, 141, 74, 0.25)')}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
-              <Sparkles size={18} color="#B88D4A" />
-              <h4 style={{ fontSize: '0.88rem', fontWeight: 600, color: '#4B3024', margin: 0 }}>
-                WhatsApp Ordering & Settings
-              </h4>
+                  {onEditProduct && (
+                    <button
+                      onClick={() => onEditProduct(p)}
+                      title="Edit Saree Details"
+                      style={{
+                        padding: '0.35rem 0.6rem',
+                        backgroundColor: '#4B3024',
+                        border: 'none',
+                        borderRadius: '2px',
+                        fontSize: '0.72rem',
+                        color: '#FAF6EE',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Edit
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
-            <p style={{ fontSize: '0.76rem', color: '#8F7263', margin: 0 }}>
-              Configure your verified WhatsApp phone number, free shipping threshold (₹{settings?.freeShippingThreshold || 2999}), and concierge contacts.
-            </p>
-          </div>
+          ))}
         </div>
       </div>
     </div>

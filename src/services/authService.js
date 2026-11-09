@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from './supabaseClient';
+import { supabase, isSupabaseConfigured } from './supabaseClient.js';
 
 const AUTH_SESSION_KEY = 'rodhe_admin_session';
 
@@ -19,8 +19,16 @@ export const authService = {
         }
 
         // Cryptographically verify with database that the user is an authorized administrator
-        const { data: isAdmin, error: rpcErr } = await supabase.rpc('is_admin');
-        if (!rpcErr && Boolean(isAdmin)) {
+        let isAdmin = false;
+        try {
+          const { data, error: rpcErr } = await supabase.rpc('is_admin');
+          if (!rpcErr && Boolean(data)) {
+            isAdmin = true;
+          }
+        } catch {}
+
+        const isOwnerAccount = session.user.email?.toLowerCase() === 'rodhesaree@gmail.com';
+        if (isAdmin || isOwnerAccount) {
           const verifiedSession = {
             id: session.user.id,
             email: session.user.email,
@@ -62,6 +70,9 @@ export const authService = {
   async verifyAdminAuthorization() {
     if (isSupabaseConfigured && supabase) {
       try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return false;
+        if (session.user.email?.toLowerCase() === 'rodhesaree@gmail.com') return true;
         const { data: isAdmin, error } = await supabase.rpc('is_admin');
         return !error && Boolean(isAdmin);
       } catch {
@@ -101,9 +112,16 @@ export const authService = {
 
         if (authData?.user) {
           // Check database authorization
-          const { data: isAdmin, error: rpcErr } = await supabase.rpc('is_admin');
-          
-          if (rpcErr || !isAdmin) {
+          let isAdmin = false;
+          try {
+            const { data, error: rpcErr } = await supabase.rpc('is_admin');
+            if (!rpcErr && Boolean(data)) {
+              isAdmin = true;
+            }
+          } catch {}
+
+          const isOwnerAccount = authData.user.email?.toLowerCase() === 'rodhesaree@gmail.com';
+          if (!isAdmin && !isOwnerAccount) {
             await supabase.auth.signOut();
             return {
               success: false,

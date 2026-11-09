@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Save, Eye, Sparkles, Image, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Save, CheckCircle2 } from 'lucide-react';
 import { storeService } from '../../services/storeService';
 import { useShop } from '../../context/ShopContext';
 import { ImageUploadField } from './ImageUploadField';
@@ -64,9 +64,17 @@ export const AdminProductForm = ({ product, onSaveComplete, onCancel }) => {
     if (e && e.preventDefault) e.preventDefault();
     setIsSaving(true);
     try {
+      const allGallery = Array.from(new Set([
+        formData.primaryImage,
+        formData.secondaryImage,
+        ...(formData.gallery || [])
+      ])).filter(Boolean);
+
       const payload = {
         ...formData,
-        gallery: [formData.primaryImage, formData.secondaryImage].filter(Boolean)
+        primaryImage: formData.primaryImage || allGallery[0] || '/assets/products/saree_ivory_mulmul.jpg',
+        secondaryImage: formData.secondaryImage || allGallery[1] || allGallery[0] || '/assets/products/saree_ivory_mulmul.jpg',
+        gallery: allGallery
       };
       await storeService.saveProduct(payload);
       if (refreshProducts) {
@@ -388,7 +396,7 @@ export const AdminProductForm = ({ product, onSaveComplete, onCancel }) => {
               onChange={(newUrl) => setFormData(prev => ({
                 ...prev,
                 primaryImage: newUrl,
-                gallery: [newUrl, prev.secondaryImage].filter(Boolean)
+                gallery: Array.from(new Set([newUrl, ...(prev.gallery || [])]))
               }))}
             />
 
@@ -400,9 +408,137 @@ export const AdminProductForm = ({ product, onSaveComplete, onCancel }) => {
               onChange={(newUrl) => setFormData(prev => ({
                 ...prev,
                 secondaryImage: newUrl,
-                gallery: [prev.primaryImage, newUrl].filter(Boolean)
+                gallery: Array.from(new Set([...(prev.gallery || []), newUrl]))
               }))}
             />
+          </div>
+
+          {/* Additional Gallery Photos Manager */}
+          <div style={{ paddingTop: '1.25rem', borderTop: '1px solid rgba(75, 48, 36, 0.08)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h4 style={{ fontSize: '0.88rem', fontWeight: 600, color: '#4B3024', margin: 0 }}>
+                  Product Gallery & Drapes ({(formData.gallery || []).length} photos)
+                </h4>
+                <p style={{ fontSize: '0.74rem', color: '#8F7263', margin: '0.15rem 0 0 0' }}>
+                  Reorder or select which photo acts as the primary drape.
+                </p>
+              </div>
+            </div>
+
+            {/* Gallery Thumbnails */}
+            {(formData.gallery || []).length > 0 && (
+              <div style={{ display: 'flex', gap: '0.85rem', flexWrap: 'wrap' }}>
+                {(formData.gallery || []).map((imgUrl, idx) => {
+                  const isPrimary = imgUrl === formData.primaryImage;
+                  return (
+                    <div
+                      key={idx}
+                      style={{
+                        position: 'relative',
+                        width: '90px',
+                        height: '110px',
+                        borderRadius: '3px',
+                        overflow: 'hidden',
+                        border: isPrimary ? '2px solid #B88D4A' : '1px solid rgba(75, 48, 36, 0.15)',
+                        backgroundColor: '#FAF6EE'
+                      }}
+                    >
+                      <img
+                        src={imgUrl}
+                        alt={`Saree angle ${idx + 1}`}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                      {isPrimary ? (
+                        <span
+                          style={{
+                            position: 'absolute',
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            backgroundColor: 'rgba(75, 48, 36, 0.85)',
+                            color: '#EADAB5',
+                            fontSize: '0.62rem',
+                            fontWeight: 700,
+                            textAlign: 'center',
+                            padding: '0.2rem 0'
+                          }}
+                        >
+                          Primary
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, primaryImage: imgUrl }))}
+                          style={{
+                            position: 'absolute',
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            backgroundColor: 'rgba(234, 218, 181, 0.9)',
+                            color: '#4B3024',
+                            border: 'none',
+                            fontSize: '0.62rem',
+                            fontWeight: 600,
+                            textAlign: 'center',
+                            padding: '0.2rem 0',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Set Primary
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({
+                          ...prev,
+                          gallery: prev.gallery.filter((_, i) => i !== idx),
+                          primaryImage: prev.primaryImage === imgUrl ? (prev.gallery.find((_, i) => i !== idx) || '') : prev.primaryImage
+                        }))}
+                        title="Remove image from gallery"
+                        style={{
+                          position: 'absolute',
+                          top: '3px',
+                          right: '3px',
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: '50%',
+                          backgroundColor: 'rgba(42, 26, 19, 0.75)',
+                          color: '#FFF',
+                          border: 'none',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.65rem',
+                          cursor: 'pointer',
+                          lineHeight: 1
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Add extra image to gallery */}
+            <div style={{ maxWidth: '380px' }}>
+              <ImageUploadField
+                label="Add Extra Gallery Angle / Drape"
+                required={false}
+                helperText="Upload additional drape, blouse, or artisan weaving photos"
+                value=""
+                onChange={(extraUrl) => {
+                  if (extraUrl) {
+                    setFormData(prev => ({
+                      ...prev,
+                      gallery: Array.from(new Set([...(prev.gallery || []), extraUrl]))
+                    }));
+                  }
+                }}
+              />
+            </div>
           </div>
         </div>
       </form>
