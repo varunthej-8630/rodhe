@@ -5,37 +5,55 @@ const AUTH_SESSION_KEY = 'rodhe_admin_session';
 export const authService = {
   /**
    * Retrieves the current active administrative session.
-   * Prioritizes genuine Supabase Auth sessions.
+   * Strictly enforces genuine Supabase Auth sessions verified via server-side is_admin() RPC.
    */
   async getCurrentSession() {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          // Verify with database that the user is an authorized administrator
-          const { data: isAdmin } = await supabase.rpc('is_admin');
-          if (isAdmin) {
-            return {
-              id: session.user.id,
-              email: session.user.email,
-              role: 'super_admin',
-              name: (session.user.user_metadata?.name || session.user.email.split('@')[0]).toUpperCase(),
-              token: session.access_token
-            };
-          }
+        const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
+        if (sessionErr || !session?.user) {
+          try {
+            localStorage.removeItem(AUTH_SESSION_KEY);
+          } catch {}
+          return null;
         }
+
+        // Cryptographically verify with database that the user is an authorized administrator
+        const { data: isAdmin, error: rpcErr } = await supabase.rpc('is_admin');
+        if (!rpcErr && Boolean(isAdmin)) {
+          const verifiedSession = {
+            id: session.user.id,
+            email: session.user.email,
+            role: 'super_admin',
+            name: (session.user.user_metadata?.name || session.user.email.split('@')[0]).toUpperCase(),
+            token: session.access_token
+          };
+          try {
+            localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(verifiedSession));
+          } catch {}
+          return verifiedSession;
+        }
+
+        // If user is authenticated in Supabase but is not in public.admin_users, deny access
+        console.warn('Authenticated user is not registered in public.admin_users');
+        try {
+          localStorage.removeItem(AUTH_SESSION_KEY);
+        } catch {}
+        return null;
       } catch (err) {
         console.warn('Supabase session inspection notice:', err);
+        try {
+          localStorage.removeItem(AUTH_SESSION_KEY);
+        } catch {}
+        return null;
       }
     }
 
-    // Read stored verified session if available
+    // When Supabase is not configured or offline, never grant unauthenticated admin access
     try {
-      const raw = localStorage.getItem(AUTH_SESSION_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
+      localStorage.removeItem(AUTH_SESSION_KEY);
+    } catch {}
+    return null;
   },
 
   /**
@@ -177,9 +195,13 @@ export const authService = {
     if (isSupabaseConfigured && supabase) {
       try {
         await supabase.auth.signOut();
-      } catch {}
+      } catch (err) {
+        console.warn('Supabase signOut notice:', err);
+      }
     }
-    localStorage.removeItem(AUTH_SESSION_KEY);
+    try {
+      localStorage.removeItem(AUTH_SESSION_KEY);
+    } catch {}
     return true;
   },
 

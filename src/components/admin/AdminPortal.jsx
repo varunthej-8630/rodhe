@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { authService } from '../../services/authService';
+import { supabase, isSupabaseConfigured } from '../../services/supabaseClient';
 import { AdminLogin } from './AdminLogin';
 import { AdminLayout } from './AdminLayout';
 import { AdminDashboard } from './AdminDashboard';
@@ -14,24 +15,74 @@ import { AdminEnquiries } from './AdminEnquiries';
 import { AdminSettings } from './AdminSettings';
 
 export const AdminPortal = ({ onNavigateToStorefront }) => {
-  const [session, setSession] = useState(() => authService.getCurrentSession());
+  const [session, setSession] = useState(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [editingProduct, setEditingProduct] = useState(null);
   const [isCreatingProduct, setIsCreatingProduct] = useState(false);
 
   useEffect(() => {
-    // Check authentication status
-    const current = authService.getCurrentSession();
-    setSession(current);
+    let isMounted = true;
+
+    const verifySession = async () => {
+      setIsCheckingAuth(true);
+      try {
+        const verified = await authService.getCurrentSession();
+        if (isMounted) {
+          setSession(verified);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setSession(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsCheckingAuth(false);
+        }
+      }
+    };
+
+    verifySession();
+
+    // Listen for Supabase GoTrue auth changes
+    let subscription = null;
+    if (isSupabaseConfigured && supabase) {
+      const { data } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+        if (!isMounted) return;
+        if (event === 'SIGNED_OUT' || !newSession) {
+          setSession(null);
+          setIsCheckingAuth(false);
+        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          const verified = await authService.getCurrentSession();
+          if (isMounted) {
+            setSession(verified);
+            setIsCheckingAuth(false);
+          }
+        }
+      });
+      subscription = data?.subscription;
+    }
+
+    return () => {
+      isMounted = false;
+      if (subscription?.unsubscribe) {
+        subscription.unsubscribe();
+      }
+    };
   }, []);
 
   const handleLoginSuccess = (userSession) => {
     setSession(userSession);
+    setIsCheckingAuth(false);
   };
 
   const handleLogout = async () => {
     await authService.logout();
     setSession(null);
+    setIsCheckingAuth(false);
+    if (onNavigateToStorefront) {
+      onNavigateToStorefront('home');
+    }
   };
 
   const handleStartNewProduct = () => {
@@ -51,17 +102,60 @@ export const AdminPortal = ({ onNavigateToStorefront }) => {
     setIsCreatingProduct(false);
   };
 
+  // 1. While checking authentication status, show luxury loading state
+  if (isCheckingAuth) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          backgroundColor: '#2A1A13',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '1.25rem',
+          color: '#FAF6EE',
+          fontFamily: 'var(--font-serif)',
+          padding: '2rem'
+        }}
+      >
+        <div
+          style={{
+            width: '42px',
+            height: '42px',
+            border: '2px solid rgba(184, 141, 74, 0.25)',
+            borderTopColor: '#B88D4A',
+            borderRadius: '50%',
+            animation: 'rodhe-spin 1s linear infinite'
+          }}
+        />
+        <style>{`@keyframes rodhe-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontSize: '1.1rem', letterSpacing: '0.12em', color: '#EADAB5', margin: '0 0 0.35rem 0' }}>
+            RODHE ATELIER
+          </p>
+          <p style={{ fontSize: '0.72rem', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(234, 218, 181, 0.7)', margin: 0, fontFamily: 'var(--font-sans)' }}>
+            Verifying Administrator Credentials...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Unauthenticated: Render login page only
   if (!session) {
     return (
       <AdminLogin
         onLoginSuccess={handleLoginSuccess}
-        onBackToStore={onNavigateToStorefront}
+        onBackToStore={() => onNavigateToStorefront && onNavigateToStorefront('home')}
       />
     );
   }
 
+  // 3. Authenticated: Render protected AdminLayout
   return (
     <AdminLayout
+      session={session}
       activeTab={activeTab}
       setActiveTab={(tab) => {
         setIsCreatingProduct(false);

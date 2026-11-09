@@ -198,12 +198,22 @@ export const AdminSettings = () => {
 };
 
 const AdminSecuritySection = () => {
-  const [currentUsername, setCurrentUsername] = useState('rodhe');
+  const [currentUsername, setCurrentUsername] = useState('Administrator');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [secLoading, setSecLoading] = useState(false);
   const [secSuccess, setSecSuccess] = useState('');
   const [secError, setSecError] = useState('');
+
+  useEffect(() => {
+    let mounted = true;
+    authService.getCurrentSession().then(sess => {
+      if (mounted && (sess?.name || sess?.email)) {
+        setCurrentUsername(sess.name || sess.email);
+      }
+    });
+    return () => { mounted = false; };
+  }, []);
 
   const handlePasswordChange = async (e) => {
     e.preventDefault();

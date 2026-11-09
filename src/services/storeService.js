@@ -1153,10 +1153,17 @@ export const storeService = {
           query = query.eq('fulfillment_status', filters.status);
         }
         const { data, error } = await query;
-        if (!error && Array.isArray(data) && data.length > 0) {
+        if (!error && Array.isArray(data)) {
           return data;
         }
-      } catch (err) {}
+        if (error) {
+          // If RLS blocked the query or caller is unauthenticated, do not expose mock data
+          console.warn('Orders query restricted or unavailable:', error.message);
+          return [];
+        }
+      } catch (err) {
+        return [];
+      }
     }
 
     if (filters.status && filters.status !== 'all') {

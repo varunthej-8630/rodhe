@@ -19,9 +19,8 @@ import {
 } from 'lucide-react';
 import { authService } from '../../services/authService';
 
-export const AdminLayout = ({ children, activeTab, setActiveTab, onNavigateToStorefront, onLogout }) => {
+export const AdminLayout = ({ children, activeTab, setActiveTab, onNavigateToStorefront, onLogout, session }) => {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
-  const session = authService.getCurrentSession();
 
   const navItems = [
     { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
@@ -218,7 +217,7 @@ export const AdminLayout = ({ children, activeTab, setActiveTab, onNavigateToSto
             onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(234, 218, 181, 0.65)')}
           >
             <LogOut size={14} />
-            <span>Sign Out ({session?.name || 'Administrator'})</span>
+            <span>Sign Out ({session?.name || session?.email?.split('@')[0]?.toUpperCase() || 'Administrator'})</span>
           </button>
         </div>
       </aside>
@@ -274,7 +273,7 @@ export const AdminLayout = ({ children, activeTab, setActiveTab, onNavigateToSto
           <div className="admin-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
             <div className="admin-badge-verified" style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.74rem', color: '#6F4E3E', backgroundColor: '#F4ECE1', padding: '0.35rem 0.65rem', borderRadius: '4px', border: '1px solid rgba(184, 141, 74, 0.2)' }}>
               <ShieldCheck size={14} color="#B88D4A" />
-              <span>Admin Verified</span>
+              <span>{session?.role === 'super_admin' ? 'Admin Verified' : 'Session Active'}</span>
             </div>
 
             <button

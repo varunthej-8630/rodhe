@@ -288,9 +288,20 @@ export const ShopProvider = ({ children }) => {
         } else if (page === 'policies') {
           window.location.hash = productId ? `policies-${productId}` : 'policies';
         } else if (page === 'home') {
-          if (window.location.hash) {
-            history.replaceState(null, '', window.location.pathname + window.location.search);
-          }
+          try {
+            let newUrl = window.location.pathname;
+            if (window.location.search) {
+              const searchParams = new URLSearchParams(window.location.search);
+              searchParams.delete('page');
+              searchParams.delete('product');
+              searchParams.delete('craft');
+              const remaining = searchParams.toString();
+              if (remaining) {
+                newUrl += `?${remaining}`;
+              }
+            }
+            history.replaceState(null, '', newUrl);
+          } catch {}
         }
       }
     } catch (e) {}
