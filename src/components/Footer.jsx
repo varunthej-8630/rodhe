@@ -179,11 +179,14 @@ export const Footer = () => {
                   style={{ cursor: 'pointer', marginBottom: '1.25rem', display: 'inline-block' }}
                 >
                   <img
-                    src="/assets/RODHE Woven Luxury Wordmark.png"
-                    alt="RODHE — Woven with Trust"
+                    src="/assets/rodhe_emblem_saree_r.png"
+                    alt="RODHE — Woven Luxury"
                     style={{
-                      height: 'clamp(38px, 6vw, 48px)',
-                      filter: 'brightness(0) invert(1) drop-shadow(0 2px 8px rgba(0,0,0,0.3))'
+                      height: 'clamp(54px, 7.5vw, 70px)',
+                      width: 'auto',
+                      objectFit: 'contain',
+                      display: 'block',
+                      filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35))'
                     }}
                   />
                 </div>
