@@ -34,15 +34,19 @@ export const SearchModal = () => {
 
   if (!isSearchOpen) return null;
 
+  const publishedProducts = (PRODUCTS || []).filter((p) => !p.status || p.status === 'published');
+
   const filtered = query.trim()
-    ? PRODUCTS.filter((p) => {
-        const q = query.toLowerCase();
+    ? publishedProducts.filter((p) => {
+        const q = query.trim().toLowerCase();
         return (
-          p.name.toLowerCase().includes(q) ||
-          p.craft.toLowerCase().includes(q) ||
-          p.color.toLowerCase().includes(q) ||
-          p.fabric.toLowerCase().includes(q) ||
-          p.tagline.toLowerCase().includes(q)
+          (p.name || '').toLowerCase().includes(q) ||
+          (p.sku || '').toLowerCase().includes(q) ||
+          (p.craft || '').toLowerCase().includes(q) ||
+          (p.color || '').toLowerCase().includes(q) ||
+          (p.fabric || '').toLowerCase().includes(q) ||
+          (p.tagline || '').toLowerCase().includes(q) ||
+          (p.description || '').toLowerCase().includes(q)
         );
       })
     : [];

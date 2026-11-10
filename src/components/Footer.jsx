@@ -5,9 +5,11 @@ import { useShop } from '../context/ShopContext';
 import { storeService } from '../services/storeService';
 
 export const Footer = () => {
-  const { navigateTo, setSelectedCraft, showToast, setIsTrackOrderOpen } = useShop();
+  const { navigateTo, setSelectedCraft, showToast, setIsTrackOrderOpen, PRODUCTS } = useShop();
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
+
+  const publishedCount = (PRODUCTS || []).filter((p) => !p.status || p.status === 'published').length;
 
   const handleSubscribe = async (e) => {
     e.preventDefault();
@@ -200,18 +202,46 @@ export const Footer = () => {
                 </div>
 
                 <div style={{ display: 'flex', gap: '1rem', color: 'rgba(250, 246, 238, 0.8)' }}>
-                  <a href="#instagram" aria-label="Instagram" style={{ transition: 'color 0.2s', padding: '0.25rem' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#D4AC68')} onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(250, 246, 238, 0.8)')}>
+                  <button
+                    type="button"
+                    onClick={() => showToast('Follow RODHE crafts on Instagram @rodhe.official', 'info')}
+                    aria-label="Instagram"
+                    style={{ transition: 'color 0.2s', padding: '0.25rem', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = '#D4AC68')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(250, 246, 238, 0.8)')}
+                  >
                     <InstagramIcon size={20} />
-                  </a>
-                  <a href="#facebook" aria-label="Facebook" style={{ transition: 'color 0.2s', padding: '0.25rem' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#D4AC68')} onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(250, 246, 238, 0.8)')}>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => showToast('Connect with RODHE Atelier Concierge on WhatsApp or @rodhe.official', 'info')}
+                    aria-label="Facebook"
+                    style={{ transition: 'color 0.2s', padding: '0.25rem', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = '#D4AC68')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(250, 246, 238, 0.8)')}
+                  >
                     <FacebookIcon size={20} />
-                  </a>
-                  <a href="#pinterest" aria-label="Pinterest" style={{ transition: 'color 0.2s', padding: '0.25rem' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#D4AC68')} onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(250, 246, 238, 0.8)')}>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => showToast('Discover RODHE weave journals @rodhe.official', 'info')}
+                    aria-label="Pinterest"
+                    style={{ transition: 'color 0.2s', padding: '0.25rem', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = '#D4AC68')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(250, 246, 238, 0.8)')}
+                  >
                     <PinterestIcon size={20} />
-                  </a>
-                  <a href="#youtube" aria-label="YouTube" style={{ transition: 'color 0.2s', padding: '0.25rem' }} onMouseEnter={(e) => (e.currentTarget.style.color = '#D4AC68')} onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(250, 246, 238, 0.8)')}>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => showToast('Watch RODHE loom craft stories @rodhe.official', 'info')}
+                    aria-label="YouTube"
+                    style={{ transition: 'color 0.2s', padding: '0.25rem', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = '#D4AC68')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(250, 246, 238, 0.8)')}
+                  >
                     <YoutubeIcon size={20} />
-                  </a>
+                  </button>
                 </div>
               </div>
 
@@ -230,8 +260,8 @@ export const Footer = () => {
                 </h4>
                 <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.85rem' }}>
                   <li>
-                    <button onClick={() => navigateTo('shop')} style={{ color: 'rgba(250, 246, 238, 0.8)', transition: 'color 0.2s', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                      All Sarees (8)
+                    <button onClick={() => handleCraftClick('all')} style={{ color: 'rgba(250, 246, 238, 0.8)', transition: 'color 0.2s', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      All Sarees ({publishedCount})
                     </button>
                   </li>
                   <li>

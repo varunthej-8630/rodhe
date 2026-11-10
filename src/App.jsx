@@ -147,7 +147,7 @@ const MainLayout = () => {
 
           {currentPage === 'shop' && <CollectionPage />}
           {currentPage === 'collections' && <CollectionPage />}
-          {currentPage === 'product' && <ProductDetailPage productId={selectedProductId} />}
+          {currentPage === 'product' && <ProductDetailPage key={selectedProductId || 'product'} productId={selectedProductId} />}
           {currentPage === 'story' && (
             <Suspense fallback={<SuspenseFallback />}>
               <BrandStoryPage />

@@ -1,12 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ProductCard } from './ProductCard';
 import { CRAFT_CATEGORIES, COLOR_PALETTES, FABRIC_TYPES } from '../data/products';
-import { Filter, SlidersHorizontal, X, RotateCcw, ArrowUpDown } from 'lucide-react';
+import { SlidersHorizontal, X, RotateCcw } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
+
+const BUDGET_LABELS = {
+  'under-800': 'Under ₹800',
+  under800: 'Under ₹800',
+  '800-1200': '₹800 – ₹1,200',
+  '1200-1600': '₹1,200 – ₹1,600',
+  '1600-2000': '₹1,600 – ₹2,000',
+  under2k: 'Under ₹2,000',
+  'under-2000': 'Under ₹2,000',
+  '2k-4k': '₹2,000 – ₹4,000',
+  '2000-4000': '₹2,000 – ₹4,000',
+  '4k-6k': '₹4,000 – ₹6,000',
+  '4000-6000': '₹4,000 – ₹6,000'
+};
 
 export const CollectionPage = () => {
   const {
     PRODUCTS,
+    catalogMaxPrice,
     selectedCraft,
     setSelectedCraft,
     selectedColor,
@@ -26,32 +41,37 @@ export const CollectionPage = () => {
 
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
-  // Dynamic count calculation based on current live products
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape' && isMobileFilterOpen) setIsMobileFilterOpen(false);
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isMobileFilterOpen]);
+
+  const publishedProducts = (PRODUCTS || []).filter((p) => !p.status || p.status === 'published');
+
+  // Dynamic count calculation based on published products
   const getCraftCount = (craftId) => {
-    if (craftId === 'all') return PRODUCTS.length;
-    return PRODUCTS.filter((p) => p.craftCategory === craftId).length;
+    if (craftId === 'all') return publishedProducts.length;
+    return publishedProducts.filter((p) => p.craftCategory === craftId).length;
   };
 
   // Filter Logic
-  const filteredProducts = PRODUCTS.filter((product) => {
-    // Craft
+  const filteredProducts = publishedProducts.filter((product) => {
     if (selectedCraft !== 'all' && product.craftCategory !== selectedCraft) {
       return false;
     }
-    // Color
     if (selectedColor !== 'all' && product.colorFamily !== selectedColor) {
       return false;
     }
-    // Fabric
     if (selectedFabric !== 'all' && product.fabricType !== selectedFabric) {
       return false;
     }
-    // Price
     const price = product.sellingPrice || product.price || 0;
     if (price > priceMax) {
       return false;
     }
-    // Budget Tier Filter (Find Your Piece)
     if ((priceRangeFilter === 'under-800' || priceRangeFilter === 'under800') && price > 800) {
       return false;
     }
@@ -76,8 +96,7 @@ export const CollectionPage = () => {
     if ((priceRangeFilter === 'above6k' || priceRangeFilter === 'above-6000') && price <= 6000) {
       return false;
     }
-    // Stock
-    if (inStockOnly && !product.inStock) {
+    if (inStockOnly && (!product.inStock || (product.stockCount ?? 1) <= 0)) {
       return false;
     }
     return true;
@@ -91,14 +110,14 @@ export const CollectionPage = () => {
     if (sortBy === 'price-high') return priceB - priceA;
     if (sortBy === 'rating') return (b.rating || 5) - (a.rating || 5);
     if (sortBy === 'newest') return (b.isNew || b.isNewArrival ? 1 : 0) - (a.isNew || a.isNewArrival ? 1 : 0);
-    return 0; // Default featured
+    return 0;
   });
 
   const hasActiveFilters =
     selectedCraft !== 'all' ||
     selectedColor !== 'all' ||
     selectedFabric !== 'all' ||
-    priceMax < 2000 ||
+    priceMax < catalogMaxPrice ||
     !!priceRangeFilter ||
     inStockOnly;
 
@@ -268,7 +287,7 @@ export const CollectionPage = () => {
               </span>
             )}
 
-            {priceMax < 2000 && (
+            {priceMax < catalogMaxPrice && (
               <span
                 style={{
                   display: 'inline-flex',
@@ -281,7 +300,7 @@ export const CollectionPage = () => {
                 }}
               >
                 Under ₹{priceMax.toLocaleString('en-IN')}
-                <X size={12} style={{ cursor: 'pointer' }} onClick={() => setPriceMax(2000)} />
+                <X size={12} style={{ cursor: 'pointer' }} onClick={() => setPriceMax(catalogMaxPrice)} />
               </span>
             )}
 
@@ -299,7 +318,7 @@ export const CollectionPage = () => {
                   border: '1px solid rgba(184, 141, 74, 0.35)'
                 }}
               >
-                Budget: {priceRangeFilter === 'under2k' ? 'Under ₹2,000' : priceRangeFilter === '2k-4k' ? '₹2,000 – ₹4,000' : priceRangeFilter === '4k-6k' ? '₹4,000 – ₹6,000' : 'Above ₹6,000'}
+                Budget: {BUDGET_LABELS[priceRangeFilter] || 'Custom Range'}
                 <X size={12} style={{ cursor: 'pointer' }} onClick={() => setPriceRangeFilter(null)} />
               </span>
             )}
@@ -453,7 +472,7 @@ export const CollectionPage = () => {
               <input
                 type="range"
                 min="500"
-                max="2000"
+                max={catalogMaxPrice}
                 step="50"
                 value={priceMax}
                 onChange={(e) => setPriceMax(Number(e.target.value))}
@@ -645,7 +664,7 @@ export const CollectionPage = () => {
                 <input
                   type="range"
                   min="500"
-                  max="2000"
+                  max={catalogMaxPrice}
                   step="50"
                   value={priceMax}
                   onChange={(e) => setPriceMax(Number(e.target.value))}

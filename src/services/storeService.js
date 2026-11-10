@@ -302,6 +302,16 @@ if (typeof window !== 'undefined') {
   initLocalStore();
 }
 
+const withSupabaseTimeout = (promise, ms = 2500, label = 'Supabase request') => {
+  let timerId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timerId = setTimeout(() => reject(new Error(`${label} timeout`)), ms);
+  });
+  return Promise.race([Promise.resolve(promise), timeoutPromise]).finally(() => {
+    clearTimeout(timerId);
+  });
+};
+
 export const storeService = {
   // --------------------------------------------------------------------------
   // PRODUCTS
@@ -325,11 +335,7 @@ export const storeService = {
           return await query;
         })();
 
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Supabase request timeout')), 2500)
-        );
-
-        const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+        const { data, error } = await withSupabaseTimeout(queryPromise, 2500, 'Supabase products');
         if (!error && Array.isArray(data) && data.length > 0) {
           const remoteNormalized = data.map(normalizeProduct).filter(Boolean);
 
@@ -649,10 +655,11 @@ export const storeService = {
     const local = getLocalData(STORAGE_KEYS.COLLECTIONS, DEFAULT_COLLECTIONS);
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase
-          .from('collections')
-          .select('*')
-          .order('display_order', { ascending: true });
+        const { data, error } = await withSupabaseTimeout(
+          supabase.from('collections').select('*').order('display_order', { ascending: true }),
+          2500,
+          'Supabase collections'
+        );
         if (!error && Array.isArray(data) && data.length > 0) {
           return data.map(c => ({
             id: c.id,
@@ -731,7 +738,11 @@ export const storeService = {
     const local = getLocalData(STORAGE_KEYS.PROMOTIONS, DEFAULT_PROMOTIONS);
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase.from('promotions').select('*').order('created_at', { ascending: false });
+        const { data, error } = await withSupabaseTimeout(
+          supabase.from('promotions').select('*').order('created_at', { ascending: false }),
+          2500,
+          'Supabase promotions'
+        );
         if (!error && Array.isArray(data) && data.length > 0) {
           return data.map(p => ({
             id: p.id,
@@ -815,7 +826,11 @@ export const storeService = {
     const local = getLocalData(STORAGE_KEYS.HOMEPAGE, DEFAULT_HOMEPAGE_CONFIG);
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase.from('homepage_config').select('*').limit(1).maybeSingle();
+        const { data, error } = await withSupabaseTimeout(
+          supabase.from('homepage_config').select('*').limit(1).maybeSingle(),
+          2500,
+          'Supabase homepage_config'
+        );
         if (!error && data) {
           return {
             heroEyebrow: data.hero_eyebrow || local.heroEyebrow,
@@ -900,7 +915,11 @@ export const storeService = {
     const local = getLocalData(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase.from('store_settings').select('*').limit(1).maybeSingle();
+        const { data, error } = await withSupabaseTimeout(
+          supabase.from('store_settings').select('*').limit(1).maybeSingle(),
+          2500,
+          'Supabase store_settings'
+        );
         if (!error && data) {
           return {
             ...local,
@@ -1291,121 +1310,7 @@ export const storeService = {
   },
 
   async getOrders(filters = {}) {
-    let localOrders = getLocalData(STORAGE_KEYS.ORDERS, []);
-
-    // Seed realistic initial orders if empty so CRM has authentic administrative view
-    if (!localOrders || localOrders.length === 0) {
-      localOrders = [
-        {
-          id: 'ord-101',
-          orderNumber: 'RDH-2026-948102',
-          order_number: 'RDH-2026-948102',
-          customerName: 'Ananya Deshmukh',
-          customer_name: 'Ananya Deshmukh',
-          customerEmail: 'ananya.deshmukh@example.com',
-          customer_email: 'ananya.deshmukh@example.com',
-          customerPhone: '9490658858',
-          customer_phone: '9490658858',
-          shippingAddress: {
-            addressLine1: 'Flat 402, Heritage Enclave, Lavelle Road',
-            city: 'Bengaluru',
-            state: 'Karnataka',
-            pincode: '560001'
-          },
-          shipping_address: {
-            addressLine1: 'Flat 402, Heritage Enclave, Lavelle Road',
-            city: 'Bengaluru',
-            state: 'Karnataka',
-            pincode: '560001'
-          },
-          items: [
-            {
-              id: 'it-1',
-              sku: 'RDH-501',
-              name: 'Nilambari Shibori Mulmul Saree',
-              unitPrice: 1450,
-              quantity: 1,
-              subtotal: 1450,
-              primaryImage: '/assets/products/saree_indigo_shibori.jpg'
-            },
-            {
-              id: 'it-2',
-              sku: 'RDH-502',
-              name: 'Mrittika Bagru Mud-Resist Saree',
-              unitPrice: 1250,
-              quantity: 1,
-              subtotal: 1250,
-              primaryImage: '/assets/products/saree_earth_bagru.jpg'
-            }
-          ],
-          subtotal: 2700,
-          discountAmount: 270,
-          discount_amount: 270,
-          shippingFee: 0,
-          shipping_fee: 0,
-          giftWrap: true,
-          giftWrapFee: 150,
-          gift_wrap_fee: 150,
-          grandTotal: 2580,
-          grand_total: 2580,
-          appliedCoupon: 'WOVEN10',
-          paymentMethod: 'upi',
-          paymentStatus: 'captured',
-          fulfillmentStatus: 'processing',
-          trackingNumber: 'BLUEDART-8492019',
-          courierPartner: 'Blue Dart Air Express',
-          createdAt: new Date(Date.now() - 3600000 * 5).toISOString()
-        },
-        {
-          id: 'ord-102',
-          orderNumber: 'RDH-2026-781903',
-          order_number: 'RDH-2026-781903',
-          customerName: 'Meera Sen',
-          customer_name: 'Meera Sen',
-          customerEmail: 'meera.sen@example.com',
-          customerPhone: '9830012345',
-          customer_phone: '9830012345',
-          shippingAddress: {
-            addressLine1: '8B Alipore Park Road',
-            city: 'Kolkata',
-            state: 'West Bengal',
-            pincode: '700027'
-          },
-          shipping_address: {
-            addressLine1: '8B Alipore Park Road',
-            city: 'Kolkata',
-            state: 'West Bengal',
-            pincode: '700027'
-          },
-          items: [
-            {
-              id: 'it-3',
-              sku: 'RDH-506',
-              name: 'Gulabi Raag Handblock Saree',
-              unitPrice: 1550,
-              quantity: 1,
-              subtotal: 1550,
-              primaryImage: '/assets/products/saree_soft_rose.jpg'
-            }
-          ],
-          subtotal: 1550,
-          discountAmount: 0,
-          shippingFee: 199,
-          giftWrap: false,
-          giftWrapFee: 0,
-          grandTotal: 1749,
-          paymentMethod: 'cod',
-          paymentStatus: 'pending_cod',
-          fulfillmentStatus: 'unfulfilled',
-          trackingNumber: '',
-          courierPartner: 'Delhivery Surface',
-          createdAt: new Date(Date.now() - 3600000 * 24).toISOString()
-        }
-      ];
-      setLocalData(STORAGE_KEYS.ORDERS, localOrders);
-    }
-
-    // Try reading cloud database if Supabase configured
+    // Try reading cloud database when Supabase is configured (never fabricate fake customer orders)
     if (isSupabaseConfigured && supabase) {
       try {
         let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
@@ -1417,7 +1322,6 @@ export const storeService = {
           return data;
         }
         if (error) {
-          // If RLS blocked the query or caller is unauthenticated, do not expose mock data
           console.warn('Orders query restricted or unavailable:', error.message);
           return [];
         }
@@ -1426,6 +1330,7 @@ export const storeService = {
       }
     }
 
+    const localOrders = getLocalData(STORAGE_KEYS.ORDERS, []);
     if (filters.status && filters.status !== 'all') {
       return localOrders.filter(o => o.fulfillmentStatus === filters.status || o.fulfillment_status === filters.status);
     }
@@ -1511,21 +1416,25 @@ export const storeService = {
 
     // 1. Try Supabase RPC lookup_order
     if (isSupabaseConfigured && supabase) {
-      try {
-        const { data, error } = await supabase.rpc('lookup_order', {
-          p_order_number: cleanNum,
-          p_phone_or_email: cleanContact
-        });
+      const { data, error } = await supabase.rpc('lookup_order', {
+        p_order_number: cleanNum,
+        p_phone_or_email: cleanContact
+      });
 
-        if (!error && data?.success && data?.order) {
-          return data.order;
+      if (error) {
+        if (error.code === 'PGRST202' || String(error.message || '').includes('Could not find the function')) {
+          throw new Error('Online order tracking registry is not yet enabled on the database. Please message our WhatsApp concierge (+91 9490658858) for live dispatch updates.');
         }
-      } catch (err) {
-        console.warn('lookup_order RPC attempt notice:', err);
+        throw new Error('Unable to reach the order tracking registry right now. Please try again or connect on WhatsApp.');
       }
+
+      if (data?.success && data?.order) {
+        return data.order;
+      }
+      return null;
     }
 
-    // 2. Local fallback
+    // 2. Local fallback (Hermetic / Offline tests only)
     const orders = getLocalData(STORAGE_KEYS.ORDERS, []);
     const found = orders.find(o => {
       const num = (o.orderNumber || o.order_number || '').trim().toLowerCase();
@@ -1542,7 +1451,7 @@ export const storeService = {
     if (!email) return [];
     const cleanEmail = email.trim().toLowerCase();
 
-    // 1. Try Supabase query
+    // 1. Try Supabase query (strictly RLS-protected to own account)
     if (isSupabaseConfigured && supabase) {
       try {
         const { data, error } = await supabase
@@ -1559,15 +1468,17 @@ export const storeService = {
           .eq('customer_email', cleanEmail)
           .order('created_at', { ascending: false });
 
-        if (!error && Array.isArray(data) && data.length > 0) {
+        if (!error && Array.isArray(data)) {
           return data;
         }
+        return [];
       } catch (err) {
         console.warn('Supabase customer orders query notice:', err);
+        return [];
       }
     }
 
-    // 2. Local fallback
+    // 2. Local fallback (Offline mode only)
     const orders = getLocalData(STORAGE_KEYS.ORDERS, []);
     return orders.filter(o => (o.customerEmail || o.customer_email || '').toLowerCase() === cleanEmail);
   },

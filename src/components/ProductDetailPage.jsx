@@ -1,37 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, ShoppingBag, Star, ShieldCheck, Truck, RotateCcw, Sparkles, ChevronRight, Share2, Check, ArrowRight, MessageCircle } from 'lucide-react';
 import { ProductCard } from './ProductCard';
-import { useShop } from '../context/ShopContext';
-import { storeService } from '../services/storeService';
+import { useShop, isSameProduct } from '../context/ShopContext';
 
 export const ProductDetailPage = ({ productId }) => {
   const {
     PRODUCTS,
+    isProductsLoading,
+    storeSettings,
     addToCart,
     toggleWishlist,
     isInWishlist,
     setIsCheckoutOpen,
+    showToast,
     navigateTo
   } = useShop();
 
-  const product = PRODUCTS.find((p) => p.id === productId || p.slug === productId) || PRODUCTS[0];
-  const isFavorited = isInWishlist(product.id);
+  const matchedProduct = PRODUCTS.find((p) => isSameProduct(p, productId));
+  const product = matchedProduct || null;
+  const isPublished = product && (!product.status || product.status === 'published');
+  const stockLimit = product ? (typeof product.stockCount === 'number' ? product.stockCount : Number(product.stock_count ?? 10)) : 0;
+  const isAvailable = Boolean(product && isPublished && Boolean(product.inStock ?? product.in_stock ?? true) && stockLimit > 0);
+  const isFavorited = product ? isInWishlist(product) : false;
+
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('description'); // 'description' | 'craft' | 'care' | 'shipping'
 
-  const primaryImage = product.primaryImage || product.primary_image || '/assets/products/saree_ivory_mulmul.jpg';
-  const images = (Array.isArray(product.gallery) && product.gallery.length > 0)
-    ? product.gallery
-    : [primaryImage, product.secondaryImage || primaryImage].filter(Boolean);
-  const relatedProducts = PRODUCTS.filter((p) => p.id !== product.id && p.craftCategory === product.craftCategory).slice(0, 3);
+  const primaryImage = product?.primaryImage || product?.primary_image || '/assets/products/saree_ivory_mulmul.jpg';
+  const images = product
+    ? ((Array.isArray(product.gallery) && product.gallery.length > 0)
+        ? product.gallery
+        : [primaryImage, product.secondaryImage || primaryImage].filter(Boolean))
+    : [];
+  const relatedProducts = product
+    ? PRODUCTS.filter((p) => !isSameProduct(p, product) && (!p.status || p.status === 'published') && p.craftCategory === product.craftCategory).slice(0, 3)
+    : [];
 
-  const unitPrice = Number(product.price ?? product.sellingPrice ?? product.selling_price ?? 990) || 990;
-  const originalPrice = product.originalPrice ? (Number(product.originalPrice) || null) : (product.original_price ? (Number(product.original_price) || null) : null);
+  const unitPrice = product ? (Number(product.price ?? product.sellingPrice ?? product.selling_price ?? 0) || 0) : 0;
+  const originalPrice = product?.originalPrice
+    ? (Number(product.originalPrice) || null)
+    : product?.original_price
+    ? (Number(product.original_price) || null)
+    : null;
 
   // Dynamic SEO metadata & Schema.org Product/BreadcrumbList injection
   useEffect(() => {
-    if (!product) return;
+    if (!product || !isPublished) return;
     const previousTitle = document.title;
     document.title = `${product.name} — Handcrafted Luxury Saree | RODHE`;
 
@@ -100,7 +115,7 @@ export const ProductDetailPage = ({ productId }) => {
             "price": unitPrice,
             "priceCurrency": "INR",
             "itemCondition": "https://schema.org/NewCondition",
-            "availability": product.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+            "availability": isAvailable ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
             "url": canonicalUrl,
             "seller": {
               "@type": "Organization",
@@ -154,22 +169,46 @@ export const ProductDetailPage = ({ productId }) => {
       if (ogDesc) ogDesc.setAttribute('content', 'Discover pure mulmul, handblock Bagru, natural indigo shibori, and sheer Chanderi sarees. Nature-inspired Indian textiles handcrafted by generational artisans.');
       if (ogImage) ogImage.setAttribute('content', 'https://www.rodhe.in/assets/RODHE%20Woven%20Luxury%20Wordmark.png');
     };
-  }, [product, images, unitPrice]);
+  }, [product, isPublished, isAvailable, images, unitPrice]);
+
+  if (!product || !isPublished) {
+    return (
+      <div style={{ backgroundColor: '#FAF6EE', minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem 1.25rem' }}>
+        <div style={{ maxWidth: '460px', textAlign: 'center', backgroundColor: '#FFFDF9', padding: '2.5rem 2rem', border: '1px solid rgba(184, 141, 74, 0.25)' }}>
+          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.8rem', color: '#4B3024', marginBottom: '0.6rem' }}>
+            {isProductsLoading ? 'Loading Drape...' : 'This Saree Is Currently Unavailable'}
+          </h2>
+          <p style={{ fontSize: '0.9rem', color: '#6F4E3E', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+            {isProductsLoading
+              ? 'Retrieving artisanal weave details...'
+              : 'This handcrafted edition may have completed its run or been moved to private archive.'}
+          </p>
+          {!isProductsLoading && (
+            <button onClick={() => navigateTo('shop')} className="btn btn-primary">
+              Explore Available Sarees
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const handleBuyNow = () => {
-    addToCart(product, quantity, false);
-    setIsCheckoutOpen(true);
+    if (!isAvailable) return;
+    const added = addToCart(product, quantity, false);
+    if (added) {
+      setIsCheckoutOpen(true);
+    }
   };
 
-  const handleWhatsAppEnquiry = async () => {
-    const settings = await storeService.getSettings();
-    const phone = (settings?.whatsappNumber || '919490658858').replace(/[^0-9]/g, '');
+  const handleWhatsAppEnquiry = () => {
+    const phone = (storeSettings?.whatsappNumber || '919490658858').replace(/[^0-9]/g, '');
     const price = unitPrice;
     const itemTotal = price * quantity;
     const msg = encodeURIComponent(
       `Namaste RODHE Concierge,\n\nI am interested in purchasing:\n• Saree: ${product.name}\n• SKU: ${product.sku || 'RODHE-SAR'}\n• Quantity: ${quantity}\n• Unit Price: ₹${price.toLocaleString('en-IN')}${quantity > 1 ? `\n• Total: ₹${itemTotal.toLocaleString('en-IN')}` : ''}\n• Craft: ${product.craft || 'Handloom'}\n\nPlease confirm availability and share details for dispatch.`
     );
-    window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+    window.open(`https://wa.me/${phone}?text=${msg}`, '_blank', 'noopener,noreferrer');
   };
 
   const handleShare = () => {
@@ -180,8 +219,9 @@ export const ProductDetailPage = ({ productId }) => {
         url: window.location.href
       }).catch(() => {});
     } else {
-      navigator.clipboard.writeText(window.location.href);
-      alert('Link copied to clipboard!');
+      navigator.clipboard?.writeText(window.location.href)
+        .then(() => showToast('Saree link copied to your clipboard!', 'success'))
+        .catch(() => showToast('Copy the page link from your browser address bar.', 'info'));
     }
   };
 
@@ -391,10 +431,19 @@ export const ProductDetailPage = ({ productId }) => {
                 borderBottom: '1px solid rgba(75, 48, 36, 0.1)'
               }}
             >
-              <div><strong>Fabric:</strong> {product.fabric}</div>
-              <div><strong>Dimensions:</strong> {product.dimensions.split('•')[0]}</div>
-              <div><strong>Blouse Piece:</strong> {product.blousePiece.split('—')[0]}</div>
-              <div><strong>Stock:</strong> <span style={{ color: '#4E7341', fontWeight: 600 }}>In Stock (Handcrafted Batch)</span></div>
+              <div><strong>Fabric:</strong> {product.fabric || 'Handloom Cotton'}</div>
+              <div><strong>Dimensions:</strong> {(product.dimensions || '6.5 meters').split('•')[0]}</div>
+              <div><strong>Blouse Piece:</strong> {(product.blousePiece || 'Included').split('—')[0]}</div>
+              <div>
+                <strong>Stock:</strong>{' '}
+                {isAvailable ? (
+                  <span style={{ color: stockLimit <= 5 ? '#B88D4A' : '#4E7341', fontWeight: 600 }}>
+                    {stockLimit <= 5 ? `Only ${stockLimit} Left in Batch` : 'In Stock (Handcrafted Batch)'}
+                  </span>
+                ) : (
+                  <span style={{ color: '#8A2A20', fontWeight: 600 }}>Currently Out of Stock</span>
+                )}
+              </div>
             </div>
 
             {/* Quantity & CTA Block */}
@@ -408,11 +457,13 @@ export const ProductDetailPage = ({ productId }) => {
                     alignItems: 'center',
                     border: '1px solid rgba(75, 48, 36, 0.25)',
                     backgroundColor: '#FFFDF9',
-                    height: '48px'
+                    height: '48px',
+                    opacity: isAvailable ? 1 : 0.55
                   }}
                 >
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    disabled={!isAvailable || quantity <= 1}
                     aria-label="Decrease quantity"
                     style={{
                       width: '44px',
@@ -423,7 +474,8 @@ export const ProductDetailPage = ({ productId }) => {
                       fontSize: '1.1rem',
                       background: 'none',
                       border: 'none',
-                      cursor: 'pointer'
+                      cursor: !isAvailable || quantity <= 1 ? 'not-allowed' : 'pointer',
+                      opacity: quantity <= 1 ? 0.35 : 1
                     }}
                   >
                     -
@@ -432,7 +484,8 @@ export const ProductDetailPage = ({ productId }) => {
                     {quantity}
                   </span>
                   <button
-                    onClick={() => setQuantity(quantity + 1)}
+                    onClick={() => setQuantity(stockLimit > 0 ? Math.min(stockLimit, quantity + 1) : quantity + 1)}
+                    disabled={!isAvailable || (stockLimit > 0 && quantity >= stockLimit)}
                     aria-label="Increase quantity"
                     style={{
                       width: '44px',
@@ -443,7 +496,8 @@ export const ProductDetailPage = ({ productId }) => {
                       fontSize: '1.1rem',
                       background: 'none',
                       border: 'none',
-                      cursor: 'pointer'
+                      cursor: !isAvailable || (stockLimit > 0 && quantity >= stockLimit) ? 'not-allowed' : 'pointer',
+                      opacity: stockLimit > 0 && quantity >= stockLimit ? 0.35 : 1
                     }}
                   >
                     +
@@ -452,8 +506,8 @@ export const ProductDetailPage = ({ productId }) => {
 
                 {/* Wishlist */}
                 <button
-                  onClick={() => toggleWishlist(product.id)}
-                  aria-label="Wishlist"
+                  onClick={() => toggleWishlist(product)}
+                  aria-label={isFavorited ? 'Remove from favourites' : 'Save to favourites'}
                   style={{
                     width: '48px',
                     height: '48px',
@@ -475,17 +529,29 @@ export const ProductDetailPage = ({ productId }) => {
               <div className="pdp-btn-row" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                 <button
                   onClick={() => addToCart(product, quantity, true)}
+                  disabled={!isAvailable}
                   className="btn btn-primary btn-lg"
-                  style={{ minHeight: '48px', flex: '1 1 180px' }}
+                  style={{
+                    minHeight: '48px',
+                    flex: '1 1 180px',
+                    opacity: isAvailable ? 1 : 0.55,
+                    cursor: isAvailable ? 'pointer' : 'not-allowed'
+                  }}
                 >
                   <ShoppingBag size={18} />
-                  <span>Add to Bag</span>
+                  <span>{isAvailable ? 'Add to Bag' : 'Out of Stock'}</span>
                 </button>
 
                 <button
                   onClick={handleBuyNow}
+                  disabled={!isAvailable}
                   className="btn btn-gold btn-lg"
-                  style={{ minHeight: '48px', flex: '1 1 180px' }}
+                  style={{
+                    minHeight: '48px',
+                    flex: '1 1 180px',
+                    opacity: isAvailable ? 1 : 0.55,
+                    cursor: isAvailable ? 'pointer' : 'not-allowed'
+                  }}
                 >
                   <span>Buy Now</span>
                 </button>
@@ -510,7 +576,7 @@ export const ProductDetailPage = ({ productId }) => {
                   }}
                 >
                   <MessageCircle size={18} color="#25D366" />
-                  <span>Order via WhatsApp Concierge</span>
+                  <span>{isAvailable ? 'Enquire via WhatsApp Concierge' : 'Check Restock Date on WhatsApp'}</span>
                 </button>
               </div>
             </div>
@@ -660,11 +726,17 @@ export const ProductDetailPage = ({ productId }) => {
 
         <button
           onClick={() => addToCart(product, quantity, true)}
+          disabled={!isAvailable}
           className="btn btn-primary"
-          style={{ padding: '0.75rem 1.4rem', minHeight: '44px' }}
+          style={{
+            padding: '0.75rem 1.4rem',
+            minHeight: '44px',
+            opacity: isAvailable ? 1 : 0.55,
+            cursor: isAvailable ? 'pointer' : 'not-allowed'
+          }}
         >
           <ShoppingBag size={16} />
-          <span>Add to Bag</span>
+          <span>{isAvailable ? 'Add to Bag' : 'Out of Stock'}</span>
         </button>
       </div>
 

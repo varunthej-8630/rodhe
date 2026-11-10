@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Heart, ShoppingBag, Star, Check, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Heart, ShoppingBag, Star, ArrowRight } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 
 export const ProductQuickViewModal = () => {
@@ -15,18 +15,36 @@ export const ProductQuickViewModal = () => {
   const [quantity, setQuantity] = useState(1);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
+  useEffect(() => {
+    setQuantity(1);
+    setActiveImageIndex(0);
+  }, [quickViewProduct]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && quickViewProduct) {
+        setQuickViewProduct(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [quickViewProduct, setQuickViewProduct]);
+
   if (!quickViewProduct) return null;
 
   const product = quickViewProduct;
-  const isFavorited = isInWishlist(product.id);
+  const isFavorited = isInWishlist(product);
   const primaryImage = product.primaryImage || product.primary_image || '/assets/products/saree_ivory_mulmul.jpg';
   const images = (Array.isArray(product.gallery) && product.gallery.length > 0)
     ? product.gallery
     : [primaryImage, product.secondaryImage || primaryImage].filter(Boolean);
-  const unitPrice = Number(product.price ?? product.sellingPrice ?? product.selling_price ?? 990) || 990;
+  const unitPrice = Number(product.price ?? product.sellingPrice ?? product.selling_price ?? 0) || 0;
   const originalPrice = product.originalPrice ? (Number(product.originalPrice) || null) : (product.original_price ? (Number(product.original_price) || null) : null);
+  const stockLimit = typeof product.stockCount === 'number' ? product.stockCount : Number(product.stock_count ?? 10);
+  const isAvailable = (!product.status || product.status === 'published') && Boolean(product.inStock ?? product.in_stock ?? true) && stockLimit > 0;
 
   const handleAddToCart = () => {
+    if (!isAvailable) return;
     addToCart(product, quantity, true);
     setQuickViewProduct(null);
   };
@@ -37,7 +55,13 @@ export const ProductQuickViewModal = () => {
   };
 
   return (
-    <div className="modal-backdrop" onClick={() => setQuickViewProduct(null)}>
+    <div
+      className="modal-backdrop"
+      onClick={() => setQuickViewProduct(null)}
+      role="dialog"
+      aria-modal="true"
+      aria-label={product.name || 'Saree quick view'}
+    >
       <div
         className="quickview-modal-content"
         style={{
@@ -46,7 +70,7 @@ export const ProductQuickViewModal = () => {
           border: '1px solid rgba(184, 141, 74, 0.3)',
           boxShadow: '0 25px 60px rgba(42, 26, 19, 0.25)',
           overflowY: 'auto',
-          animation: 'slideUp 0.3s ease',
+          animation: 'slideUp 0.28s ease',
           maxHeight: '90vh'
         }}
         onClick={(e) => e.stopPropagation()}
@@ -63,9 +87,9 @@ export const ProductQuickViewModal = () => {
                 e.currentTarget.src = '/assets/products/saree_ivory_mulmul.jpg';
               }}
             />
-            {product.badge && (
-              <span className="product-badge">
-                {product.badge}
+            {!isAvailable && (
+              <span className="product-badge" style={{ backgroundColor: 'rgba(75, 48, 36, 0.9)', color: '#FAF6EE' }}>
+                Out of Stock
               </span>
             )}
           </div>
@@ -118,7 +142,6 @@ export const ProductQuickViewModal = () => {
             minWidth: 0
           }}
         >
-          {/* Close button top right */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
             <span style={{ fontSize: '0.74rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#B88D4A', fontWeight: 700 }}>
               {product.craft} • {product.color}
@@ -142,10 +165,9 @@ export const ProductQuickViewModal = () => {
                 <Star key={i} size={14} fill="#B88D4A" color="#B88D4A" />
               ))}
             </div>
-            <span style={{ fontSize: '0.8rem', color: '#8F7263' }}>({product.reviewCount} verified patron reviews)</span>
+            <span style={{ fontSize: '0.8rem', color: '#8F7263' }}>({product.reviewCount || 18} patron reviews)</span>
           </div>
 
-          {/* Price */}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
             <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.65rem', fontWeight: 600, color: '#4B3024' }}>
               ₹{unitPrice.toLocaleString('en-IN')}
@@ -164,7 +186,6 @@ export const ProductQuickViewModal = () => {
             {product.description}
           </p>
 
-          {/* Quick Specifications */}
           <div
             style={{
               display: 'flex',
@@ -182,21 +203,21 @@ export const ProductQuickViewModal = () => {
             <div><strong>Dimensions:</strong> {product.dimensions}</div>
           </div>
 
-          {/* Action Row */}
           <div style={{ display: 'flex', gap: '0.75rem', marginTop: 'auto', paddingTop: '0.85rem', flexWrap: 'wrap' }}>
-            {/* Quantity */}
             <div style={{ display: 'flex', alignItems: 'center', border: '1px solid rgba(75, 48, 36, 0.2)', backgroundColor: '#FFFDF9', height: '44px' }}>
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                style={{ padding: '0 0.75rem', height: '100%', background: 'none', border: 'none', cursor: 'pointer' }}
+                disabled={!isAvailable || quantity <= 1}
+                style={{ padding: '0 0.75rem', height: '100%', background: 'none', border: 'none', cursor: !isAvailable || quantity <= 1 ? 'not-allowed' : 'pointer', opacity: quantity <= 1 ? 0.35 : 1 }}
                 aria-label="Decrease quantity"
               >
                 -
               </button>
               <span style={{ padding: '0 0.5rem', fontWeight: 600, minWidth: '20px', textAlign: 'center' }}>{quantity}</span>
               <button
-                onClick={() => setQuantity(quantity + 1)}
-                style={{ padding: '0 0.75rem', height: '100%', background: 'none', border: 'none', cursor: 'pointer' }}
+                onClick={() => setQuantity(stockLimit > 0 ? Math.min(stockLimit, quantity + 1) : quantity + 1)}
+                disabled={!isAvailable || (stockLimit > 0 && quantity >= stockLimit)}
+                style={{ padding: '0 0.75rem', height: '100%', background: 'none', border: 'none', cursor: !isAvailable || (stockLimit > 0 && quantity >= stockLimit) ? 'not-allowed' : 'pointer', opacity: stockLimit > 0 && quantity >= stockLimit ? 0.35 : 1 }}
                 aria-label="Increase quantity"
               >
                 +
@@ -205,15 +226,16 @@ export const ProductQuickViewModal = () => {
 
             <button
               onClick={handleAddToCart}
+              disabled={!isAvailable}
               className="btn btn-primary"
-              style={{ flexGrow: 1, minHeight: '44px' }}
+              style={{ flexGrow: 1, minHeight: '44px', opacity: isAvailable ? 1 : 0.55, cursor: isAvailable ? 'pointer' : 'not-allowed' }}
             >
               <ShoppingBag size={16} />
-              <span>Add to Bag</span>
+              <span>{isAvailable ? 'Add to Bag' : 'Out of Stock'}</span>
             </button>
 
             <button
-              onClick={() => toggleWishlist(product.id)}
+              onClick={() => toggleWishlist(product)}
               style={{
                 width: '44px',
                 height: '44px',
@@ -225,7 +247,7 @@ export const ProductQuickViewModal = () => {
                 color: isFavorited ? '#C98278' : '#4B3024',
                 cursor: 'pointer'
               }}
-              aria-label="Wishlist"
+              aria-label="Toggle wishlist"
             >
               <Heart size={18} fill={isFavorited ? '#C98278' : 'none'} />
             </button>

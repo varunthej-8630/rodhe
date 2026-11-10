@@ -19,8 +19,34 @@ export const isSupabaseConfigured = Boolean(
   env.VITE_SUPABASE_OFFLINE !== 'true'
 );
 
+const fetchWithTimeout = (input, init = {}) => {
+  if (typeof AbortController === 'undefined' || typeof fetch === 'undefined') {
+    return fetch(input, init);
+  }
+  const controller = new AbortController();
+  const timeoutMs = String(input).includes('/auth/') ? 8000 : 10000;
+  const externalSignal = init.signal;
+  const onExternalAbort = () => controller.abort(externalSignal?.reason);
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      controller.abort(externalSignal.reason);
+    } else {
+      externalSignal.addEventListener('abort', onExternalAbort, { once: true });
+    }
+  }
+  const timerId = setTimeout(() => controller.abort(new Error('Supabase fetch timeout')), timeoutMs);
+  return fetch(input, { ...init, signal: controller.signal }).finally(() => {
+    clearTimeout(timerId);
+    if (externalSignal) {
+      externalSignal.removeEventListener('abort', onExternalAbort);
+    }
+  });
+};
+
 export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      global: { fetch: fetchWithTimeout }
+    })
   : null;
 
 if (isSupabaseConfigured) {

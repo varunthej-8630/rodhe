@@ -1,26 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Search, 
   Truck, 
   CheckCircle2, 
-  Clock, 
   Package, 
   AlertCircle, 
-  ExternalLink,
   MessageCircle,
   Sparkles
 } from 'lucide-react';
 import { storeService } from '../services/storeService';
+import { useShop } from '../context/ShopContext';
 
 export const TrackOrderModal = ({ isOpen, onClose }) => {
+  const { storeSettings } = useShop();
   const [orderNumber, setOrderNumber] = useState('');
   const [contact, setContact] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [orderData, setOrderData] = useState(null);
 
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape' && isOpen) onClose();
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
+
+  const waNumber = (storeSettings?.whatsappNumber || '919490658858').replace(/[^0-9]/g, '') || '919490658858';
 
   const handleLookup = async (e) => {
     e.preventDefault();
@@ -169,8 +179,22 @@ export const TrackOrderModal = ({ isOpen, onClose }) => {
               style={{ width: '100%', padding: '0.8rem', fontSize: '0.88rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
             >
               <Search size={16} />
-              <span>{isLoading ? 'Searching Atelier Registry...' : 'Track Saree Drape'}</span>
+              <span>{isLoading ? 'Checking Registry...' : 'Track Order Status'}</span>
             </button>
+
+            <div style={{ marginTop: '0.9rem', textAlign: 'center', fontSize: '0.8rem', color: '#6F4E3E' }}>
+              Placed your order via WhatsApp chat?{' '}
+              <a
+                href={`https://wa.me/${waNumber}?text=${encodeURIComponent(
+                  `Namaste RODHE Concierge, could you please share an update on my saree order${orderNumber.trim() ? ` (${orderNumber.trim()})` : ''}${contact.trim() ? ` for ${contact.trim()}` : ''}?`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#128C7E', fontWeight: 600, textDecoration: 'underline' }}
+              >
+                Ask Concierge on WhatsApp →
+              </a>
+            </div>
           </form>
 
           {/* Result Card */}

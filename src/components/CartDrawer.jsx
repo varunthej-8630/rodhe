@@ -1,21 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Minus, Trash2, ShoppingBag, ArrowRight, Sparkles, Tag, Check, MessageCircle } from 'lucide-react';
+import {
+  X,
+  Plus,
+  Minus,
+  Trash2,
+  ShoppingBag,
+  ArrowRight,
+  Sparkles,
+  Tag,
+  Heart,
+  AlertTriangle
+} from 'lucide-react';
 import { useShop } from '../context/ShopContext';
-import { storeService } from '../services/storeService';
 
 export const CartDrawer = () => {
   const {
     cart,
     cartCount,
+    hasUnavailableCartItems,
     isCartOpen,
     setIsCartOpen,
+    setIsWishlistOpen,
+    wishlistCount,
     updateQuantity,
     removeFromCart,
+    moveCartItemToWishlist,
     subtotal,
     discountAmount,
     appliedCoupon,
     applyCouponCode,
     removeCoupon,
+    shippingThreshold,
     isFreeShipping,
     shippingFee,
     remainingForFreeShipping,
@@ -23,144 +38,153 @@ export const CartDrawer = () => {
     setGiftWrap,
     giftWrapFee,
     total,
+    storeSettings,
     setIsCheckoutOpen,
     navigateTo
   } = useShop();
 
   const [couponInput, setCouponInput] = useState('');
   const [couponError, setCouponError] = useState('');
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isCartOpen) {
+        setIsCartOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isCartOpen, setIsCartOpen]);
 
   if (!isCartOpen) return null;
 
-  const handleApplyCoupon = (e) => {
+  const handleApplyCoupon = async (e) => {
     e.preventDefault();
-    if (!couponInput.trim()) return;
-    const res = applyCouponCode(couponInput);
-    if (!res.success) {
-      setCouponError(res.message);
-    } else {
-      setCouponError('');
-      setCouponInput('');
+    if (!couponInput.trim() || isApplyingCoupon) return;
+    setIsApplyingCoupon(true);
+    setCouponError('');
+    try {
+      const res = await applyCouponCode(couponInput);
+      if (!res?.success) {
+        setCouponError(res?.message || 'Invalid or expired promo code.');
+      } else {
+        setCouponError('');
+        setCouponInput('');
+      }
+    } catch {
+      setCouponError('Unable to validate promo code right now.');
+    } finally {
+      setIsApplyingCoupon(false);
     }
   };
 
-  const handleCheckoutClick = () => {
+  const handleProceedToCheckout = () => {
+    if (cart.length === 0 || hasUnavailableCartItems) return;
     setIsCartOpen(false);
     setIsCheckoutOpen(true);
   };
 
-  const handleWhatsAppOrder = async () => {
-    if (cart.length === 0) return;
-    const settings = await storeService.getSettings();
-    const phone = (settings?.whatsappNumber || '919490658858').replace(/[^0-9]/g, '');
-
-    const itemsText = cart.map((item, idx) => {
-      const p = item.product || item;
-      const unit = Number(p.price ?? p.sellingPrice ?? p.selling_price ?? 990) || 990;
-      const itemSubtotal = unit * item.quantity;
-      return `${idx + 1}. ${p.name}\n   SKU: ${p.sku || 'RDH-SAR'}\n   Qty: ${item.quantity} × ₹${unit.toLocaleString('en-IN')} = ₹${itemSubtotal.toLocaleString('en-IN')}`;
-    }).join('\n\n');
-
-    let summaryText = `\n\n-------------------------\nBag Subtotal: ₹${subtotal.toLocaleString('en-IN')}`;
-    if (discountAmount > 0) {
-      summaryText += `\nCoupon (${appliedCoupon?.code}): -₹${discountAmount.toLocaleString('en-IN')}`;
-    }
-    if (giftWrap) {
-      summaryText += `\nHeritage Keepsake Box: +₹${giftWrapFee}`;
-    }
-    summaryText += `\nShipping: ${isFreeShipping ? 'Complimentary (FREE)' : `₹${shippingFee}`}`;
-    summaryText += `\nTotal Amount: ₹${total.toLocaleString('en-IN')}`;
-
-    let patronText = '';
-    try {
-      const patron = JSON.parse(localStorage.getItem('rodhe_patron_session') || '{}');
-      if (patron.name || patron.phone || patron.city) {
-        patronText = `\n\nPatron Details:\n• Name: ${patron.name || 'Patron'}\n• Contact: ${patron.phone ? `+91 ${patron.phone}` : 'Via chat'}`;
-        if (patron.city || patron.pincode) {
-          patronText += `\n• Destination: ${patron.city || ''}${patron.state ? `, ${patron.state}` : ''}${patron.pincode ? ` (${patron.pincode})` : ''}`;
-        }
-      }
-    } catch (e) {}
-
-    const fullMessage = `Namaste RODHE Team,\n\nI would like to order the following handcrafted saree(s):\n\n${itemsText}${summaryText}${patronText}\n\nPlease confirm fabric availability and share direct payment details (UPI / Bank Transfer) for dispatch. Thank you!`;
-
-    const encoded = encodeURIComponent(fullMessage);
-    const url = `https://wa.me/${phone}?text=${encoded}`;
-    const opened = window.open(url, '_blank');
-    if (!opened) {
-      window.location.href = url;
-    }
-  };
+  const shippingProgressPct = shippingThreshold > 0
+    ? Math.min(100, Math.round((subtotal / shippingThreshold) * 100))
+    : 100;
 
   return (
-    <div className="drawer-backdrop" onClick={() => setIsCartOpen(false)}>
+    <div
+      className="drawer-backdrop"
+      onClick={() => setIsCartOpen(false)}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Shopping Bag"
+    >
       <div
         className="drawer-content"
         onClick={(e) => e.stopPropagation()}
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100%'
-        }}
       >
-        {/* Drawer Header */}
+        {/* Pinned Drawer Header */}
         <div className="drawer-header">
           <div className="drawer-title">
-            <ShoppingBag size={22} color="#B88D4A" />
+            <ShoppingBag size={20} color="#B88D4A" />
             <span>Shopping Bag ({cartCount})</span>
           </div>
           <button
             className="drawer-close"
             onClick={() => setIsCartOpen(false)}
-            aria-label="Close cart"
+            aria-label="Close shopping bag"
           >
             <X size={20} />
           </button>
         </div>
 
-        {/* Free Shipping Calculation Banner */}
-        <div
-          style={{
-            backgroundColor: '#F4ECE1',
-            padding: '0.85rem 1.5rem',
-            borderBottom: '1px solid rgba(184, 141, 74, 0.25)',
-            fontSize: '0.82rem'
-          }}
-        >
-          {isFreeShipping ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#4B3024', fontWeight: 600 }}>
-              <Sparkles size={16} color="#B88D4A" />
-              <span>You have unlocked Complimentary Express Shipping!</span>
-            </div>
-          ) : (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', color: '#4B3024' }}>
-                <span>Add <strong>₹{remainingForFreeShipping.toLocaleString('en-IN')}</strong> more for Free Shipping</span>
-                <span style={{ fontWeight: 600 }}>{Math.round((subtotal / 2999) * 100)}%</span>
+        {/* Free Shipping Banner (when cart has items) */}
+        {cart.length > 0 && (
+          <div
+            style={{
+              backgroundColor: '#F4ECE1',
+              padding: '0.8rem 1.35rem',
+              borderBottom: '1px solid rgba(184, 141, 74, 0.22)',
+              fontSize: '0.82rem',
+              flexShrink: 0
+            }}
+          >
+            {isFreeShipping ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#4B3024', fontWeight: 600 }}>
+                <Sparkles size={15} color="#B88D4A" style={{ flexShrink: 0 }} />
+                <span>Complimentary Express Shipping unlocked!</span>
               </div>
-              <div style={{ width: '100%', height: '5px', backgroundColor: 'rgba(75, 48, 36, 0.15)', borderRadius: '3px', overflow: 'hidden' }}>
-                <div
-                  style={{
-                    width: `${Math.min(100, (subtotal / 2999) * 100)}%`,
-                    height: '100%',
-                    backgroundColor: '#B88D4A',
-                    transition: 'width 0.4s ease'
-                  }}
-                />
+            ) : (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.35rem', color: '#4B3024' }}>
+                  <span>
+                    Add <strong>₹{remainingForFreeShipping.toLocaleString('en-IN')}</strong> more for Free Shipping
+                  </span>
+                  <span style={{ fontWeight: 600 }}>{shippingProgressPct}%</span>
+                </div>
+                <div style={{ width: '100%', height: '5px', backgroundColor: 'rgba(75, 48, 36, 0.14)', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      width: `${shippingProgressPct}%`,
+                      height: '100%',
+                      backgroundColor: '#B88D4A',
+                      transition: 'width 0.35s ease'
+                    }}
+                  />
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
-        {/* Cart Item List / Empty State */}
+        {/* Unavailable Warning Banner */}
+        {hasUnavailableCartItems && (
+          <div
+            style={{
+              backgroundColor: 'rgba(201, 130, 120, 0.14)',
+              borderBottom: '1px solid rgba(201, 130, 120, 0.4)',
+              padding: '0.75rem 1.35rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              fontSize: '0.8rem',
+              color: '#8A2A20',
+              flexShrink: 0
+            }}
+          >
+            <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+            <span>One or more sarees in your bag are currently unavailable. Please remove them to continue checkout.</span>
+          </div>
+        )}
+
+        {/* Scrollable Cart Items List / Empty State */}
         <div
           style={{
-            flexGrow: 1,
+            flex: 1,
             overflowY: 'auto',
-            padding: 'clamp(1rem, 3vw, 1.5rem)',
+            WebkitOverflowScrolling: 'touch',
+            padding: 'clamp(1rem, 3vw, 1.4rem)',
             display: 'flex',
             flexDirection: 'column',
-            gap: '1.25rem'
+            gap: '1.15rem'
           }}
         >
           {cart.length === 0 ? (
@@ -177,10 +201,11 @@ export const CartDrawer = () => {
             >
               <div
                 style={{
-                  width: '64px',
-                  height: '64px',
+                  width: '68px',
+                  height: '68px',
                   borderRadius: '50%',
                   backgroundColor: '#F4ECE1',
+                  border: '1px solid rgba(184, 141, 74, 0.25)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -190,142 +215,241 @@ export const CartDrawer = () => {
               >
                 <ShoppingBag size={28} />
               </div>
-              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', color: '#4B3024', marginBottom: '0.5rem' }}>
+              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.55rem', color: '#4B3024', marginBottom: '0.5rem' }}>
                 Your Bag is Empty
               </h3>
-              <p style={{ fontSize: '0.88rem', color: '#8F7263', marginBottom: '1.5rem', maxWidth: '280px' }}>
-                Every RODHE drape is a limited handcrafted piece. Discover our nature-inspired collections.
+              <p style={{ fontSize: '0.88rem', color: '#8F7263', marginBottom: '1.5rem', maxWidth: '280px', lineHeight: 1.6 }}>
+                Every RODHE drape is woven in small artisanal batches. Explore our botanical-dyed cottons and silks.
               </p>
-              <button
-                onClick={() => {
-                  setIsCartOpen(false);
-                  navigateTo('shop');
-                }}
-                className="btn btn-primary"
-              >
-                Discover Sarees
-              </button>
-            </div>
-          ) : (
-            cart.map((item) => (
-              <div
-                key={item.product.id}
-                style={{
-                  display: 'flex',
-                  gap: '0.85rem',
-                  paddingBottom: '1.15rem',
-                  borderBottom: '1px solid rgba(75, 48, 36, 0.08)'
-                }}
-              >
-                {/* Item Thumbnail */}
-                <div
-                  style={{
-                    width: 'clamp(70px, 18vw, 85px)',
-                    height: 'clamp(92px, 24vw, 110px)',
-                    flexShrink: 0,
-                    overflow: 'hidden',
-                    backgroundColor: '#F4ECE1',
-                    cursor: 'pointer'
-                  }}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', width: '100%', maxWidth: '240px' }}>
+                <button
                   onClick={() => {
                     setIsCartOpen(false);
-                    navigateTo('product', item.product.id);
+                    navigateTo('shop');
+                  }}
+                  className="btn btn-primary"
+                  style={{ width: '100%' }}
+                >
+                  Discover Sarees
+                </button>
+                {wishlistCount > 0 && (
+                  <button
+                    onClick={() => {
+                      setIsCartOpen(false);
+                      setIsWishlistOpen(true);
+                    }}
+                    className="btn btn-outline btn-sm"
+                    style={{ width: '100%' }}
+                  >
+                    <Heart size={14} color="#C98278" />
+                    <span>View Favourites ({wishlistCount})</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            cart.map((item) => {
+              const p = item.product || item;
+              const unitPrice = Number(p.price ?? p.sellingPrice ?? p.selling_price ?? 0) || 0;
+              const stockLimit = typeof p.stockCount === 'number' ? p.stockCount : Number(p.stock_count ?? 10);
+              const isUnavailable = Boolean(item.isUnavailable || item.isOutOfStock || (p.status && p.status !== 'published') || !p.inStock || stockLimit <= 0);
+              const atMaxStock = stockLimit > 0 && item.quantity >= stockLimit;
+
+              return (
+                <div
+                  key={p.id || p.sku}
+                  style={{
+                    display: 'flex',
+                    gap: '0.85rem',
+                    paddingBottom: '1.15rem',
+                    borderBottom: '1px solid rgba(75, 48, 36, 0.08)',
+                    opacity: isUnavailable ? 0.72 : 1
                   }}
                 >
-                  <img
-                    src={item.product.primaryImage || item.product.primary_image || '/assets/products/saree_ivory_mulmul.jpg'}
-                    alt={item.product.name || 'Saree'}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    onError={(e) => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src = '/assets/products/saree_ivory_mulmul.jpg';
+                  {/* Item Thumbnail */}
+                  <div
+                    style={{
+                      width: 'clamp(72px, 18vw, 86px)',
+                      height: 'clamp(94px, 24vw, 112px)',
+                      flexShrink: 0,
+                      overflow: 'hidden',
+                      backgroundColor: '#F4ECE1',
+                      cursor: isUnavailable ? 'default' : 'pointer',
+                      borderRadius: '2px'
                     }}
-                  />
-                </div>
-
-                {/* Details */}
-                <div style={{ flexGrow: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.35rem' }}>
-                    <h4
-                      style={{
-                        fontFamily: 'var(--font-serif)',
-                        fontSize: '1rem',
-                        fontWeight: 600,
-                        color: '#4B3024',
-                        cursor: 'pointer',
-                        lineHeight: 1.25,
-                        margin: 0
-                      }}
-                      onClick={() => {
+                    onClick={() => {
+                      if (!isUnavailable) {
                         setIsCartOpen(false);
-                        navigateTo('product', item.product.id);
+                        navigateTo('product', p.id);
+                      }
+                    }}
+                  >
+                    <img
+                      src={p.primaryImage || p.primary_image || '/assets/products/saree_ivory_mulmul.jpg'}
+                      alt={p.name || 'Saree'}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = '/assets/products/saree_ivory_mulmul.jpg';
                       }}
-                    >
-                      {item.product.name}
-                    </h4>
-                    <button
-                      onClick={() => removeFromCart(item.product.id)}
-                      aria-label="Remove item"
-                      style={{ color: '#8F7263', padding: '0.35rem', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
-                      onMouseEnter={(e) => (e.currentTarget.style.color = '#C98278')}
-                      onMouseLeave={(e) => (e.currentTarget.style.color = '#8F7263')}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    />
                   </div>
 
-                  <span style={{ fontSize: '0.72rem', color: '#B88D4A', fontWeight: 600, textTransform: 'uppercase', margin: '0.25rem 0 0.5rem' }}>
-                    {item.product.craft || 'Handloom'}
-                  </span>
-
-                  <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    {/* Quantity Selector */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        border: '1px solid rgba(75, 48, 36, 0.2)',
-                        backgroundColor: '#FFFDF9'
-                      }}
-                    >
-                      <button
-                        onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                        style={{ padding: '0.35rem 0.65rem', color: '#4B3024', background: 'none', border: 'none', cursor: 'pointer' }}
-                        aria-label="Decrease quantity"
+                  {/* Details */}
+                  <div style={{ flexGrow: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.35rem' }}>
+                      <h4
+                        style={{
+                          fontFamily: 'var(--font-serif)',
+                          fontSize: '1.02rem',
+                          fontWeight: 600,
+                          color: '#4B3024',
+                          cursor: isUnavailable ? 'default' : 'pointer',
+                          lineHeight: 1.25,
+                          margin: 0
+                        }}
+                        onClick={() => {
+                          if (!isUnavailable) {
+                            setIsCartOpen(false);
+                            navigateTo('product', p.id);
+                          }
+                        }}
                       >
-                        <Minus size={12} />
-                      </button>
-                      <span style={{ padding: '0 0.5rem', fontSize: '0.82rem', fontWeight: 600 }}>
-                        {item.quantity}
-                      </span>
+                        {p.name}
+                      </h4>
                       <button
-                        onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                        style={{ padding: '0.35rem 0.65rem', color: '#4B3024', background: 'none', border: 'none', cursor: 'pointer' }}
-                        aria-label="Increase quantity"
+                        onClick={() => removeFromCart(p)}
+                        aria-label={`Remove ${p.name} from bag`}
+                        title="Remove from bag"
+                        style={{
+                          color: '#8F7263',
+                          padding: '0.3rem',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          flexShrink: 0,
+                          minWidth: '30px',
+                          minHeight: '30px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = '#C98278')}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = '#8F7263')}
                       >
-                        <Plus size={12} />
+                        <Trash2 size={15} />
                       </button>
                     </div>
 
-                    {/* Item Price */}
-                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', fontWeight: 600, color: '#4B3024' }}>
-                      ₹{((Number(item.product.price ?? item.product.sellingPrice ?? item.product.selling_price ?? 990) || 990) * item.quantity).toLocaleString('en-IN')}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', margin: '0.25rem 0 0.4rem' }}>
+                      <span style={{ fontSize: '0.7rem', color: '#B88D4A', fontWeight: 600, textTransform: 'uppercase' }}>
+                        {p.craft || 'Handloom'}
+                      </span>
+                      {p.sku && (
+                        <span style={{ fontSize: '0.68rem', color: '#8F7263' }}>• SKU: {p.sku}</span>
+                      )}
+                    </div>
+
+                    {isUnavailable ? (
+                      <div style={{ fontSize: '0.75rem', color: '#8A2A20', fontWeight: 600, marginBottom: '0.4rem' }}>
+                        {item.isUnavailable ? 'No longer available in catalog' : 'Currently out of stock'}
+                      </div>
+                    ) : (
+                      stockLimit > 0 && stockLimit <= 5 && (
+                        <div style={{ fontSize: '0.72rem', color: '#B88D4A', fontWeight: 600, marginBottom: '0.35rem' }}>
+                          Only {stockLimit} piece{stockLimit === 1 ? '' : 's'} remaining
+                        </div>
+                      )
+                    )}
+
+                    <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      {/* Quantity Controls (Minimum 1, capped at stock) */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          border: '1px solid rgba(75, 48, 36, 0.22)',
+                          backgroundColor: '#FFFDF9'
+                        }}
+                      >
+                        <button
+                          onClick={() => updateQuantity(p, item.quantity - 1)}
+                          disabled={item.quantity <= 1 || isUnavailable}
+                          style={{
+                            padding: '0.35rem 0.6rem',
+                            color: '#4B3024',
+                            background: 'none',
+                            border: 'none',
+                            cursor: item.quantity <= 1 || isUnavailable ? 'not-allowed' : 'pointer',
+                            opacity: item.quantity <= 1 || isUnavailable ? 0.35 : 1,
+                            minHeight: '32px'
+                          }}
+                          aria-label="Decrease quantity"
+                        >
+                          <Minus size={12} />
+                        </button>
+                        <span style={{ padding: '0 0.55rem', fontSize: '0.82rem', fontWeight: 600, minWidth: '24px', textAlign: 'center' }}>
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() => updateQuantity(p, item.quantity + 1)}
+                          disabled={atMaxStock || isUnavailable}
+                          style={{
+                            padding: '0.35rem 0.6rem',
+                            color: '#4B3024',
+                            background: 'none',
+                            border: 'none',
+                            cursor: atMaxStock || isUnavailable ? 'not-allowed' : 'pointer',
+                            opacity: atMaxStock || isUnavailable ? 0.35 : 1,
+                            minHeight: '32px'
+                          }}
+                          aria-label="Increase quantity"
+                        >
+                          <Plus size={12} />
+                        </button>
+                      </div>
+
+                      <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.1rem', fontWeight: 600, color: '#4B3024' }}>
+                        ₹{(unitPrice * item.quantity).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+
+                    {/* Save for Later action */}
+                    {!item.isUnavailable && (
+                      <button
+                        onClick={() => moveCartItemToWishlist(p)}
+                        style={{
+                          alignSelf: 'flex-start',
+                          marginTop: '0.45rem',
+                          fontSize: '0.72rem',
+                          color: '#8F7263',
+                          textDecoration: 'underline',
+                          textUnderlineOffset: '2px',
+                          background: 'none',
+                          border: 'none',
+                          padding: 0,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Save for later
+                      </button>
+                    )}
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
-        {/* Footer Order Summary & Checkout */}
+        {/* Footer Order Summary & Checkout Action */}
         {cart.length > 0 && (
           <div
             style={{
-              padding: 'clamp(1rem, 3vw, 1.35rem)',
-              paddingBottom: 'calc(clamp(1rem, 3vw, 1.35rem) + env(safe-area-inset-bottom, 0px))',
+              padding: 'clamp(0.95rem, 3vw, 1.3rem)',
+              paddingBottom: 'calc(clamp(0.95rem, 3vw, 1.3rem) + env(safe-area-inset-bottom, 0px))',
               backgroundColor: '#FFFDF9',
-              borderTop: '1px solid rgba(75, 48, 36, 0.12)'
+              borderTop: '1px solid rgba(75, 48, 36, 0.12)',
+              flexShrink: 0
             }}
           >
             {/* Gift Wrap Checkbox */}
@@ -336,7 +460,7 @@ export const CartDrawer = () => {
                 gap: '0.55rem',
                 fontSize: '0.8rem',
                 color: '#4B3024',
-                marginBottom: '0.85rem',
+                marginBottom: '0.75rem',
                 cursor: 'pointer'
               }}
             >
@@ -346,33 +470,34 @@ export const CartDrawer = () => {
                 onChange={(e) => setGiftWrap(e.target.checked)}
                 style={{ accentColor: '#B88D4A' }}
               />
-              <span>Add Rodhe Heritage Keepsake Gift Box (+₹150)</span>
+              <span>Add RODHE Heritage Keepsake Gift Box (+₹{storeSettings.giftWrapFee})</span>
             </label>
 
             {/* Promo Code Input */}
-            <form onSubmit={handleApplyCoupon} style={{ display: 'flex', gap: '0.5rem', marginBottom: couponError ? '0.35rem' : '1rem' }}>
-              <div style={{ position: 'relative', flexGrow: 1 }}>
-                <input
-                  type="text"
-                  placeholder="Promo code (e.g. WOVEN10)"
-                  value={couponInput}
-                  onChange={(e) => {
-                    setCouponInput(e.target.value);
-                    if (couponError) setCouponError('');
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '0.6rem 0.75rem',
-                    fontSize: '0.82rem',
-                    border: '1px solid rgba(75, 48, 36, 0.2)',
-                    backgroundColor: '#FAF6EE'
-                  }}
-                />
-              </div>
+            <form onSubmit={handleApplyCoupon} style={{ display: 'flex', gap: '0.5rem', marginBottom: couponError ? '0.35rem' : '0.85rem' }}>
+              <input
+                type="text"
+                placeholder="Promo code (e.g. WOVEN10)"
+                value={couponInput}
+                onChange={(e) => {
+                  setCouponInput(e.target.value);
+                  if (couponError) setCouponError('');
+                }}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  padding: '0.55rem 0.75rem',
+                  fontSize: '0.82rem',
+                  border: '1px solid rgba(75, 48, 36, 0.2)',
+                  backgroundColor: '#FAF6EE',
+                  minHeight: '40px'
+                }}
+              />
               <button
                 type="submit"
+                disabled={isApplyingCoupon}
                 style={{
-                  padding: '0.6rem 0.9rem',
+                  padding: '0.55rem 0.9rem',
                   backgroundColor: '#4B3024',
                   color: '#FAF6EE',
                   fontSize: '0.76rem',
@@ -380,15 +505,16 @@ export const CartDrawer = () => {
                   letterSpacing: '0.08em',
                   textTransform: 'uppercase',
                   border: 'none',
-                  cursor: 'pointer',
-                  minHeight: '40px'
+                  cursor: isApplyingCoupon ? 'wait' : 'pointer',
+                  minHeight: '40px',
+                  flexShrink: 0
                 }}
               >
-                Apply
+                {isApplyingCoupon ? '...' : 'Apply'}
               </button>
             </form>
             {couponError && (
-              <p style={{ color: '#C98278', fontSize: '0.74rem', margin: '0 0 0.85rem 0' }}>{couponError}</p>
+              <p style={{ color: '#8A2A20', fontSize: '0.74rem', margin: '0 0 0.75rem 0' }}>{couponError}</p>
             )}
 
             {/* Applied Coupon Tag */}
@@ -402,28 +528,33 @@ export const CartDrawer = () => {
                   backgroundColor: 'rgba(184, 141, 74, 0.15)',
                   fontSize: '0.76rem',
                   color: '#4B3024',
-                  marginBottom: '0.85rem'
+                  marginBottom: '0.75rem'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <Tag size={13} color="#B88D4A" />
-                  <span><strong>{appliedCoupon.code}</strong> ({appliedCoupon.percent}% Off)</span>
+                  <span>
+                    <strong>{appliedCoupon.code}</strong> ({appliedCoupon.type === 'fixed' || appliedCoupon.type === 'flat' ? `₹${appliedCoupon.value} Off` : `${appliedCoupon.percent}% Off`})
+                  </span>
                 </div>
-                <button onClick={removeCoupon} style={{ color: '#8F7263', fontSize: '0.74rem', background: 'none', border: 'none', cursor: 'pointer' }}>
+                <button
+                  onClick={removeCoupon}
+                  style={{ color: '#8F7263', fontSize: '0.74rem', background: 'none', border: 'none', cursor: 'pointer' }}
+                >
                   Remove
                 </button>
               </div>
             )}
 
             {/* Financial Breakdown */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.82rem', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.82rem', marginBottom: '0.9rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6F4E3E' }}>
                 <span>Subtotal</span>
                 <span>₹{subtotal.toLocaleString('en-IN')}</span>
               </div>
 
               {discountAmount > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#C98278', fontWeight: 600 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#525B3A', fontWeight: 600 }}>
                   <span>Discount ({appliedCoupon?.code})</span>
                   <span>-₹{discountAmount.toLocaleString('en-IN')}</span>
                 </div>
@@ -431,7 +562,7 @@ export const CartDrawer = () => {
 
               {giftWrap && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6F4E3E' }}>
-                  <span>Heritage Gift Box</span>
+                  <span>Heritage Keepsake Box</span>
                   <span>+₹{giftWrapFee}</span>
                 </div>
               )}
@@ -445,61 +576,47 @@ export const CartDrawer = () => {
                 style={{
                   display: 'flex',
                   justifyContent: 'space-between',
-                  fontSize: '1.2rem',
+                  fontSize: '1.18rem',
                   fontWeight: 600,
                   fontFamily: 'var(--font-serif)',
                   color: '#4B3024',
                   borderTop: '1px solid rgba(75, 48, 36, 0.12)',
-                  paddingTop: '0.65rem',
+                  paddingTop: '0.6rem',
                   marginTop: '0.2rem'
                 }}
               >
-                <span>Total</span>
+                <span>Estimated Total</span>
                 <span>₹{total.toLocaleString('en-IN')}</span>
               </div>
               <span style={{ fontSize: '0.72rem', color: '#8F7263' }}>
-                Inclusive of all taxes & insurance
+                Inclusive of all taxes • Confirmed personally via WhatsApp
               </span>
             </div>
 
-            {/* WhatsApp Checkout Actions */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+            {/* Primary Checkout Button */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem' }}>
               <button
-                onClick={handleWhatsAppOrder}
+                onClick={handleProceedToCheckout}
+                disabled={hasUnavailableCartItems}
+                className="btn btn-primary"
                 style={{
                   width: '100%',
-                  padding: '0.95rem',
+                  padding: '0.9rem',
                   minHeight: '48px',
-                  backgroundColor: '#525B3A',
-                  color: '#FAF6EE',
-                  border: 'none',
-                  borderRadius: '3px',
-                  fontSize: '0.86rem',
-                  fontWeight: 600,
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.55rem',
-                  cursor: 'pointer',
-                  boxShadow: '0 8px 20px rgba(82, 91, 58, 0.25)',
-                  transition: 'background-color 0.2s'
+                  opacity: hasUnavailableCartItems ? 0.5 : 1,
+                  cursor: hasUnavailableCartItems ? 'not-allowed' : 'pointer'
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#3E462B')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#525B3A')}
               >
-                <MessageCircle size={18} color="#D4AC68" />
-                <span>Continue on WhatsApp (+91 9490658858)</span>
+                <span>Proceed to Checkout</span>
+                <ArrowRight size={16} />
               </button>
 
               <button
-                onClick={handleCheckoutClick}
+                onClick={() => setIsCartOpen(false)}
                 className="btn btn-outline"
-                style={{ width: '100%', padding: '0.75rem', minHeight: '42px', fontSize: '0.8rem', color: '#4B3024' }}
+                style={{ width: '100%', padding: '0.65rem', minHeight: '40px', fontSize: '0.78rem' }}
               >
-                <span>Add Delivery Address & Details</span>
-                <ArrowRight size={14} />
+                Continue Shopping
               </button>
             </div>
           </div>

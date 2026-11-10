@@ -1,23 +1,73 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { PRODUCTS as STATIC_PRODUCTS } from '../data/products';
 import { storeService } from '../services/storeService';
+import { customerService } from '../services/customerService';
+import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 
 const ShopContext = createContext();
+
+const DEFAULT_SETTINGS = {
+  whatsappNumber: '919490658858',
+  freeShippingThreshold: 2999,
+  standardShippingFee: 199,
+  giftWrapFee: 150
+};
+
+function getNormalizedPrice(product) {
+  if (!product) return 0;
+  const val = Number(product.price ?? product.sellingPrice ?? product.selling_price ?? 0);
+  return Number.isFinite(val) && val > 0 ? val : 0;
+}
+
+export function isSameProduct(a, b) {
+  if (!a || !b) return false;
+  if (typeof a === 'string' && typeof b === 'string') return a === b;
+  const aId = typeof a === 'string' ? a : a.id;
+  const bId = typeof b === 'string' ? b : b.id;
+  if (aId && bId && String(aId) === String(bId)) return true;
+
+  const aSlug = typeof a === 'object' ? a.slug : a;
+  const bSlug = typeof b === 'object' ? b.slug : b;
+  if (aSlug && bSlug && String(aSlug) === String(bSlug)) return true;
+
+  const aSku = typeof a === 'object' ? a.sku : null;
+  const bSku = typeof b === 'object' ? b.sku : null;
+  if (aSku && bSku && String(aSku).toUpperCase() === String(bSku).toUpperCase()) return true;
+
+  return false;
+}
 
 export const ShopProvider = ({ children }) => {
   // Navigation / Page State
   const [currentPage, setCurrentPage] = useState('home');
   const [selectedProductId, setSelectedProductId] = useState(null);
 
-  // Dynamic Products loaded from storeService (with STATIC_PRODUCTS as resilient fallback)
+  // Dynamic Products & Store Settings
   const [products, setProducts] = useState(STATIC_PRODUCTS);
   const [isProductsLoading, setIsProductsLoading] = useState(true);
+  const [storeSettings, setStoreSettings] = useState(DEFAULT_SETTINGS);
+
+  const catalogMaxPrice = useMemo(() => {
+    const maxFound = products.reduce((max, p) => Math.max(max, getNormalizedPrice(p)), 0);
+    return Math.max(2000, Math.ceil(maxFound / 500) * 500);
+  }, [products]);
 
   const refreshProducts = useCallback(async () => {
     try {
-      const data = await storeService.getProducts({ publishedOnly: false });
+      const [data, stg] = await Promise.all([
+        storeService.getProducts({ publishedOnly: false }),
+        storeService.getSettings()
+      ]);
       if (data && data.length > 0) {
         setProducts(data);
+      }
+      if (stg) {
+        setStoreSettings({
+          whatsappNumber: (stg.whatsappNumber || '919490658858').replace(/[^0-9]/g, '') || '919490658858',
+          freeShippingThreshold: Number(stg.freeShippingThreshold ?? 2999),
+          standardShippingFee: Number(stg.standardShippingFee ?? 199),
+          giftWrapFee: Number(stg.giftWrapFee ?? 150)
+        });
       }
     } catch (err) {
       console.warn('Failed to refresh products from storeService:', err);
@@ -27,6 +77,7 @@ export const ShopProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    customerService.purgeLegacyInsecurePii();
     refreshProducts();
   }, [refreshProducts]);
 
@@ -34,7 +85,7 @@ export const ShopProvider = ({ children }) => {
   const [hasIntroPlayed, setHasIntroPlayedState] = useState(() => {
     try {
       return sessionStorage.getItem('rodhe_intro_played') === 'true';
-    } catch (e) {
+    } catch {
       return false;
     }
   });
@@ -43,45 +94,123 @@ export const ShopProvider = ({ children }) => {
     setHasIntroPlayedState(played);
     try {
       sessionStorage.setItem('rodhe_intro_played', played ? 'true' : 'false');
-    } catch (e) {}
+    } catch {}
   };
 
-  // Cart State with LocalStorage
+  // Cart State (starts clean empty `[]` for real shoppers — zero fake demo items)
   const [cart, setCart] = useState(() => {
     try {
       const saved = localStorage.getItem('rodhe_cart');
-      return saved ? JSON.parse(saved) : [
-        // Seed with 1 item for immediate delight or empty if clean
-        { product: STATIC_PRODUCTS[0], quantity: 1 }
-      ];
-    } catch (e) {
-      return [{ product: STATIC_PRODUCTS[0], quantity: 1 }];
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
     }
   });
+  const cartRef = useRef(cart);
+  cartRef.current = cart;
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('rodhe_cart', JSON.stringify(cart));
-    } catch (e) {}
-  }, [cart]);
-
-  // Wishlist State with LocalStorage
+  // Wishlist State (starts clean empty `[]` — zero fake demo items)
   const [wishlist, setWishlist] = useState(() => {
     try {
       const saved = localStorage.getItem('rodhe_wishlist');
-      return saved ? JSON.parse(saved) : [STATIC_PRODUCTS[1].id, STATIC_PRODUCTS[2].id];
-    } catch (e) {
-      return [STATIC_PRODUCTS[1].id];
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+    } catch {
+      return [];
     }
   });
+  const wishlistRef = useRef(wishlist);
+  wishlistRef.current = wishlist;
 
-  useEffect(() => {
+  const persistCartToStorage = useCallback((nextCart) => {
     try {
-      localStorage.setItem('rodhe_wishlist', JSON.stringify(wishlist));
-    } catch (e) {}
-  }, [wishlist]);
+      localStorage.setItem('rodhe_cart', JSON.stringify(nextCart));
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const persistWishlistToStorage = useCallback((nextWishlist) => {
+    try {
+      localStorage.setItem('rodhe_wishlist', JSON.stringify(nextWishlist));
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  // Reconcile cart & wishlist against live catalog whenever products refresh
+  useEffect(() => {
+    if (!products || products.length === 0) return;
+
+    const currentCart = cartRef.current;
+    if (currentCart && currentCart.length > 0) {
+      let changed = false;
+      const nextCart = currentCart.map((entry) => {
+        const currentProd = entry.product || entry;
+        const live = products.find((p) => isSameProduct(p, currentProd));
+        if (!live) {
+          if (!isProductsLoading && !entry.isUnavailable) {
+            changed = true;
+            return { ...entry, isUnavailable: true };
+          }
+          return entry;
+        }
+        const isPublished = !live.status || live.status === 'published';
+        const trackedStock = typeof live.stockCount === 'number' ? live.stockCount : Number(live.stock_count ?? 10);
+        const isAvailable = isPublished && Boolean(live.inStock ?? live.in_stock ?? true) && trackedStock > 0;
+        const safeQty = isAvailable && trackedStock > 0 ? Math.min(Math.max(1, entry.quantity || 1), trackedStock) : Math.max(1, entry.quantity || 1);
+
+        const priceChanged = getNormalizedPrice(live) !== getNormalizedPrice(currentProd);
+        const idChanged = String(live.id) !== String(currentProd.id);
+        const flagChanged = Boolean(entry.isUnavailable) !== !isPublished || Boolean(entry.isOutOfStock) !== !isAvailable;
+        const qtyChanged = safeQty !== entry.quantity;
+
+        if (priceChanged || idChanged || flagChanged || qtyChanged) {
+          changed = true;
+        }
+        return {
+          product: live,
+          quantity: safeQty,
+          isUnavailable: !isPublished,
+          isOutOfStock: isPublished && !isAvailable
+        };
+      });
+      if (changed) {
+        cartRef.current = nextCart;
+        setCart(nextCart);
+        persistCartToStorage(nextCart);
+      }
+    }
+
+    // Migrate legacy slug IDs cleanly to live canonical product IDs
+    const currentWishlist = wishlistRef.current;
+    if (currentWishlist && currentWishlist.length > 0) {
+      let changed = false;
+      const mapped = [];
+      for (const savedId of currentWishlist) {
+        const live = products.find((p) => isSameProduct(p, savedId));
+        if (live) {
+          if (String(live.id) !== String(savedId)) changed = true;
+          if (!mapped.includes(live.id)) mapped.push(live.id);
+        } else if (isProductsLoading) {
+          if (!mapped.includes(savedId)) mapped.push(savedId);
+        } else {
+          changed = true;
+        }
+      }
+      if (changed || mapped.length !== currentWishlist.length) {
+        wishlistRef.current = mapped;
+        setWishlist(mapped);
+        persistWishlistToStorage(mapped);
+      }
+    }
+  }, [products, isProductsLoading, persistCartToStorage, persistWishlistToStorage]);
 
   // Modals & Drawers
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -90,155 +219,540 @@ export const ShopProvider = ({ children }) => {
   const [isTrackOrderOpen, setIsTrackOrderOpen] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState(null);
 
-  // Patron Session State
-  const [patronUser, setPatronUserState] = useState(() => {
-    try {
-      const saved = localStorage.getItem('rodhe_patron_session');
-      return saved ? JSON.parse(saved) : null;
-    } catch (e) {
-      return null;
+  const closeAllOverlays = useCallback(() => {
+    setIsMobileMenuOpen(false);
+    setIsCartOpen(false);
+    setIsWishlistOpen(false);
+    setIsSearchOpen(false);
+    setIsAuthOpen(false);
+    setIsCheckoutOpen(false);
+    setIsTrackOrderOpen(false);
+    setQuickViewProduct(null);
+  }, []);
+
+  // Centralized Scroll Lock when any overlay is open
+  const isAnyOverlayOpen = Boolean(
+    isMobileMenuOpen ||
+    isCartOpen ||
+    isWishlistOpen ||
+    isSearchOpen ||
+    isAuthOpen ||
+    isCheckoutOpen ||
+    isTrackOrderOpen ||
+    quickViewProduct
+  );
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (isAnyOverlayOpen) {
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
     }
-  });
+    return () => {
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+    };
+  }, [isAnyOverlayOpen]);
+
+  // Customer Auth, Profile & Addresses State (Verified via Supabase Auth — zero insecure shared localStorage PII)
+  const [patronUser, setPatronUser] = useState(null);
+  const [customerAddresses, setCustomerAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [isCustomerAuthLoading, setIsCustomerAuthLoading] = useState(true);
+  const [guestCheckoutDraft, setGuestCheckoutDraftState] = useState(() => customerService.getGuestCheckoutDraft() || null);
+
+  const applyAuthenticatedCustomerData = useCallback((customerPayload, { mergeBagAndWishlist = false } = {}) => {
+    if (!customerPayload?.user) {
+      setPatronUser(null);
+      setCustomerAddresses([]);
+      setSelectedAddressId(null);
+      return;
+    }
+
+    setPatronUser(customerPayload.user);
+    const addrs = Array.isArray(customerPayload.addresses) ? customerPayload.addresses : [];
+    setCustomerAddresses(addrs);
+    const defaultAddr = addrs.find((a) => a.isDefault) || addrs[0] || null;
+    setSelectedAddressId(defaultAddr?.id || null);
+
+    if (mergeBagAndWishlist) {
+      if (Array.isArray(customerPayload.wishlistIds) && customerPayload.wishlistIds.length > 0) {
+        const merged = [...new Set([...wishlistRef.current, ...customerPayload.wishlistIds])];
+        wishlistRef.current = merged;
+        setWishlist(merged);
+        persistWishlistToStorage(merged);
+      }
+      if (Array.isArray(customerPayload.cartItems) && customerPayload.cartItems.length > 0) {
+        if (cartRef.current.length === 0) {
+          const restored = [];
+          for (const ci of customerPayload.cartItems) {
+            const match = products.find((p) => isSameProduct(p, ci.id || ci.slug || ci.sku));
+            if (match && (!match.status || match.status === 'published') && match.inStock && (match.stockCount ?? 1) > 0) {
+              restored.push({ product: match, quantity: Math.min(ci.quantity || 1, match.stockCount ?? 10) });
+            }
+          }
+          if (restored.length > 0) {
+            cartRef.current = restored;
+            setCart(restored);
+            persistCartToStorage(restored);
+          }
+        }
+      }
+    }
+  }, [products, persistCartToStorage, persistWishlistToStorage]);
+
+  useEffect(() => {
+    let mounted = true;
+    customerService.getAuthenticatedCustomer()
+      .then((customerPayload) => {
+        if (mounted) {
+          applyAuthenticatedCustomerData(customerPayload, { mergeBagAndWishlist: true });
+        }
+      })
+      .finally(() => {
+        if (mounted) setIsCustomerAuthLoading(false);
+      });
+
+    let subscription = null;
+    if (isSupabaseConfigured && supabase) {
+      const { data } = supabase.auth.onAuthStateChange(async (event) => {
+        if (!mounted) return;
+        if (event === 'SIGNED_OUT') {
+          setPatronUser(null);
+          setCustomerAddresses([]);
+          setSelectedAddressId(null);
+        } else if (event === 'SIGNED_IN') {
+          const payload = await customerService.getAuthenticatedCustomer();
+          if (mounted) {
+            applyAuthenticatedCustomerData(payload, { mergeBagAndWishlist: true });
+          }
+        }
+      });
+      subscription = data?.subscription;
+    }
+
+    return () => {
+      mounted = false;
+      if (subscription?.unsubscribe) subscription.unsubscribe();
+    };
+  }, [applyAuthenticatedCustomerData]);
+
+  // Toast notifications with Undo support
+  const [toasts, setToasts] = useState([]);
+  const toastTimersRef = useRef(new Map());
+
+  const removeToast = useCallback((id) => {
+    const existingTimer = toastTimersRef.current.get(id);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+      toastTimersRef.current.delete(id);
+    }
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  const showToast = useCallback((message, type = 'success', options = {}) => {
+    const id = Date.now() + Math.random();
+    const duration = options.duration ?? (options.onAction ? 6000 : 3800);
+    setToasts((prev) => [
+      ...prev.slice(-3),
+      {
+        id,
+        message,
+        type,
+        actionLabel: options.actionLabel || null,
+        onAction: options.onAction || null
+      }
+    ]);
+    const timer = setTimeout(() => {
+      toastTimersRef.current.delete(id);
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, duration);
+    toastTimersRef.current.set(id, timer);
+    return id;
+  }, []);
+
+  // Customer Auth & Address Actions
+  const signInCustomer = async (email, password) => {
+    const payload = await customerService.signIn(email, password);
+    applyAuthenticatedCustomerData(payload, { mergeBagAndWishlist: true });
+    return payload;
+  };
+
+  const signUpCustomer = async (details) => {
+    const res = await customerService.signUp(details);
+    if (!res.requiresEmailConfirmation && res.customer) {
+      applyAuthenticatedCustomerData(res.customer, { mergeBagAndWishlist: true });
+    }
+    return res;
+  };
 
   const loginPatron = (patronData) => {
-    setPatronUserState(patronData);
-    try {
-      localStorage.setItem('rodhe_patron_session', JSON.stringify(patronData));
-    } catch (e) {}
+    if (patronData?.user) {
+      applyAuthenticatedCustomerData(patronData, { mergeBagAndWishlist: true });
+    } else {
+      setPatronUser(patronData);
+    }
   };
 
-  const logoutPatron = () => {
-    setPatronUserState(null);
-    try {
-      localStorage.removeItem('rodhe_patron_session');
-    } catch (e) {}
-    showToast('Signed out of patron account.', 'info');
+  const logoutPatron = async () => {
+    await customerService.signOut();
+    setPatronUser(null);
+    setCustomerAddresses([]);
+    setSelectedAddressId(null);
+    setGuestCheckoutDraftState(null);
+    showToast('Signed out of your account.', 'info');
   };
+
+  const updateCustomerProfile = async ({ name, phone }) => {
+    const updated = await customerService.updateProfile({ name, phone });
+    if (updated?.user) {
+      setPatronUser(updated.user);
+      showToast('Profile details saved.', 'success');
+    }
+    return updated;
+  };
+
+  const saveCustomerAddress = async (addressPayload) => {
+    const nextAddresses = await customerService.saveAddress(addressPayload, customerAddresses);
+    setCustomerAddresses(nextAddresses);
+    const saved = nextAddresses.find((a) => a.isDefault) || nextAddresses[nextAddresses.length - 1];
+    if (saved) setSelectedAddressId(saved.id);
+    showToast('Delivery address saved.', 'success');
+    return nextAddresses;
+  };
+
+  const setDefaultCustomerAddress = async (addressId) => {
+    const nextAddresses = await customerService.setDefaultAddress(addressId, customerAddresses);
+    setCustomerAddresses(nextAddresses);
+    setSelectedAddressId(addressId);
+    showToast('Preferred delivery address updated.', 'success');
+    return nextAddresses;
+  };
+
+  const deleteCustomerAddress = async (addressId) => {
+    const nextAddresses = await customerService.deleteAddress(addressId, customerAddresses);
+    setCustomerAddresses(nextAddresses);
+    if (selectedAddressId === addressId) {
+      const nextDefault = nextAddresses.find((a) => a.isDefault) || nextAddresses[0] || null;
+      setSelectedAddressId(nextDefault?.id || null);
+    }
+    showToast('Saved address removed.', 'info');
+    return nextAddresses;
+  };
+
+  const saveGuestCheckoutDraft = useCallback((draft) => {
+    setGuestCheckoutDraftState(draft);
+    customerService.saveGuestCheckoutDraft(draft);
+  }, []);
 
   // Filters State
   const [selectedCraft, setSelectedCraft] = useState('all');
   const [selectedColor, setSelectedColor] = useState('all');
   const [selectedFabric, setSelectedFabric] = useState('all');
   const [priceMax, setPriceMax] = useState(2000);
+  const [hasCustomPriceCap, setHasCustomPriceCap] = useState(false);
   const [inStockOnly, setInStockOnly] = useState(false);
   const [sortBy, setSortBy] = useState('featured');
   const [searchQuery, setSearchQuery] = useState('');
-  const [priceRangeFilter, setPriceRangeFilter] = useState(null); // 'under800' | '800-1200' | '1200-1600' | '1600-2000' | null
+  const [priceRangeFilter, setPriceRangeFilter] = useState(null);
+
+  useEffect(() => {
+    if (!hasCustomPriceCap) {
+      setPriceMax(catalogMaxPrice);
+    }
+  }, [catalogMaxPrice, hasCustomPriceCap]);
+
+  const handleSetPriceMax = (val) => {
+    setHasCustomPriceCap(val < catalogMaxPrice);
+    setPriceMax(val);
+  };
 
   // Discount & Gift Wrap
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [giftWrap, setGiftWrap] = useState(false);
 
-  // Toast notifications
-  const [toasts, setToasts] = useState([]);
+  // Resolve live product helper
+  const resolveLiveProduct = useCallback((productOrId) => {
+    const found = products.find((p) => isSameProduct(p, productOrId));
+    if (found) return found;
+    return typeof productOrId === 'object' ? productOrId : null;
+  }, [products]);
 
-  const showToast = (message, type = 'success') => {
-    const id = Date.now();
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3800);
-  };
+  const commitCart = useCallback((nextCart) => {
+    cartRef.current = nextCart;
+    setCart(nextCart);
+    const savedLocally = persistCartToStorage(nextCart);
+    if (!savedLocally && !patronUser) {
+      showToast('Bag updated for this session (browser storage quota or privacy restriction).', 'info');
+    }
+    if (patronUser) {
+      customerService.syncCustomerCart(nextCart);
+    }
+  }, [patronUser, persistCartToStorage, showToast]);
 
-  const removeToast = (id) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
+  const commitWishlist = useCallback((nextWishlist) => {
+    wishlistRef.current = nextWishlist;
+    setWishlist(nextWishlist);
+    persistWishlistToStorage(nextWishlist);
+    if (patronUser) {
+      customerService.syncCustomerWishlist(nextWishlist);
+    }
+  }, [patronUser, persistWishlistToStorage]);
 
   // Cart Operations
-  const addToCart = (product, quantity = 1, openDrawer = true) => {
-    setCart((prev) => {
-      const existing = prev.find((item) => item.product.id === product.id);
-      if (existing) {
-        return prev.map((item) =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
+  const addToCart = useCallback((product, quantity = 1, openDrawer = true) => {
+    const live = resolveLiveProduct(product) || product;
+    if (!live) return false;
+
+    const isPublished = !live.status || live.status === 'published';
+    const stockLimit = typeof live.stockCount === 'number' ? live.stockCount : Number(live.stock_count ?? 10);
+    const isAvailable = isPublished && Boolean(live.inStock ?? live.in_stock ?? true) && stockLimit > 0;
+
+    if (!isAvailable) {
+      showToast(`"${live.name}" is currently out of stock.`, 'error');
+      return false;
+    }
+
+    const reqQty = Math.max(1, Number(quantity) || 1);
+    const prev = cartRef.current;
+    const existing = prev.find((item) => isSameProduct(item.product, live));
+    let capped = false;
+    let alreadyAtMax = false;
+    let nextCart;
+
+    if (existing) {
+      if (stockLimit > 0 && existing.quantity >= stockLimit) {
+        alreadyAtMax = true;
+        nextCart = prev;
+      } else {
+        const nextQty = existing.quantity + reqQty;
+        if (stockLimit > 0 && nextQty > stockLimit) {
+          capped = true;
+        }
+        const finalQty = stockLimit > 0 ? Math.min(nextQty, stockLimit) : nextQty;
+        nextCart = prev.map((item) =>
+          isSameProduct(item.product, live)
+            ? { product: live, quantity: finalQty, isUnavailable: false, isOutOfStock: false }
             : item
         );
+        commitCart(nextCart);
       }
-      return [...prev, { product, quantity }];
-    });
-    showToast(`Added "${product.name}" to your shopping bag.`);
+    } else {
+      if (stockLimit > 0 && reqQty > stockLimit) {
+        capped = true;
+      }
+      const finalQty = stockLimit > 0 ? Math.min(reqQty, stockLimit) : reqQty;
+      nextCart = [...prev, { product: live, quantity: finalQty, isUnavailable: false, isOutOfStock: false }];
+      commitCart(nextCart);
+    }
+
+    if (alreadyAtMax) {
+      showToast(`Only ${stockLimit} piece${stockLimit === 1 ? '' : 's'} of "${live.name}" available in stock.`, 'info');
+    } else if (capped) {
+      showToast(`Added "${live.name}" (max available stock: ${stockLimit}).`, 'info');
+    } else {
+      showToast(`Added "${live.name}" to your bag.`);
+    }
+
     if (openDrawer) {
+      setIsMobileMenuOpen(false);
+      setIsWishlistOpen(false);
+      setIsSearchOpen(false);
       setIsCartOpen(true);
     }
-  };
+    return true;
+  }, [resolveLiveProduct, commitCart, showToast]);
 
-  const removeFromCart = (productId) => {
-    const item = cart.find((i) => i.product.id === productId);
-    setCart((prev) => prev.filter((i) => i.product.id !== productId));
-    if (item) {
-      showToast(`Removed "${item.product.name}" from bag.`, 'info');
-    }
-  };
+  const removeFromCart = useCallback((productOrId) => {
+    const prev = cartRef.current;
+    const removedIdx = prev.findIndex((i) => isSameProduct(i.product, productOrId));
+    if (removedIdx === -1) return;
 
-  const updateQuantity = (productId, newQuantity) => {
-    if (newQuantity <= 0) {
-      removeFromCart(productId);
-      return;
-    }
-    setCart((prev) =>
-      prev.map((item) =>
-        item.product.id === productId ? { ...item, quantity: newQuantity } : item
-      )
-    );
-  };
+    const removedEntry = prev[removedIdx];
+    const nextCart = prev.filter((_, idx) => idx !== removedIdx);
+    commitCart(nextCart);
 
-  const clearCart = () => {
-    setCart([]);
-  };
-
-  // Wishlist Operations
-  const toggleWishlist = (productId) => {
-    const product = products.find((p) => p.id === productId);
-    setWishlist((prev) => {
-      if (prev.includes(productId)) {
-        showToast(`Removed "${product ? product.name : 'Item'}" from wishlist.`, 'info');
-        return prev.filter((id) => id !== productId);
-      } else {
-        showToast(`Saved "${product ? product.name : 'Item'}" to wishlist.`, 'success');
-        return [...prev, productId];
+    const targetProd = removedEntry.product;
+    const targetQty = removedEntry.quantity;
+    showToast(`"${targetProd?.name || 'Saree'}" removed from your bag.`, 'info', {
+      duration: 6000,
+      actionLabel: 'Undo',
+      onAction: () => {
+        const curr = cartRef.current;
+        if (curr.some((c) => isSameProduct(c.product, targetProd))) {
+          return;
+        }
+        const restored = [...curr];
+        const insertAt = Math.min(Math.max(0, removedIdx), restored.length);
+        restored.splice(insertAt, 0, {
+          product: targetProd,
+          quantity: targetQty,
+          isUnavailable: Boolean(removedEntry.isUnavailable),
+          isOutOfStock: Boolean(removedEntry.isOutOfStock)
+        });
+        commitCart(restored);
+        showToast(`Restored "${targetProd?.name || 'Saree'}" to your bag.`, 'success');
       }
     });
-  };
+  }, [commitCart, showToast]);
 
-  const isInWishlist = (productId) => wishlist.includes(productId);
+  const updateQuantity = useCallback((productOrId, newQuantity) => {
+    const requested = Number(newQuantity);
+    if (!Number.isFinite(requested) || requested < 1) {
+      return;
+    }
 
-  // Financial Calculations
-  const subtotal = cart.reduce((sum, item) => {
-    const price = item.product.sellingPrice || item.product.price || 0;
-    return sum + price * item.quantity;
-  }, 0);
-  
-  const discountAmount = appliedCoupon 
-    ? (appliedCoupon.type === 'fixed' 
-        ? Math.min(subtotal, appliedCoupon.value || 0) 
-        : Math.round((subtotal * (appliedCoupon.percent || appliedCoupon.value || 0)) / 100))
-    : 0;
-  
-  // Free shipping above ₹2999
-  const shippingThreshold = 2999;
+    let maxWarning = null;
+    const nextCart = cartRef.current.map((item) => {
+      if (!isSameProduct(item.product, productOrId)) return item;
+      const live = resolveLiveProduct(item.product) || item.product;
+      const stockLimit = typeof live.stockCount === 'number' ? live.stockCount : Number(live.stock_count ?? 10);
+      if (stockLimit > 0 && requested > stockLimit) {
+        maxWarning = `Maximum ${stockLimit} piece${stockLimit === 1 ? '' : 's'} available for "${live.name}".`;
+        return { ...item, product: live, quantity: stockLimit };
+      }
+      return { ...item, product: live, quantity: requested };
+    });
+
+    commitCart(nextCart);
+    if (maxWarning) {
+      showToast(maxWarning, 'info');
+    }
+  }, [resolveLiveProduct, commitCart, showToast]);
+
+  const clearCart = useCallback(() => {
+    commitCart([]);
+  }, [commitCart]);
+
+  // Wishlist Operations
+  const isInWishlist = useCallback((productOrId) => {
+    if (!productOrId) return false;
+    return wishlist.some((wId) => {
+      if (String(wId) === String(typeof productOrId === 'string' ? productOrId : productOrId.id)) return true;
+      const liveW = products.find((p) => isSameProduct(p, wId));
+      return liveW ? isSameProduct(liveW, productOrId) : false;
+    });
+  }, [wishlist, products]);
+
+  const toggleWishlist = useCallback((productOrId) => {
+    const live = resolveLiveProduct(productOrId);
+    const canonicalId = live ? live.id : (typeof productOrId === 'string' ? productOrId : productOrId?.id);
+    if (!canonicalId) return;
+
+    const prev = wishlistRef.current;
+    const exists = prev.some((wId) => isSameProduct(live || canonicalId, wId));
+    if (exists) {
+      const next = prev.filter((wId) => !isSameProduct(live || canonicalId, wId));
+      commitWishlist(next);
+      showToast(`Removed "${live ? live.name : 'Saree'}" from favourites.`, 'info');
+    } else {
+      const next = [...prev, canonicalId];
+      commitWishlist(next);
+      showToast(`Saved "${live ? live.name : 'Saree'}" to favourites.`, 'success');
+    }
+  }, [resolveLiveProduct, commitWishlist, showToast]);
+
+  const moveCartItemToWishlist = useCallback((productOrId) => {
+    const live = resolveLiveProduct(productOrId);
+    const canonicalId = live ? live.id : (typeof productOrId === 'string' ? productOrId : productOrId?.id);
+    if (!canonicalId) return;
+
+    const prevWish = wishlistRef.current;
+    if (!prevWish.some((wId) => isSameProduct(live || canonicalId, wId))) {
+      commitWishlist([...prevWish, canonicalId]);
+    }
+
+    const nextCart = cartRef.current.filter((i) => !isSameProduct(i.product, productOrId));
+    commitCart(nextCart);
+
+    showToast(`Moved "${live?.name || 'Saree'}" to your saved favourites.`, 'success');
+  }, [resolveLiveProduct, commitWishlist, commitCart, showToast]);
+
+  // Derived canonical wishlist products (100% matches header badge count!)
+  const wishlistEntries = useMemo(() => {
+    return wishlist
+      .map((wId) => {
+        const product = products.find((p) => isSameProduct(p, wId));
+        if (!product) return null;
+        const isPublished = !product.status || product.status === 'published';
+        return {
+          product,
+          isUnavailable: !isPublished
+        };
+      })
+      .filter(Boolean);
+  }, [wishlist, products]);
+
+  // Financial Calculations (driven by store settings & live prices)
+  const subtotal = useMemo(() => {
+    return cart.reduce((sum, item) => {
+      if (item.isUnavailable) return sum;
+      const price = getNormalizedPrice(item.product);
+      return sum + price * item.quantity;
+    }, 0);
+  }, [cart]);
+
+  const discountAmount = useMemo(() => {
+    if (!appliedCoupon || subtotal <= 0) return 0;
+    const minAmount = Number(appliedCoupon.minOrderAmount || 0);
+    if (subtotal < minAmount) return 0;
+    const dtype = String(appliedCoupon.type || appliedCoupon.discountType || 'percentage').toLowerCase();
+    const dval = Number(appliedCoupon.value ?? appliedCoupon.discountValue ?? appliedCoupon.percent ?? 0);
+    if (dtype === 'fixed' || dtype === 'flat') {
+      return Math.min(subtotal, dval);
+    }
+    return Math.round((subtotal * dval) / 100);
+  }, [appliedCoupon, subtotal]);
+
+  const shippingThreshold = storeSettings.freeShippingThreshold;
   const isFreeShipping = subtotal >= shippingThreshold || subtotal === 0;
-  const shippingFee = isFreeShipping ? 0 : 199;
-  const giftWrapFee = giftWrap ? 150 : 0;
+  const shippingFee = isFreeShipping ? 0 : storeSettings.standardShippingFee;
+  const giftWrapFee = giftWrap && cart.length > 0 ? storeSettings.giftWrapFee : 0;
   const total = Math.max(0, subtotal - discountAmount + shippingFee + giftWrapFee);
   const remainingForFreeShipping = Math.max(0, shippingThreshold - subtotal);
 
+  const hasUnavailableCartItems = useMemo(
+    () => cart.some((item) => item.isUnavailable || item.isOutOfStock),
+    [cart]
+  );
+
   const applyCouponCode = async (code) => {
-    const clean = code.trim().toUpperCase();
+    const clean = String(code || '').trim().toUpperCase();
+    if (!clean) {
+      return { success: false, message: 'Please enter a promo code.' };
+    }
+
     try {
       const promos = await storeService.getPromotions();
       const match = promos.find((p) => p.code?.toUpperCase() === clean && p.isActive);
       if (match) {
-        const percent = match.type === 'percentage' ? match.value : Math.round((match.value / (subtotal || 1)) * 100);
+        const dtype = String(match.discountType || match.type || 'percentage').toLowerCase();
+        const dval = Number(match.discountValue ?? match.value ?? 0);
+        const minOrder = Number(match.minOrderAmount || 0);
+
+        if (minOrder > 0 && subtotal < minOrder) {
+          const msg = `Promo code ${match.code} requires a minimum bag subtotal of ₹${minOrder.toLocaleString('en-IN')}.`;
+          showToast(msg, 'info');
+          return { success: false, message: msg };
+        }
+
+        const percent = dtype === 'percentage' ? dval : Math.round((dval / (subtotal || 1)) * 100);
         setAppliedCoupon({
           code: match.code,
-          percent: percent,
-          value: match.value,
-          type: match.type,
-          label: match.name || `${match.value}% Off Handcrafted Drapes`
+          percent,
+          value: dval,
+          type: dtype,
+          minOrderAmount: minOrder,
+          label: match.label || match.name || `${dval}${dtype === 'percentage' ? '%' : '₹'} Off`
         });
-        showToast(`Coupon ${match.code} applied: ${match.name}!`, 'success');
-        return { success: true, message: `${match.value}${match.type === 'percentage' ? '%' : '₹'} discount applied!` };
+        showToast(`Coupon ${match.code} applied!`, 'success');
+        return {
+          success: true,
+          message: dtype === 'percentage' ? `${dval}% discount applied!` : `₹${dval} discount applied!`
+        };
       }
     } catch (e) {
       console.warn('Coupon lookup failed:', e);
@@ -246,7 +760,7 @@ export const ShopProvider = ({ children }) => {
 
     if (clean === 'WOVEN10') {
       setAppliedCoupon({ code: 'WOVEN10', percent: 10, value: 10, type: 'percentage', label: '10% Handcrafted Welcome Discount' });
-      showToast('Coupon WOVEN10 applied: 10% Off your order!', 'success');
+      showToast('Coupon WOVEN10 applied: 10% Off!', 'success');
       return { success: true, message: '10% discount applied!' };
     }
     if (clean === 'RODHE15') {
@@ -254,7 +768,8 @@ export const ShopProvider = ({ children }) => {
       showToast('Coupon RODHE15 applied: 15% Off!', 'success');
       return { success: true, message: '15% discount applied!' };
     }
-    showToast('Invalid coupon code. Try WOVEN10', 'error');
+
+    showToast('Invalid or expired promo code.', 'error');
     return { success: false, message: 'Invalid or expired promo code.' };
   };
 
@@ -264,7 +779,7 @@ export const ShopProvider = ({ children }) => {
   };
 
   // Navigation Helper
-  const navigateTo = (page, productId = null) => {
+  const navigateTo = useCallback((page, productId = null) => {
     setCurrentPage(page);
     if (productId) {
       setSelectedProductId(productId);
@@ -288,31 +803,32 @@ export const ShopProvider = ({ children }) => {
         } else if (page === 'policies') {
           window.location.hash = productId ? `policies-${productId}` : 'policies';
         } else if (page === 'home') {
-          try {
-            let newUrl = window.location.pathname;
-            if (window.location.search) {
-              const searchParams = new URLSearchParams(window.location.search);
-              searchParams.delete('page');
-              searchParams.delete('product');
-              searchParams.delete('craft');
-              const remaining = searchParams.toString();
-              if (remaining) {
-                newUrl += `?${remaining}`;
-              }
+          let newUrl = window.location.pathname;
+          if (window.location.search) {
+            const searchParams = new URLSearchParams(window.location.search);
+            searchParams.delete('page');
+            searchParams.delete('product');
+            searchParams.delete('craft');
+            const remaining = searchParams.toString();
+            if (remaining) {
+              newUrl += `?${remaining}`;
             }
-            history.replaceState(null, '', newUrl);
-          } catch {}
+          }
+          history.replaceState(null, '', newUrl);
         }
       }
-    } catch (e) {}
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+    } catch {}
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, []);
 
   const resetFilters = () => {
     setSelectedCraft('all');
     setSelectedColor('all');
     setSelectedFabric('all');
-    setPriceMax(2000);
+    setHasCustomPriceCap(false);
+    setPriceMax(catalogMaxPrice);
     setPriceRangeFilter(null);
     setInStockOnly(false);
     setSortBy('featured');
@@ -320,7 +836,7 @@ export const ShopProvider = ({ children }) => {
   };
 
   const cartCount = cart.reduce((count, item) => count + item.quantity, 0);
-  const wishlistCount = wishlist.length;
+  const wishlistCount = wishlistEntries.length;
 
   return (
     <ShopContext.Provider
@@ -329,6 +845,8 @@ export const ShopProvider = ({ children }) => {
         products,
         isProductsLoading,
         refreshProducts,
+        storeSettings,
+        catalogMaxPrice,
         currentPage,
         selectedProductId,
         navigateTo,
@@ -336,10 +854,12 @@ export const ShopProvider = ({ children }) => {
         setHasIntroPlayed,
         cart,
         cartCount,
+        hasUnavailableCartItems,
         addToCart,
         removeFromCart,
         updateQuantity,
         clearCart,
+        moveCartItemToWishlist,
         subtotal,
         discountAmount,
         appliedCoupon,
@@ -354,9 +874,12 @@ export const ShopProvider = ({ children }) => {
         total,
         remainingForFreeShipping,
         wishlist,
+        wishlistEntries,
         wishlistCount,
         toggleWishlist,
         isInWishlist,
+        isMobileMenuOpen,
+        setIsMobileMenuOpen,
         isCartOpen,
         setIsCartOpen,
         isWishlistOpen,
@@ -365,15 +888,28 @@ export const ShopProvider = ({ children }) => {
         setIsSearchOpen,
         isAuthOpen,
         setIsAuthOpen,
-        patronUser,
-        loginPatron,
-        logoutPatron,
         isCheckoutOpen,
         setIsCheckoutOpen,
         isTrackOrderOpen,
         setIsTrackOrderOpen,
         quickViewProduct,
         setQuickViewProduct,
+        closeAllOverlays,
+        patronUser,
+        isCustomerAuthLoading,
+        customerAddresses,
+        selectedAddressId,
+        setSelectedAddressId,
+        guestCheckoutDraft,
+        saveGuestCheckoutDraft,
+        signInCustomer,
+        signUpCustomer,
+        loginPatron,
+        logoutPatron,
+        updateCustomerProfile,
+        saveCustomerAddress,
+        setDefaultCustomerAddress,
+        deleteCustomerAddress,
         selectedCraft,
         setSelectedCraft,
         selectedColor,
@@ -381,7 +917,7 @@ export const ShopProvider = ({ children }) => {
         selectedFabric,
         setSelectedFabric,
         priceMax,
-        setPriceMax,
+        setPriceMax: handleSetPriceMax,
         priceRangeFilter,
         setPriceRangeFilter,
         inStockOnly,

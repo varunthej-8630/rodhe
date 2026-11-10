@@ -10,10 +10,9 @@ export const ProductCard = ({ product }) => {
     navigateTo
   } = useShop();
 
-  const isFavorited = isInWishlist(product.id);
+  const isFavorited = isInWishlist(product);
 
   const handleCardClick = (e) => {
-    // If not clicking button, open product detail
     if (!e.target.closest('button')) {
       navigateTo('product', product.id);
     }
@@ -21,18 +20,23 @@ export const ProductCard = ({ product }) => {
 
   const primaryImage = product.primaryImage || product.primary_image || '/assets/products/saree_ivory_mulmul.jpg';
   const secondaryImage = product.secondaryImage || product.secondary_image || primaryImage;
-  const sellingPrice = Number(product.price ?? product.sellingPrice ?? product.selling_price ?? 990) || 990;
-  const originalPrice = product.originalPrice ? (Number(product.originalPrice) || null) : (product.original_price ? (Number(product.original_price) || null) : null);
+  const sellingPrice = Number(product.price ?? product.sellingPrice ?? product.selling_price ?? 0) || 0;
+  const originalPrice = product.originalPrice
+    ? (Number(product.originalPrice) || null)
+    : product.original_price
+    ? (Number(product.original_price) || null)
+    : null;
+  const stockCount = typeof product.stockCount === 'number' ? product.stockCount : Number(product.stock_count ?? 10);
+  const isAvailable = (!product.status || product.status === 'published') && Boolean(product.inStock ?? product.in_stock ?? true) && stockCount > 0;
 
   return (
     <article
       className="product-card ecommerce-reference-card"
       onClick={handleCardClick}
-      style={{ cursor: 'pointer' }}
+      style={{ cursor: 'pointer', opacity: isAvailable ? 1 : 0.85 }}
     >
       {/* Product Image Frame with Rounded Corners */}
       <div className="product-image-container ecommerce-rounded-frame">
-        {/* Main Image */}
         <img
           src={primaryImage}
           alt={product.name || 'Handcrafted Saree'}
@@ -44,7 +48,6 @@ export const ProductCard = ({ product }) => {
           }}
         />
 
-        {/* Secondary Detail Image on Hover */}
         {secondaryImage && (
           <img
             src={secondaryImage}
@@ -58,16 +61,23 @@ export const ProductCard = ({ product }) => {
           />
         )}
 
-        {/* Discount badge removed per user request */}
+        {!isAvailable && (
+          <span
+            className="product-badge"
+            style={{ backgroundColor: 'rgba(75, 48, 36, 0.9)', color: '#FAF6EE', borderColor: '#B88D4A' }}
+          >
+            Out of Stock
+          </span>
+        )}
 
-        {/* Wishlist Button */}
+        {/* Wishlist Heart Button */}
         <button
           className={`product-wishlist-btn ${isFavorited ? 'active' : ''}`}
           onClick={(e) => {
             e.stopPropagation();
-            toggleWishlist(product.id);
+            toggleWishlist(product);
           }}
-          aria-label={isFavorited ? 'Remove from wishlist' : 'Save to wishlist'}
+          aria-label={isFavorited ? `Remove ${product.name} from favourites` : `Save ${product.name} to favourites`}
         >
           <Heart
             size={16}
@@ -77,17 +87,15 @@ export const ProductCard = ({ product }) => {
         </button>
       </div>
 
-      {/* Product Information - Centered per Reference Images */}
+      {/* Product Info */}
       <div className="product-info ecommerce-center-info">
         <h3 className="product-title ecommerce-title">{product.name}</h3>
 
-        {/* SKU Display */}
         <div className="product-sku-row">
           <span className="sku-label">Sku:</span>
-          <span className="sku-val">{product.sku || (product.id ? product.id.slice(0, 6).toUpperCase() : 'RDH')}</span>
+          <span className="sku-val">{product.sku || (product.id ? String(product.id).slice(0, 6).toUpperCase() : 'RDH')}</span>
         </div>
 
-        {/* Price Row: Crossed-out Original Price + Bold Red Sale Price */}
         <div className="product-price-row ecommerce-price-row">
           {originalPrice && originalPrice > sellingPrice && (
             <span className="product-original-price ecommerce-strikethrough">
@@ -99,16 +107,23 @@ export const ProductCard = ({ product }) => {
           </span>
         </div>
 
-        {/* Dark Green Rounded Pill Add to Cart Button */}
         <button
           className="btn-ecommerce-add-to-cart"
+          disabled={!isAvailable}
+          style={{
+            backgroundColor: isAvailable ? '#184323' : '#9B928C',
+            cursor: isAvailable ? 'pointer' : 'not-allowed',
+            opacity: isAvailable ? 1 : 0.78
+          }}
           onClick={(e) => {
             e.stopPropagation();
-            addToCart(product, 1, true);
+            if (isAvailable) {
+              addToCart(product, 1, true);
+            }
           }}
-          aria-label={`Add ${product.name} to shopping bag`}
+          aria-label={isAvailable ? `Add ${product.name} to shopping bag` : `${product.name} is out of stock`}
         >
-          Add to Cart
+          {isAvailable ? 'Add to Cart' : 'Out of Stock'}
         </button>
       </div>
     </article>
