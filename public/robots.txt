@@ -9,7 +9,8 @@ Allow: /
 Disallow: /admin
 Disallow: /admin/
 Disallow: /api/
+Disallow: /*?*checkout
+Disallow: /*?*account
 
 # Sitemap directive with canonical production domain
 Sitemap: https://www.rodhe.in/sitemap.xml
-

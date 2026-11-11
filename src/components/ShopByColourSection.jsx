@@ -1,5 +1,4 @@
 import React from 'react';
-import { COLOR_PALETTES } from '../data/products';
 import { useShop } from '../context/ShopContext';
 
 export const ShopByColourSection = () => {
@@ -41,7 +40,16 @@ export const ShopByColourSection = () => {
           {colorData.map((c) => (
             <div
               key={c.id}
+              role="button"
+              tabIndex={0}
+              aria-label={`Browse ${c.name} sarees`}
               onClick={() => handleSelectColor(c.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleSelectColor(c.id);
+                }
+              }}
               style={{
                 backgroundColor: '#FFFDF9',
                 padding: '1.5rem 1rem',

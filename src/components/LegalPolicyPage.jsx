@@ -1,31 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  ShieldCheck, 
   Truck, 
   RefreshCw, 
   FileText, 
   Sparkles, 
-  Lock, 
-  HeartHandshake, 
-  HelpCircle,
-  ArrowRight
+  Lock
 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 
 export const LegalPolicyPage = ({ initialTab = 'shipping' }) => {
-  const { navigateTo } = useShop();
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const { navigateTo, storeSettings } = useShop();
 
-  // Sync tab from hash if present, e.g. #policies-privacy
+  const normalizeTab = (val) => {
+    const raw = String(val || '').toLowerCase();
+    if (raw.includes('privacy')) return 'privacy';
+    if (raw.includes('terms')) return 'terms';
+    if (raw.includes('returns') || raw.includes('exchange')) return 'returns';
+    if (raw.includes('care')) return 'care';
+    if (raw.includes('shipping')) return 'shipping';
+    return 'shipping';
+  };
+
+  const [activeTab, setActiveTab] = useState(() => normalizeTab(initialTab));
+
+  // Sync tab with route prop or hash updates
+  useEffect(() => {
+    setActiveTab(normalizeTab(initialTab));
+  }, [initialTab]);
+
   useEffect(() => {
     try {
       const hash = window.location.hash.toLowerCase();
       if (hash.includes('privacy')) setActiveTab('privacy');
       else if (hash.includes('terms')) setActiveTab('terms');
-      else if (hash.includes('shipping')) setActiveTab('shipping');
       else if (hash.includes('returns') || hash.includes('exchange')) setActiveTab('returns');
       else if (hash.includes('care')) setActiveTab('care');
-    } catch (e) {}
+      else if (hash.includes('shipping')) setActiveTab('shipping');
+    } catch {}
   }, []);
 
   const tabs = [
@@ -169,10 +180,10 @@ export const LegalPolicyPage = ({ initialTab = 'shipping' }) => {
                 </ul>
 
                 <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.4rem', marginTop: '1rem', color: '#4B3024' }}>
-                  Live Tracking & Insured Transit
+                  Order Handling & Courier Partners
                 </h3>
                 <p>
-                  Upon handover to our logistics partner (Blue Dart, Delhivery, DTDC, or India Post), you will receive a confirmation message and Airway Bill (AWB) tracking link on both your registered WhatsApp number and email address. All shipments are fully insured against loss or transit damage.
+                  Shipping rates follow active storefront thresholds (currently complimentary in India for bags of ₹{(storeSettings?.freeShippingThreshold ?? 2999).toLocaleString('en-IN')} and above, or ₹{storeSettings?.standardShippingFee ?? 199} below threshold). Final courier dispatch method and Airway Bill (AWB) tracking details are shared directly by our atelier team on WhatsApp (+91 94906 58858) or email (rodhesaree@gmail.com) once your order is confirmed.
                 </p>
               </div>
             </div>
@@ -227,29 +238,47 @@ export const LegalPolicyPage = ({ initialTab = 'shipping' }) => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.25rem' }}>
                 <Lock size={24} color="#B88D4A" />
                 <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', margin: 0, color: '#4B3024' }}>
-                  Privacy Policy & Data Protection (DPDP Act, 2023)
+                  Privacy Policy & Browser Data Notice
                 </h2>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', fontSize: '0.92rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.35rem', fontSize: '0.92rem' }}>
                 <p>
-                  RODHE respects your personal privacy. This policy outlines how your information is handled in accordance with the Information Technology Act, 2000 and the Digital Personal Data Protection (DPDP) Act, 2023.
+                  RODHE (“we”, “us”) respects your privacy. This policy explains truthfully what personal details our storefront collects, where they are stored, and how WhatsApp and optional analytics work on <strong>www.rodhe.in</strong>.
                 </p>
 
-                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.4rem', marginTop: '1rem', color: '#4B3024' }}>
-                  Information We Collect
+                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.35rem', marginTop: '0.5rem', color: '#4B3024' }}>
+                  1. Information You Provide & Why We Collect It
                 </h3>
-                <ul style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                  <li><strong>Order Information:</strong> Full name, shipping address, 10-digit Indian mobile number, and email address used strictly to deliver your sarees and provide dispatch notifications.</li>
-                  <li><strong>Payment Security:</strong> RODHE does not store credit card numbers, debit card PINs, or UPI MPINs. All transactions are tokenized through RBI-authorized payment aggregators.</li>
-                  <li><strong>Zero Data Selling:</strong> We never sell, rent, or trade your personal details with third-party telemarketers or external advertising networks.</li>
+                <ul style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  <li><strong>Order Enquiries & Contact Forms:</strong> Full name, 10-digit WhatsApp mobile number, optional email address, and delivery address details (house/flat number, street, city, state, PIN code, landmark) entered so our concierge team can confirm stock, answer questions, and quote delivery.</li>
+                  <li><strong>Customer Accounts (Optional Sign-In):</strong> If you register or sign in, your account email, contact details, and saved delivery addresses are authenticated and stored per user via Supabase Auth & database services.</li>
+                  <li><strong>Payment Details Disclaimer:</strong> RODHE does <em>not</em> run an automated online payment gateway or collect card numbers, CVVs, or UPI PINs inside this website. Payment arrangements (such as direct UPI or bank transfer) happen strictly during WhatsApp confirmation.</li>
                 </ul>
 
-                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.4rem', marginTop: '1rem', color: '#4B3024' }}>
-                  Your Rights Under Indian Law
+                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.35rem', marginTop: '0.5rem', color: '#4B3024' }}>
+                  2. Local Browser Persistence & Cookies
+                </h3>
+                <ul style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  <li><strong>Essential Storage:</strong> Shopping bag items (<code>rodhe_cart</code>), favourites (<code>rodhe_wishlist</code>), consent preference (<code>rodhe_cookie_consent</code>), and signed-in auth tokens are kept in browser storage so your bag survives page reloads.</li>
+                  <li><strong>Guest Privacy Isolation:</strong> Unauthenticated guest delivery details during checkout are held only in temporary tab storage (<code>sessionStorage</code>) and are never shared across accounts or stored as a persistent guest profile.</li>
+                  <li><strong>Optional Analytics:</strong> Google Analytics 4 is loaded only when configured with a Measurement ID and explicitly enabled by you in Cookie Preferences. You may change or withdraw analytics consent anytime from the Footer link.</li>
+                </ul>
+
+                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.35rem', marginTop: '0.5rem', color: '#4B3024' }}>
+                  3. Third-Party Services & WhatsApp Handover
                 </h3>
                 <p>
-                  You may request a copy of your personal data or request deletion of your subscriber profile at any time by contacting <strong>rodhesaree@gmail.com</strong>.
+                  Product catalog, account authentication, and enquiry records are hosted via <strong>Supabase</strong>. When you choose to proceed to WhatsApp, the summary you review is prefilled into a WhatsApp message directed to <strong>+91 94906 58858</strong>, governed by WhatsApp’s terms once you send the chat. We never sell or rent your details to third-party advertisers.
+                </p>
+
+                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.35rem', marginTop: '0.5rem', color: '#4B3024' }}>
+                  4. Retention, Access & Deletion Requests
+                </h3>
+                <p>
+                  We retain customer enquiry and saved account data only for as long as needed to support concierge service or until you request removal. To request access, correction, or deletion of your personal data, email{' '}
+                  <a href="mailto:rodhesaree@gmail.com" style={{ color: '#4B3024', textDecoration: 'underline', fontWeight: 600 }}>rodhesaree@gmail.com</a>{' '}
+                  or message WhatsApp <strong>+91 94906 58858</strong>. Legal entity registration & physical studio correspondence address details will be published upon final business registration update.
                 </p>
               </div>
             </div>
@@ -265,25 +294,41 @@ export const LegalPolicyPage = ({ initialTab = 'shipping' }) => {
                 </h2>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', fontSize: '0.92rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.35rem', fontSize: '0.92rem' }}>
                 <p>
-                  By accessing the RODHE boutique storefront or placing an order, you agree to be bound by these Terms of Service.
+                  By browsing <strong>www.rodhe.in</strong> or submitting an order enquiry through our storefront, you agree to these terms governing handcrafted saree availability, pricing, and concierge ordering.
                 </p>
 
-                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.4rem', marginTop: '1rem', color: '#4B3024' }}>
-                  Handcrafted Products & Pricing
+                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.35rem', marginTop: '0.5rem', color: '#4B3024' }}>
+                  1. WhatsApp Enquiry & Order Confirmation
                 </h3>
-                <ul style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                  <li>All prices displayed on the storefront are in Indian Rupees (INR) and are inclusive of applicable GST unless explicitly stated otherwise.</li>
-                  <li>Because each saree is dyed with natural botanical extracts, subtle variations in hue between screens and the natural drape are natural and celebrated.</li>
-                  <li>We reserve the right to cancel orders or adjust stock in the rare event of inventory overselling due to simultaneous artisan reservations. In such cases, full refunds are issued immediately.</li>
+                <ul style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  <li>Submitting your bag opens a prepared order enquiry to our official WhatsApp concierge (<strong>+91 94906 58858</strong>). Simply opening or generating a WhatsApp message does <em>not</em> represent a paid or confirmed order.</li>
+                  <li>Our team verifies live weave inventory and delivery serviceability for your PIN code first, then shares direct payment instructions (UPI / Bank Transfer). Orders are confirmed only after concierge confirmation and verified payment receipt.</li>
+                  <li>Your shopping bag remains intact when WhatsApp opens so you can review or edit your selection without losing items.</li>
                 </ul>
 
-                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.4rem', marginTop: '1rem', color: '#4B3024' }}>
-                  Intellectual Property
+                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.35rem', marginTop: '0.5rem', color: '#4B3024' }}>
+                  2. Handcrafted Sarees, Pricing & Availability
+                </h3>
+                <ul style={{ paddingLeft: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  <li>All displayed prices are in Indian Rupees (INR). Shipping thresholds configured on the storefront apply based on bag subtotal before checkout confirmation.</li>
+                  <li>Handblock prints, natural mud-resist Dabu textures, and fermented indigo or madder hues carry slight organic variations across dye lots and screen displays; these reflect human craft rather than manufacturing defects.</li>
+                  <li>Availability is subject to real-time batch stock. If an edition sells out between browsing and WhatsApp confirmation, our team will offer comparable weaves or issue an immediate refund if any direct transfer had already occurred.</li>
+                </ul>
+
+                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.35rem', marginTop: '0.5rem', color: '#4B3024' }}>
+                  3. Cancellations, Exchanges & Contact
                 </h3>
                 <p>
-                  The brand name RODHE, wordmark, logo emblems, botanical photography, and craft narratives are the exclusive intellectual property of RODHE. Unauthorized commercial reproduction is prohibited under Indian copyright law.
+                  Exchanges, returns, and cancellations are coordinated directly via <strong>rodhesaree@gmail.com</strong> or WhatsApp <strong>+91 94906 58858</strong> prior to dispatch or under our published exchange guidelines above.
+                </p>
+
+                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.35rem', marginTop: '0.5rem', color: '#4B3024' }}>
+                  4. Intellectual Property
+                </h3>
+                <p>
+                  The RODHE name, monogram emblems, product descriptions, photography, and craft narratives on this website belong exclusively to RODHE and may not be copied or redistributed for commercial use without written consent.
                 </p>
               </div>
             </div>

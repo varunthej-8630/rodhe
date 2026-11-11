@@ -138,7 +138,7 @@ export const CustomerReviewsSection = () => {
                     }}
                   >
                     <CheckCircle2 size={12} color="#525B3A" />
-                    <span>Verified</span>
+                    <span>Patron Note</span>
                   </div>
                 </div>
 

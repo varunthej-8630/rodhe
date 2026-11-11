@@ -4,7 +4,6 @@ const { PRODUCTS } = require('../src/data/products.js');
 const staticRoutes = [
   { path: '', changefreq: 'daily', priority: '1.0' },
   { path: '?page=shop', changefreq: 'daily', priority: '0.9' },
-  { path: '?page=collections', changefreq: 'weekly', priority: '0.8' },
   { path: '?page=story', changefreq: 'monthly', priority: '0.7' },
   { path: '?page=contact', changefreq: 'monthly', priority: '0.7' },
   { path: '?page=shipping-delivery', changefreq: 'monthly', priority: '0.5' },
@@ -13,18 +12,20 @@ const staticRoutes = [
   { path: '?page=terms-of-service', changefreq: 'monthly', priority: '0.4' }
 ];
 
-const crafts = ['all', 'tie-dye', 'handblock', 'chanderi', 'mulmul'];
+const crafts = ['tie-dye', 'handblock', 'chanderi', 'mulmul'];
 const craftRoutes = crafts.map(c => ({
   path: '?page=shop&amp;craft=' + c,
   changefreq: 'weekly',
   priority: '0.8'
 }));
 
-const productRoutes = PRODUCTS.map(p => ({
-  path: '?product=' + p.id,
-  changefreq: 'weekly',
-  priority: '0.85'
-}));
+const productRoutes = PRODUCTS
+  .filter(p => !p.status || p.status === 'published')
+  .map(p => ({
+    path: '?product=' + p.id,
+    changefreq: 'weekly',
+    priority: '0.85'
+  }));
 
 const allRoutes = [...staticRoutes, ...craftRoutes, ...productRoutes];
 const canonicalBase = 'https://www.rodhe.in';

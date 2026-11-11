@@ -64,7 +64,16 @@ export const ShopByCraftSection = () => {
           {crafts.map((craft) => (
             <div
               key={craft.id}
+              role="button"
+              tabIndex={0}
+              aria-label={`Browse ${craft.title} sarees`}
               onClick={() => handleSelectCraft(craft.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleSelectCraft(craft.id);
+                }
+              }}
               style={{
                 position: 'relative',
                 backgroundColor: '#FFFDF9',
@@ -88,7 +97,9 @@ export const ShopByCraftSection = () => {
               <div style={{ position: 'relative', aspectRatio: '1 / 0.92', overflow: 'hidden' }}>
                 <img
                   src={craft.image}
-                  alt={craft.title}
+                  alt={`${craft.title} — ${craft.desc}`}
+                  loading="lazy"
+                  decoding="async"
                   style={{
                     width: '100%',
                     height: '100%',

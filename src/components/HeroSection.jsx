@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { ArrowRight, ChevronDown, Star, Sparkles, MessageCircle } from 'lucide-react';
+import { ArrowRight, ChevronDown, Leaf, MessageCircle } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { storeService } from '../services/storeService';
 
@@ -15,8 +15,6 @@ export const HeroSection = () => {
     heroSubtext: 'Discover gossamer sarees shaped by rain-fed cotton, botanical pigments, and the timeless touch of Indian generational artisans.',
   });
   const [settings, setSettings] = useState({
-    sareesSoldCount: 1240,
-    customerRating: 4.2,
     whatsappNumber: '919490658858'
   });
 
@@ -131,7 +129,8 @@ export const HeroSection = () => {
           loop
           muted
           playsInline
-          preload="auto"
+          preload="metadata"
+          poster="/assets/products/saree_muted_gold.jpg"
           className="rodhe-hero-video"
           onLoadedData={() => setIsVideoLoaded(true)}
           style={{
@@ -164,70 +163,74 @@ export const HeroSection = () => {
           zIndex: 2,
           pointerEvents: 'none',
           background: `
-            linear-gradient(180deg, rgba(30, 18, 13, 0.42) 0%, rgba(30, 18, 13, 0.1) 20%, transparent 40%),
-            linear-gradient(0deg, rgba(30, 18, 13, 0.88) 0%, rgba(30, 18, 13, 0.58) 28%, rgba(30, 18, 13, 0.15) 55%, transparent 75%),
-            radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(30, 18, 13, 0.32) 100%)
+            linear-gradient(90deg, rgba(30, 18, 13, 0.52) 0%, rgba(30, 18, 13, 0.24) 55%, rgba(30, 18, 13, 0.08) 100%),
+            linear-gradient(180deg, rgba(30, 18, 13, 0.44) 0%, rgba(30, 18, 13, 0.16) 24%, transparent 45%),
+            linear-gradient(0deg, rgba(30, 18, 13, 0.92) 0%, rgba(30, 18, 13, 0.68) 38%, rgba(30, 18, 13, 0.26) 66%, transparent 85%),
+            radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(30, 18, 13, 0.34) 100%)
           `
         }}
       />
 
-      {/* Top-Right Social Proof Trust Indicators */}
+      {/* Top-Right Craft Provenance Chips */}
       <div
         className="hero-trust-indicators"
         style={{
           position: 'absolute',
-          top: 'clamp(1rem, 3vw, 2rem)',
-          right: 'clamp(1rem, 4vw, 3.5rem)',
+          top: 'clamp(0.85rem, 2.5vw, 1.75rem)',
+          right: 'clamp(0.85rem, 3.5vw, 3.5rem)',
+          left: 'clamp(0.85rem, 3.5vw, 3.5rem)',
           zIndex: 4,
           display: 'flex',
           alignItems: 'center',
-          gap: 'clamp(0.65rem, 1.5vw, 1.25rem)'
+          justifyContent: 'flex-end',
+          flexWrap: 'wrap',
+          gap: '0.5rem',
+          pointerEvents: 'none'
         }}
       >
         <div
           style={{
-            backgroundColor: 'rgba(30, 18, 13, 0.65)',
-            border: '1px solid rgba(184, 141, 74, 0.4)',
+            backgroundColor: 'rgba(30, 18, 13, 0.72)',
+            border: '1px solid rgba(184, 141, 74, 0.45)',
             backdropFilter: 'blur(10px)',
             WebkitBackdropFilter: 'blur(10px)',
-            padding: '0.45rem 0.85rem',
+            padding: '0.4rem 0.78rem',
             borderRadius: '2px',
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
             gap: '0.4rem',
-            fontSize: 'clamp(0.72rem, 1.4vw, 0.8rem)',
+            fontSize: 'clamp(0.68rem, 1.3vw, 0.78rem)',
             color: '#EADAB5'
           }}
         >
-          <div style={{ display: 'flex', color: '#D4AC68' }}>
-            <Star size={13} fill="#D4AC68" />
-          </div>
-          <span><strong>{settings.customerRating}</strong> Rating</span>
+          <Leaf size={13} color="#D4AC68" />
+          <span>Botanical Dyes &amp; Pure Cotton</span>
         </div>
 
         <div
+          className="hero-secondary-chip"
           style={{
-            backgroundColor: 'rgba(30, 18, 13, 0.65)',
-            border: '1px solid rgba(184, 141, 74, 0.4)',
+            backgroundColor: 'rgba(30, 18, 13, 0.72)',
+            border: '1px solid rgba(184, 141, 74, 0.45)',
             backdropFilter: 'blur(10px)',
             WebkitBackdropFilter: 'blur(10px)',
-            padding: '0.45rem 0.85rem',
+            padding: '0.4rem 0.78rem',
             borderRadius: '2px',
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
             gap: '0.4rem',
-            fontSize: 'clamp(0.72rem, 1.4vw, 0.8rem)',
+            fontSize: 'clamp(0.68rem, 1.3vw, 0.78rem)',
             color: '#EADAB5'
           }}
         >
-          <Sparkles size={13} color="#D4AC68" />
-          <span><strong>{settings.sareesSoldCount.toLocaleString('en-IN')}+</strong> Sarees Draped</span>
+          <MessageCircle size={13} color="#D4AC68" />
+          <span>Personal WhatsApp Concierge</span>
         </div>
       </div>
 
       {/* Main Hero Editorial Typography & CTAs */}
       <div
-        className="container"
+        className="container hero-main-content"
         style={{
           position: 'relative',
           zIndex: 3,
@@ -236,11 +239,12 @@ export const HeroSection = () => {
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'flex-end',
-          paddingBottom: 'clamp(3.5rem, 7vw, 5.5rem)',
+          paddingTop: 'clamp(4.25rem, 8vw, 5.5rem)',
+          paddingBottom: 'clamp(2.5rem, 6.5vw, 5.25rem)',
           boxSizing: 'border-box'
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '2rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 'clamp(1.25rem, 3vw, 2rem)' }}>
           {/* Bottom-Left Brand Heading */}
           <div style={{ maxWidth: '640px' }}>
             {/* Hallmark Eyebrow */}
@@ -254,7 +258,7 @@ export const HeroSection = () => {
                 letterSpacing: '0.24em',
                 textTransform: 'uppercase',
                 color: '#EADAB5',
-                marginBottom: '1rem'
+                marginBottom: '0.85rem'
               }}
             >
               <span style={{ display: 'inline-block', width: '24px', height: '1px', backgroundColor: '#B88D4A' }} />
@@ -266,19 +270,25 @@ export const HeroSection = () => {
             <h1
               style={{
                 fontFamily: 'var(--font-serif)',
-                fontSize: 'clamp(2.3rem, 5.4vw, 5rem)',
+                fontSize: 'clamp(2.15rem, 5.4vw, 5rem)',
                 fontWeight: 300,
                 lineHeight: 1.08,
                 letterSpacing: '-0.02em',
                 color: '#FFFFFF',
                 textShadow: '0 4px 25px rgba(0, 0, 0, 0.7)',
-                marginBottom: '1.15rem'
+                marginBottom: '1rem'
               }}
             >
-              Born from Nature. <br />
-              <span style={{ fontStyle: 'italic', fontWeight: 400, color: '#EADAB5' }}>
-                Made to Be Worn.
-              </span>
+              {config.heroHeadline && config.heroHeadline !== 'Born from Nature. Made to Be Worn.' ? (
+                config.heroHeadline
+              ) : (
+                <>
+                  Born from Nature. <br />
+                  <span style={{ fontStyle: 'italic', fontWeight: 400, color: '#EADAB5' }}>
+                    Made to Be Worn.
+                  </span>
+                </>
+              )}
             </h1>
 
             {/* Supporting Text */}
@@ -358,11 +368,13 @@ export const HeroSection = () => {
 
       {/* Discreet Scroll Cue to Store Content */}
       <button
+        type="button"
         onClick={scrollToContent}
+        className="hero-scroll-cue"
         aria-label="Scroll down to explore handcrafted sarees"
         style={{
           position: 'absolute',
-          bottom: '1.25rem',
+          bottom: '1.1rem',
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 4,
@@ -370,7 +382,7 @@ export const HeroSection = () => {
           flexDirection: 'column',
           alignItems: 'center',
           gap: '0.25rem',
-          color: 'rgba(234, 218, 181, 0.8)',
+          color: 'rgba(234, 218, 181, 0.85)',
           fontSize: '0.66rem',
           letterSpacing: '0.2em',
           textTransform: 'uppercase',
@@ -392,12 +404,16 @@ export const HeroSection = () => {
           }
           #rodhe-hero-section {
             height: auto !important;
-            min-height: 520px !important;
-            padding-top: 4rem;
+            min-height: 460px !important;
           }
           .hero-trust-indicators {
-            top: 1rem !important;
-            right: 1rem !important;
+            justify-content: flex-start !important;
+          }
+          .hero-secondary-chip {
+            display: none !important;
+          }
+          .hero-scroll-cue {
+            display: none !important;
           }
         }
         @media (min-width: 769px) and (max-width: 1024px) {

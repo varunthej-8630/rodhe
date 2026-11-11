@@ -3,6 +3,14 @@ import { PRODUCTS as STATIC_PRODUCTS } from '../data/products';
 import { storeService } from '../services/storeService';
 import { customerService } from '../services/customerService';
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
+import {
+  getCookieConsent,
+  saveCookieConsent as persistCookieConsent,
+  ensureGtagLoaded,
+  trackAddToCart,
+  trackRemoveFromCart,
+  trackAddToWishlist
+} from '../services/analyticsService';
 
 const ShopContext = createContext();
 
@@ -78,8 +86,19 @@ export const ShopProvider = ({ children }) => {
 
   useEffect(() => {
     customerService.purgeLegacyInsecurePii();
+    ensureGtagLoaded();
     refreshProducts();
   }, [refreshProducts]);
+
+  // Cookie & Optional Analytics Consent State
+  const [cookieConsent, setCookieConsent] = useState(() => getCookieConsent());
+  const [isCookiePrefsOpen, setIsCookiePrefsOpen] = useState(false);
+
+  const saveCookiePreferences = useCallback((analyticsOptIn) => {
+    const saved = persistCookieConsent({ analytics: Boolean(analyticsOptIn) });
+    setCookieConsent(saved);
+    setIsCookiePrefsOpen(false);
+  }, []);
 
   // Intro video session state
   const [hasIntroPlayed, setHasIntroPlayedState] = useState(() => {
@@ -227,6 +246,7 @@ export const ShopProvider = ({ children }) => {
     setIsAuthOpen(false);
     setIsCheckoutOpen(false);
     setIsTrackOrderOpen(false);
+    setIsCookiePrefsOpen(false);
     setQuickViewProduct(null);
   }, []);
 
@@ -239,6 +259,7 @@ export const ShopProvider = ({ children }) => {
     isAuthOpen ||
     isCheckoutOpen ||
     isTrackOrderOpen ||
+    isCookiePrefsOpen ||
     quickViewProduct
   );
 
@@ -553,8 +574,10 @@ export const ShopProvider = ({ children }) => {
       showToast(`Only ${stockLimit} piece${stockLimit === 1 ? '' : 's'} of "${live.name}" available in stock.`, 'info');
     } else if (capped) {
       showToast(`Added "${live.name}" (max available stock: ${stockLimit}).`, 'info');
+      trackAddToCart(live, reqQty);
     } else {
       showToast(`Added "${live.name}" to your bag.`);
+      trackAddToCart(live, reqQty);
     }
 
     if (openDrawer) {
@@ -574,6 +597,7 @@ export const ShopProvider = ({ children }) => {
     const removedEntry = prev[removedIdx];
     const nextCart = prev.filter((_, idx) => idx !== removedIdx);
     commitCart(nextCart);
+    trackRemoveFromCart(removedEntry.product, removedEntry.quantity);
 
     const targetProd = removedEntry.product;
     const targetQty = removedEntry.quantity;
@@ -651,6 +675,7 @@ export const ShopProvider = ({ children }) => {
     } else {
       const next = [...prev, canonicalId];
       commitWishlist(next);
+      trackAddToWishlist(live || { id: canonicalId, name: 'Handcrafted Saree' });
       showToast(`Saved "${live ? live.name : 'Saree'}" to favourites.`, 'success');
     }
   }, [resolveLiveProduct, commitWishlist, showToast]);
@@ -786,6 +811,14 @@ export const ShopProvider = ({ children }) => {
     }
     try {
       if (typeof window !== 'undefined') {
+        if (
+          page !== 'not-found' &&
+          window.location.pathname &&
+          window.location.pathname !== '/' &&
+          window.location.pathname !== '/index.html'
+        ) {
+          history.replaceState(null, '', '/');
+        }
         if (page === 'admin') {
           if (!window.location.hash.includes('admin')) {
             window.location.hash = 'admin';
@@ -803,12 +836,14 @@ export const ShopProvider = ({ children }) => {
         } else if (page === 'policies') {
           window.location.hash = productId ? `policies-${productId}` : 'policies';
         } else if (page === 'home') {
-          let newUrl = window.location.pathname;
+          let newUrl = '/';
           if (window.location.search) {
             const searchParams = new URLSearchParams(window.location.search);
             searchParams.delete('page');
             searchParams.delete('product');
             searchParams.delete('craft');
+            searchParams.delete('id');
+            searchParams.delete('tab');
             const remaining = searchParams.toString();
             if (remaining) {
               newUrl += `?${remaining}`;
@@ -895,6 +930,11 @@ export const ShopProvider = ({ children }) => {
         quickViewProduct,
         setQuickViewProduct,
         closeAllOverlays,
+        isAnyOverlayOpen,
+        cookieConsent,
+        isCookiePrefsOpen,
+        setIsCookiePrefsOpen,
+        saveCookiePreferences,
         patronUser,
         isCustomerAuthLoading,
         customerAddresses,

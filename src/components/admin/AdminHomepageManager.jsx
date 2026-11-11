@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutTemplate, Save, CheckCircle2, Sparkles, Sliders } from 'lucide-react';
+import { Save, CheckCircle2, AlertCircle } from 'lucide-react';
 import { storeService } from '../../services/storeService';
 
 export const AdminHomepageManager = () => {
@@ -7,6 +7,7 @@ export const AdminHomepageManager = () => {
   const [settings, setSettings] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -21,13 +22,14 @@ export const AdminHomepageManager = () => {
   const handleSave = async (e) => {
     e.preventDefault();
     setIsSaving(true);
+    setSaveError('');
     try {
       await storeService.updateHomepageConfig(config);
       await storeService.updateSettings(settings);
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 2500);
     } catch (err) {
-      alert('Error updating homepage configuration: ' + err.message);
+      setSaveError('Error updating homepage configuration: ' + (err?.message || 'Unable to publish changes.'));
     } finally {
       setIsSaving(false);
     }
@@ -70,6 +72,26 @@ export const AdminHomepageManager = () => {
           <span>{savedSuccess ? 'Changes Published!' : isSaving ? 'Publishing...' : 'Publish to Storefront'}</span>
         </button>
       </div>
+
+      {saveError && (
+        <div
+          role="alert"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.6rem',
+            padding: '0.85rem 1rem',
+            backgroundColor: 'rgba(181, 67, 50, 0.08)',
+            border: '1px solid rgba(181, 67, 50, 0.3)',
+            borderRadius: '4px',
+            color: '#9E3C2B',
+            fontSize: '0.84rem'
+          }}
+        >
+          <AlertCircle size={16} style={{ flexShrink: 0 }} />
+          <span>{saveError}</span>
+        </div>
+      )}
 
       <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         {/* Card 1: Hero Section */}

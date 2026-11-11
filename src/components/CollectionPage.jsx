@@ -3,6 +3,7 @@ import { ProductCard } from './ProductCard';
 import { CRAFT_CATEGORIES, COLOR_PALETTES, FABRIC_TYPES } from '../data/products';
 import { SlidersHorizontal, X, RotateCcw } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
+import { trackViewItemList } from '../services/analyticsService';
 
 const BUDGET_LABELS = {
   'under-800': 'Under ₹800',
@@ -46,7 +47,14 @@ export const CollectionPage = () => {
       if (e.key === 'Escape' && isMobileFilterOpen) setIsMobileFilterOpen(false);
     };
     window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
+    const previousOverflow = document.body.style.overflow;
+    if (isMobileFilterOpen) {
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      window.removeEventListener('keydown', handleEsc);
+      document.body.style.overflow = previousOverflow;
+    };
   }, [isMobileFilterOpen]);
 
   const publishedProducts = (PRODUCTS || []).filter((p) => !p.status || p.status === 'published');
@@ -112,6 +120,13 @@ export const CollectionPage = () => {
     if (sortBy === 'newest') return (b.isNew || b.isNewArrival ? 1 : 0) - (a.isNew || a.isNewArrival ? 1 : 0);
     return 0;
   });
+
+  useEffect(() => {
+    const activeCraftName =
+      CRAFT_CATEGORIES.find((c) => c.id === selectedCraft)?.name || 'All Sarees';
+    trackViewItemList(activeCraftName, sortedProducts);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCraft, selectedColor, selectedFabric, inStockOnly, sortedProducts.length]);
 
   const hasActiveFilters =
     selectedCraft !== 'all' ||
@@ -412,6 +427,7 @@ export const CollectionPage = () => {
                     key={col.id}
                     onClick={() => setSelectedColor(col.id)}
                     title={col.name}
+                    aria-label={`Filter by ${col.name}`}
                     style={{
                       width: '38px',
                       height: '38px',
@@ -504,8 +520,8 @@ export const CollectionPage = () => {
               </div>
             ) : (
               <div className="products-grid">
-                {sortedProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} />
+                {sortedProducts.map((product, index) => (
+                  <ProductCard key={product.id} product={product} eager={index < 4} />
                 ))}
               </div>
             )}
@@ -610,6 +626,7 @@ export const CollectionPage = () => {
                       key={col.id}
                       onClick={() => setSelectedColor(col.id)}
                       title={col.name}
+                      aria-label={`Filter by ${col.name}`}
                       style={{
                         height: '42px',
                         borderRadius: '4px',

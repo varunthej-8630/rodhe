@@ -3,25 +3,38 @@ import { ArrowRight, ShieldCheck, Check, Sparkles } from 'lucide-react';
 import { InstagramIcon, FacebookIcon, PinterestIcon, YoutubeIcon } from './SocialIcons';
 import { useShop } from '../context/ShopContext';
 import { storeService } from '../services/storeService';
+import { isValidEmail } from '../services/customerService';
 
 export const Footer = () => {
-  const { navigateTo, setSelectedCraft, showToast, setIsTrackOrderOpen, PRODUCTS } = useShop();
+  const { navigateTo, setSelectedCraft, showToast, setIsTrackOrderOpen, setIsCookiePrefsOpen, PRODUCTS, storeSettings } = useShop();
   const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterError, setNewsletterError] = useState('');
+  const [isSubscribing, setIsSubscribing] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
 
   const publishedCount = (PRODUCTS || []).filter((p) => !p.status || p.status === 'published').length;
+  const conciergeEmail = storeSettings?.conciergeEmail || 'rodhesaree@gmail.com';
 
   const handleSubscribe = async (e) => {
     e.preventDefault();
+    if (isSubscribing) return;
     const cleanEmail = newsletterEmail.trim();
-    if (!cleanEmail) return;
+    if (!cleanEmail || !isValidEmail(cleanEmail)) {
+      setNewsletterError('Please enter a valid email address.');
+      return;
+    }
+
+    setNewsletterError('');
+    setIsSubscribing(true);
     try {
       await storeService.joinCircle(cleanEmail);
+      setIsSubscribed(true);
+      showToast('Thank you for joining the RODHE textile society.', 'success');
     } catch (err) {
-      console.warn('Newsletter subscription notice:', err);
+      setNewsletterError(err?.message || 'Unable to save subscription right now. Please try again.');
+    } finally {
+      setIsSubscribing(false);
     }
-    setIsSubscribed(true);
-    showToast('Thank you for joining the RODHE textile society.');
   };
 
   const handleCraftClick = (craft) => {
@@ -113,41 +126,55 @@ export const Footer = () => {
                   </span>
                 </div>
               ) : (
-                <form onSubmit={handleSubscribe} className="footer-newsletter-form">
-                  <input
-                    type="email"
-                    required
-                    placeholder="Enter your email address"
-                    value={newsletterEmail}
-                    onChange={(e) => setNewsletterEmail(e.target.value)}
-                    style={{
-                      flexGrow: 1,
-                      minWidth: 0,
-                      padding: '0.85rem 1.15rem',
-                      backgroundColor: '#FFFFFF',
-                      border: '1px solid rgba(184, 141, 74, 0.38)',
-                      borderRadius: '2px',
-                      color: '#4B3024',
-                      fontSize: '0.88rem',
-                      outline: 'none',
-                      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03)'
-                    }}
-                  />
-                  <button
-                    type="submit"
-                    className="btn btn-gold"
-                    style={{
-                      padding: '0.85rem 1.6rem',
-                      minHeight: '44px',
-                      flexShrink: 0,
-                      backgroundColor: '#B88D4A',
-                      color: '#FAF6EE',
-                      borderRadius: '2px'
-                    }}
-                  >
-                    <span>Subscribe</span>
-                    <ArrowRight size={15} />
-                  </button>
+                <form onSubmit={handleSubscribe} noValidate>
+                  <div className="footer-newsletter-form">
+                    <input
+                      type="email"
+                      required
+                      aria-label="Newsletter email address"
+                      placeholder="Enter your email address"
+                      value={newsletterEmail}
+                      onChange={(e) => {
+                        setNewsletterEmail(e.target.value);
+                        if (newsletterError) setNewsletterError('');
+                      }}
+                      style={{
+                        flexGrow: 1,
+                        minWidth: 0,
+                        padding: '0.85rem 1.15rem',
+                        backgroundColor: '#FFFFFF',
+                        border: newsletterError ? '1px solid #C98278' : '1px solid rgba(184, 141, 74, 0.38)',
+                        borderRadius: '2px',
+                        color: '#4B3024',
+                        fontSize: '0.88rem',
+                        outline: 'none',
+                        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03)'
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSubscribing}
+                      className="btn btn-gold"
+                      style={{
+                        padding: '0.85rem 1.6rem',
+                        minHeight: '44px',
+                        flexShrink: 0,
+                        backgroundColor: '#B88D4A',
+                        color: '#FAF6EE',
+                        borderRadius: '2px',
+                        opacity: isSubscribing ? 0.7 : 1,
+                        cursor: isSubscribing ? 'wait' : 'pointer'
+                      }}
+                    >
+                      <span>{isSubscribing ? 'Subscribing...' : 'Subscribe'}</span>
+                      <ArrowRight size={15} />
+                    </button>
+                  </div>
+                  {newsletterError && (
+                    <div role="alert" style={{ fontSize: '0.78rem', color: '#8A2A20', marginTop: '0.4rem' }}>
+                      {newsletterError}
+                    </div>
+                  )}
                 </form>
               )}
             </div>
@@ -204,8 +231,9 @@ export const Footer = () => {
                 <div style={{ display: 'flex', gap: '1rem', color: 'rgba(250, 246, 238, 0.8)' }}>
                   <button
                     type="button"
-                    onClick={() => showToast('Follow RODHE crafts on Instagram @rodhe.official', 'info')}
-                    aria-label="Instagram"
+                    onClick={() => showToast(`Official Instagram link pending client confirmation. Reach us at ${conciergeEmail} or WhatsApp.`, 'info')}
+                    aria-label="Instagram (link pending client confirmation)"
+                    title="Instagram link pending client confirmation"
                     style={{ transition: 'color 0.2s', padding: '0.25rem', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
                     onMouseEnter={(e) => (e.currentTarget.style.color = '#D4AC68')}
                     onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(250, 246, 238, 0.8)')}
@@ -214,8 +242,9 @@ export const Footer = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => showToast('Connect with RODHE Atelier Concierge on WhatsApp or @rodhe.official', 'info')}
-                    aria-label="Facebook"
+                    onClick={() => showToast(`Official Facebook link pending client confirmation. Reach us at ${conciergeEmail} or WhatsApp.`, 'info')}
+                    aria-label="Facebook (link pending client confirmation)"
+                    title="Facebook link pending client confirmation"
                     style={{ transition: 'color 0.2s', padding: '0.25rem', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
                     onMouseEnter={(e) => (e.currentTarget.style.color = '#D4AC68')}
                     onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(250, 246, 238, 0.8)')}
@@ -224,8 +253,9 @@ export const Footer = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => showToast('Discover RODHE weave journals @rodhe.official', 'info')}
-                    aria-label="Pinterest"
+                    onClick={() => showToast(`Official Pinterest link pending client confirmation. Reach us at ${conciergeEmail} or WhatsApp.`, 'info')}
+                    aria-label="Pinterest (link pending client confirmation)"
+                    title="Pinterest link pending client confirmation"
                     style={{ transition: 'color 0.2s', padding: '0.25rem', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
                     onMouseEnter={(e) => (e.currentTarget.style.color = '#D4AC68')}
                     onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(250, 246, 238, 0.8)')}
@@ -234,8 +264,9 @@ export const Footer = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => showToast('Watch RODHE loom craft stories @rodhe.official', 'info')}
-                    aria-label="YouTube"
+                    onClick={() => showToast(`Official YouTube link pending client confirmation. Reach us at ${conciergeEmail} or WhatsApp.`, 'info')}
+                    aria-label="YouTube (link pending client confirmation)"
+                    title="YouTube link pending client confirmation"
                     style={{ transition: 'color 0.2s', padding: '0.25rem', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
                     onMouseEnter={(e) => (e.currentTarget.style.color = '#D4AC68')}
                     onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(250, 246, 238, 0.8)')}
@@ -344,34 +375,34 @@ export const Footer = () => {
                 </h4>
                 <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.85rem' }}>
                   <li>
-                    <button onClick={() => setIsTrackOrderOpen(true)} style={{ color: '#D4AC68', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                    <button type="button" onClick={() => setIsTrackOrderOpen(true)} style={{ color: '#D4AC68', fontWeight: 600, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
                       Track Your Order
                     </button>
                   </li>
                   <li>
-                    <button onClick={() => navigateTo('contact')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                    <button type="button" onClick={() => navigateTo('contact')} style={{ color: 'rgba(250, 246, 238, 0.85)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
                       Customer Support
                     </button>
                   </li>
                   <li>
-                    <button onClick={() => navigateTo('policies', 'shipping')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                      Shipping & Insured Delivery
+                    <button type="button" onClick={() => navigateTo('policies', 'shipping')} style={{ color: 'rgba(250, 246, 238, 0.85)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      Shipping &amp; Delivery
                     </button>
                   </li>
                   <li>
-                    <button onClick={() => navigateTo('policies', 'returns')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                      7-Day Easy Exchange Policy
+                    <button type="button" onClick={() => navigateTo('policies', 'returns')} style={{ color: 'rgba(250, 246, 238, 0.85)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      Exchange Guidelines
                     </button>
                   </li>
                   <li>
-                    <button onClick={() => navigateTo('policies', 'care')} style={{ color: 'rgba(250, 246, 238, 0.8)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
-                      Saree Care & Wash Guide
+                    <button type="button" onClick={() => navigateTo('policies', 'care')} style={{ color: 'rgba(250, 246, 238, 0.85)', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+                      Saree Care &amp; Wash Guide
                     </button>
                   </li>
                   <li>
-                    <span style={{ color: '#D4AC68', fontSize: '0.82rem' }}>
-                      Email: rodhesaree@gmail.com
-                    </span>
+                    <a href={`mailto:${conciergeEmail}`} style={{ color: '#D4AC68', fontSize: '0.82rem', wordBreak: 'break-word' }}>
+                      Email: {conciergeEmail}
+                    </a>
                   </li>
                 </ul>
               </div>
@@ -389,7 +420,7 @@ export const Footer = () => {
                 flexWrap: 'wrap',
                 gap: '1rem',
                 fontSize: '0.78rem',
-                color: 'rgba(250, 246, 238, 0.65)'
+                color: 'rgba(250, 246, 238, 0.72)'
               }}
             >
               <div>
@@ -397,10 +428,12 @@ export const Footer = () => {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                <span style={{ cursor: 'pointer' }} onClick={() => navigateTo('policies', 'privacy')}>Privacy Policy</span>
-                <span style={{ cursor: 'pointer' }} onClick={() => navigateTo('policies', 'terms')}>Terms of Service</span>
-                <span style={{ cursor: 'pointer' }} onClick={() => navigateTo('story')}>Authentication Certificate</span>
+                <button type="button" style={{ cursor: 'pointer', color: 'inherit', fontSize: 'inherit' }} onClick={() => navigateTo('policies', 'privacy')}>Privacy Policy</button>
+                <button type="button" style={{ cursor: 'pointer', color: 'inherit', fontSize: 'inherit' }} onClick={() => navigateTo('policies', 'terms')}>Terms of Service</button>
+                <button type="button" style={{ cursor: 'pointer', color: 'inherit', fontSize: 'inherit' }} onClick={() => setIsCookiePrefsOpen(true)}>Cookie Preferences</button>
+                <button type="button" style={{ cursor: 'pointer', color: 'inherit', fontSize: 'inherit' }} onClick={() => navigateTo('story')}>Craft Manifesto</button>
                 <button
+                  type="button"
                   onClick={() => navigateTo('admin')}
                   style={{
                     background: 'none',
@@ -420,7 +453,7 @@ export const Footer = () => {
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#D4AC68' }}>
                 <ShieldCheck size={16} style={{ flexShrink: 0 }} />
-                <span>100% Genuine Handloom & Botanical Dye Guarantee</span>
+                <span>Handcrafted Cotton &amp; Natural Botanical Dyes</span>
               </div>
             </div>
           </div>

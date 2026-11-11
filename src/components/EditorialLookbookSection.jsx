@@ -1,16 +1,60 @@
 import React from 'react';
-import { ArrowRight } from 'lucide-react';
 import { InstagramIcon } from './SocialIcons';
+import { useShop } from '../context/ShopContext';
 
 export const EditorialLookbookSection = () => {
+  const { navigateTo, setSelectedCraft } = useShop();
+
   const gallery = [
-    { src: '/assets/products/saree_indigo_shibori.jpg', tag: '#NilambariShibori' },
-    { src: '/assets/Carved Wooden Block Printing Stamp Collection.png', tag: '#HandcarvedStamps' },
-    { src: '/assets/products/saree_earth_bagru.jpg', tag: '#MrittikaBagru' },
-    { src: '/assets/Rustic Natural Dye Still Life.png', tag: '#BotanicalPigments' },
-    { src: '/assets/products/saree_soft_rose.jpg', tag: '#GulabiRaag' },
-    { src: '/assets/Rodhe Saree Packaging Elegance.png', tag: '#WovenWithTrust' }
+    {
+      src: '/assets/products/saree_indigo_shibori.jpg',
+      tag: '#NilambariShibori',
+      alt: 'Nilambari Shibori indigo handwoven mulmul cotton saree drape',
+      craft: 'tie-dye',
+      productId: 'nilambari-shibori-saree'
+    },
+    {
+      src: '/assets/Carved Wooden Block Printing Stamp Collection.png',
+      tag: '#HandcarvedStamps',
+      alt: 'Hand-carved wooden Bagru block printing stamps on artisan workbench',
+      craft: 'handblock'
+    },
+    {
+      src: '/assets/products/saree_earth_bagru.jpg',
+      tag: '#MrittikaBagru',
+      alt: 'Mrittika earth-toned Bagru mud-resist block printed cotton saree',
+      craft: 'handblock',
+      productId: 'mrittika-bagru-cotton-saree'
+    },
+    {
+      src: '/assets/Rustic Natural Dye Still Life.png',
+      tag: '#BotanicalPigments',
+      alt: 'Natural indigo leaves, madder root, and botanical dye pigments for sarees',
+      craft: 'all'
+    },
+    {
+      src: '/assets/products/saree_soft_rose.jpg',
+      tag: '#GulabiRaag',
+      alt: 'Gulabi Raag soft rose handcrafted cotton saree with woven border',
+      craft: 'mulmul',
+      productId: 'gulabi-raag-mulmul-saree'
+    },
+    {
+      src: '/assets/Rodhe Saree Packaging Elegance.png',
+      tag: '#WovenWithTrust',
+      alt: 'Handcrafted RODHE saree folded inside signature heritage keepsake box',
+      craft: 'chanderi'
+    }
   ];
+
+  const handleItemClick = (item) => {
+    if (item.productId) {
+      navigateTo('product', item.productId);
+    } else {
+      setSelectedCraft(item.craft || 'all');
+      navigateTo('shop');
+    }
+  };
 
   return (
     <section className="section-padding" style={{ backgroundColor: '#FAF6EE' }}>
@@ -19,26 +63,35 @@ export const EditorialLookbookSection = () => {
           <div className="eyebrow">Editorial Lookbook</div>
           <h2 className="section-title">#WovenWithTrust</h2>
           <p className="section-subtitle">
-            Follow the journey of handcraft, drape, and slow luxury on Instagram @rodhe.official
+            Explore craft chapters, botanical dyes, and draped silhouettes across our collection.
           </p>
         </div>
 
         <div className="lookbook-grid">
           {gallery.map((item, idx) => (
-            <div
+            <button
               key={idx}
+              type="button"
+              onClick={() => handleItemClick(item)}
+              aria-label={`Explore ${item.alt}`}
               style={{
                 position: 'relative',
                 aspectRatio: '1',
                 overflow: 'hidden',
                 backgroundColor: '#EADAB5',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                padding: 0,
+                border: 'none',
+                display: 'block',
+                width: '100%'
               }}
               className="lookbook-item"
             >
               <img
                 src={item.src}
-                alt={item.tag}
+                alt={item.alt}
+                loading="lazy"
+                decoding="async"
                 style={{
                   width: '100%',
                   height: '100%',
@@ -69,7 +122,7 @@ export const EditorialLookbookSection = () => {
                   {item.tag}
                 </span>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </div>

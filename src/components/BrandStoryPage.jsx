@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Sparkles, Feather, ShieldCheck, HeartHandshake } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 
 export const BrandStoryPage = () => {
@@ -132,6 +132,8 @@ export const BrandStoryPage = () => {
             <img
               src="/assets/Rustic Natural Dye Still Life.png"
               alt="Natural Dye & Textile Ingredients"
+              loading="lazy"
+              decoding="async"
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           </div>
@@ -158,6 +160,8 @@ export const BrandStoryPage = () => {
             <img
               src="/assets/Handcrafted Indigo Block Printing.png"
               alt="Handcrafted Indigo Block Printing"
+              loading="lazy"
+              decoding="async"
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           </div>
@@ -226,6 +230,8 @@ export const BrandStoryPage = () => {
             <img
               src="/assets/Carved Wooden Block Printing Stamp Collection.png"
               alt="Carved Wooden Block Printing Stamps"
+              loading="lazy"
+              decoding="async"
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           </div>

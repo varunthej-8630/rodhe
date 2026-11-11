@@ -891,7 +891,14 @@ async function runBrowserE2E() {
         setVal('[aria-label="Customer Account"] input[placeholder*="560001"]', '560038');
         document.querySelector('[aria-label="Customer Account"] form')?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
       `);
-      await cdp.waitFor("document.querySelector('[aria-label=\"Customer Account\"]')?.textContent.includes('Simulated database write error')", 5000);
+      try {
+        await cdp.waitFor("document.querySelector('[aria-label=\"Customer Account\"]')?.textContent.includes('Simulated database write error')", 5000);
+      } catch (saveWaitErr) {
+        const modalDump = await cdp.eval(`return document.querySelector('[aria-label="Customer Account"]')?.textContent || '';`);
+        console.error('SAVE_MODAL_DUMP:', modalDump);
+        console.error('SUITE7_SAVE_TRACE:', suite7Trace.slice(-25));
+        throw saveWaitErr;
+      }
 
       const failEditCheck = await cdp.eval(`
         const modal = document.querySelector('[aria-label="Customer Account"]');

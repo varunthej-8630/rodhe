@@ -2,7 +2,7 @@ import React from 'react';
 import { Heart } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 
-export const ProductCard = ({ product }) => {
+export const ProductCard = ({ product, eager = false }) => {
   const {
     addToCart,
     toggleWishlist,
@@ -41,7 +41,8 @@ export const ProductCard = ({ product }) => {
           src={primaryImage}
           alt={product.name || 'Handcrafted Saree'}
           className="product-image primary"
-          loading="lazy"
+          loading={eager ? 'eager' : 'lazy'}
+          decoding="async"
           onError={(e) => {
             e.currentTarget.onerror = null;
             e.currentTarget.src = '/assets/products/saree_ivory_mulmul.jpg';

@@ -1,38 +1,44 @@
 import React from 'react';
-import { ShoppingBag, ArrowRight } from 'lucide-react';
+import { ArrowRight, Home, Compass } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 
 export const NotFoundPage = () => {
   const { navigateTo } = useShop();
 
   return (
-    <div
+    <section
+      aria-label="Page not found"
       style={{
-        minHeight: '65vh',
+        minHeight: '68vh',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         textAlign: 'center',
-        padding: 'clamp(2rem, 5vw, 4rem) 1.5rem',
+        padding: 'clamp(2.5rem, 6vw, 5rem) 1.5rem',
         backgroundColor: '#FAF6EE'
       }}
     >
       <div
         style={{
-          width: '72px',
-          height: '72px',
+          width: '82px',
+          height: '82px',
           borderRadius: '50%',
-          backgroundColor: '#F4ECE1',
-          border: '1px solid rgba(184, 141, 74, 0.3)',
+          backgroundColor: '#301B12',
+          border: '1.5px solid #B88D4A',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           marginBottom: '1.5rem',
-          color: '#B88D4A'
+          padding: '0.75rem',
+          boxShadow: '0 10px 25px rgba(48, 27, 18, 0.14)'
         }}
       >
-        <ShoppingBag size={32} />
+        <img
+          src="/assets/rodhe_emblem_saree_r.png"
+          alt="RODHE Monogram"
+          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+        />
       </div>
 
       <span
@@ -45,13 +51,13 @@ export const NotFoundPage = () => {
           marginBottom: '0.65rem'
         }}
       >
-        404 — Drape Not Found
+        Error 404 — Page Not Found
       </span>
 
       <h1
         style={{
           fontFamily: 'var(--font-serif)',
-          fontSize: 'clamp(2rem, 4vw, 3rem)',
+          fontSize: 'clamp(2rem, 4.2vw, 3.1rem)',
           color: '#4B3024',
           marginBottom: '1rem',
           fontWeight: 500
@@ -62,35 +68,38 @@ export const NotFoundPage = () => {
 
       <p
         style={{
-          fontSize: '0.94rem',
+          fontSize: '0.96rem',
           color: '#6F4E3E',
-          maxWidth: '480px',
-          lineHeight: 1.6,
-          marginBottom: '2rem'
+          maxWidth: '490px',
+          lineHeight: 1.65,
+          marginBottom: '2.1rem'
         }}
       >
-        The artisanal page or saree edition you are searching for might have moved, been archived into our heirloom vault, or does not exist.
+        The handcrafted saree or page link you visited could not be found. It may have moved, been retired from our loom batch, or contains a typo in the address.
       </p>
 
-      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', gap: '0.85rem', flexWrap: 'wrap', justifyContent: 'center' }}>
         <button
+          type="button"
           onClick={() => navigateTo('home')}
           className="btn btn-primary"
           style={{ minHeight: '46px', padding: '0.75rem 1.75rem' }}
         >
-          Return to RODHE Home
+          <Home size={15} />
+          <span>Return to Homepage</span>
         </button>
 
         <button
+          type="button"
           onClick={() => navigateTo('shop')}
           className="btn btn-outline"
           style={{ minHeight: '46px', padding: '0.75rem 1.75rem', borderColor: '#4B3024', color: '#4B3024' }}
         >
-          <span>Discover Sarees</span>
+          <Compass size={15} />
+          <span>Browse Sarees</span>
           <ArrowRight size={15} />
         </button>
       </div>
-    </div>
+    </section>
   );
 };
-

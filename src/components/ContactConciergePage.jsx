@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Mail, Phone, MapPin, Clock, MessageSquare, Send, CheckCircle2, ChevronDown } from 'lucide-react';
+import { Mail, Phone, Clock, Send, CheckCircle2, ChevronDown, AlertCircle, MessageCircle, Copy, MapPin } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { storeService } from '../services/storeService';
+import { isValidEmail, isValidIndianPhone, formatPhoneDigits } from '../services/customerService';
 
 export const ContactConciergePage = () => {
-  const { showToast } = useShop();
+  const { showToast, storeSettings } = useShop();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -12,41 +13,70 @@ export const ContactConciergePage = () => {
     subject: 'Styling & Saree Selection',
     message: ''
   });
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [submitError, setSubmitError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSent, setIsSent] = useState(false);
+  const [lastWaUrl, setLastWaUrl] = useState('');
+  const [lastWaText, setLastWaText] = useState('');
   const [openFaq, setOpenFaq] = useState(0);
+
+  const waNumber = (storeSettings?.whatsappNumber || '919490658858').replace(/[^0-9]/g, '') || '919490658858';
+  const contactEmail = storeSettings?.conciergeEmail || 'rodhesaree@gmail.com';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSent(true);
+    if (isSubmitting) return;
 
-    // Save inquiry to backend store
-    try {
-      await storeService.submitEnquiry({
-        name: formData.name,
-        customer_name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        subject: formData.subject,
-        saree_interest: formData.subject,
-        message: formData.message,
-        source: 'contact_page'
-      });
-    } catch (err) {
-      console.warn('Inquiry record error:', err);
+    const errs = {};
+    if (!formData.name.trim() || formData.name.trim().length < 2) {
+      errs.name = 'Please enter your full name.';
+    }
+    if (!formData.email.trim() || !isValidEmail(formData.email)) {
+      errs.email = 'Please enter a valid email address.';
+    }
+    if (formData.phone.trim() && !isValidIndianPhone(formData.phone)) {
+      errs.phone = 'Enter a valid 10-digit Indian mobile number.';
+    }
+    if (!formData.message.trim() || formData.message.trim().length < 10) {
+      errs.message = 'Please share a brief note (at least 10 characters).';
     }
 
-    // Prefill WhatsApp inquiry message to 9490658858
-    const waText = encodeURIComponent(
-      `Namaste RODHE Concierge,\n\nI am sending an inquiry from your website:\n` +
-      `• Name: ${formData.name || 'Patron'}\n` +
-      `• Email: ${formData.email || 'N/A'}\n` +
-      `• Phone: ${formData.phone || 'N/A'}\n` +
-      `• Subject: ${formData.subject}\n\n` +
-      `Message:\n${formData.message || 'I would like styling guidance and details about your handcrafted cotton sarees.'}`
-    );
+    setFieldErrors(errs);
+    setSubmitError('');
+    if (Object.keys(errs).length > 0) return;
 
-    showToast('Directing your inquiry to WhatsApp (+91 94906 58858)...');
-    window.open(`https://wa.me/919490658858?text=${waText}`, '_blank');
+    setIsSubmitting(true);
+    try {
+      await storeService.submitEnquiry({
+        name: formData.name.trim(),
+        customer_name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formatPhoneDigits(formData.phone) || '',
+        subject: formData.subject,
+        saree_interest: formData.subject,
+        message: formData.message.trim(),
+        source: 'contact_page'
+      });
+
+      const plainMsg =
+        `Namaste RODHE Concierge,\n\nI am sending an inquiry from your website:\n` +
+        `• Name: ${formData.name.trim()}\n` +
+        `• Email: ${formData.email.trim()}\n` +
+        (formData.phone.trim() ? `• Phone: +91 ${formatPhoneDigits(formData.phone)}\n` : '') +
+        `• Subject: ${formData.subject}\n\n` +
+        `Message:\n${formData.message.trim()}`;
+
+      const waUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(plainMsg)}`;
+      setLastWaText(plainMsg);
+      setLastWaUrl(waUrl);
+      setIsSent(true);
+      showToast('Your enquiry has been saved. You may also open WhatsApp to chat directly.', 'success');
+    } catch (err) {
+      setSubmitError(err?.message || 'Unable to submit your enquiry right now. Your message has been kept—please retry or contact us via WhatsApp.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const faqs = [
@@ -122,14 +152,14 @@ export const ContactConciergePage = () => {
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: '0.74rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8F7263', fontWeight: 600 }}>Email</div>
-                  <a href="mailto:rodhesaree@gmail.com" style={{ fontSize: '0.95rem', fontWeight: 600, color: '#4B3024', wordBreak: 'break-word' }}>
-                    rodhesaree@gmail.com
+                  <a href={`mailto:${contactEmail}`} style={{ fontSize: '0.95rem', fontWeight: 600, color: '#4B3024', wordBreak: 'break-word' }}>
+                    {contactEmail}
                   </a>
                 </div>
               </div>
 
               <a
-                href="https://wa.me/919490658858?text=Namaste%20RODHE%20Concierge%2C%20I%20would%20love%20personal%20styling%20assistance%20for%20a%20handcrafted%20cotton%20saree."
+                href={`https://wa.me/${waNumber}?text=${encodeURIComponent('Namaste RODHE Concierge, I would love personal styling assistance for a handcrafted cotton saree.')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ display: 'flex', alignItems: 'center', gap: '1rem', textDecoration: 'none' }}
@@ -140,7 +170,7 @@ export const ContactConciergePage = () => {
                 <div>
                   <div style={{ fontSize: '0.74rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8F7263', fontWeight: 600 }}>WhatsApp Concierge</div>
                   <span style={{ fontSize: '0.95rem', fontWeight: 600, color: '#4B3024' }}>
-                    +91 94906 58858
+                    +91 {waNumber.replace(/^91/, '')}
                   </span>
                 </div>
               </a>
@@ -153,6 +183,18 @@ export const ContactConciergePage = () => {
                   <div style={{ fontSize: '0.74rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8F7263', fontWeight: 600 }}>Concierge Hours</div>
                   <span style={{ fontSize: '0.92rem', color: '#4B3024' }}>
                     Monday – Saturday, 10:00 AM – 7:00 PM IST
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ width: '42px', height: '42px', backgroundColor: '#F4ECE1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B88D4A', flexShrink: 0 }}>
+                  <MapPin size={20} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.74rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8F7263', fontWeight: 600 }}>Atelier & Correspondence</div>
+                  <span style={{ fontSize: '0.88rem', color: '#6F4E3E' }}>
+                    Direct Online Boutique &amp; Concierge (India) • Dispatch studio address shared on order confirmation
                   </span>
                 </div>
               </div>
@@ -184,63 +226,129 @@ export const ContactConciergePage = () => {
             </h3>
 
             {isSent ? (
-              <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
-                <CheckCircle2 size={44} color="#B88D4A" style={{ margin: '0 auto 1rem' }} />
-                <h4 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.4rem', color: '#4B3024', marginBottom: '0.5rem' }}>
-                  Inquiry Dispatched
+              <div style={{ textAlign: 'center', padding: '2.25rem 1rem' }}>
+                <CheckCircle2 size={44} color="#525B3A" style={{ margin: '0 auto 1rem' }} />
+                <h4 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', color: '#4B3024', marginBottom: '0.5rem' }}>
+                  Enquiry Saved
                 </h4>
-                <p style={{ fontSize: '0.88rem', color: '#8F7263', marginBottom: '1.5rem' }}>
-                  Thank you for reaching out. A dedicated RODHE textile curator will contact you shortly.
+                <p style={{ fontSize: '0.88rem', color: '#6F4E3E', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+                  Thank you, <strong>{formData.name}</strong>. Your message has been logged for our team. For a faster reply, open WhatsApp directly below with your prepared message.
                 </p>
-                <button onClick={() => setIsSent(false)} className="btn btn-outline btn-sm">
-                  Send Another Message
-                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', maxWidth: '320px', margin: '0 auto' }}>
+                  <a
+                    href={lastWaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-primary"
+                    style={{ width: '100%', minHeight: '46px' }}
+                  >
+                    <MessageCircle size={16} />
+                    <span>Open WhatsApp Concierge</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(lastWaText).then(() => showToast('Enquiry message copied!', 'success')).catch(() => {});
+                    }}
+                    className="btn btn-outline btn-sm"
+                    style={{ width: '100%', minHeight: '40px' }}
+                  >
+                    <Copy size={14} />
+                    <span>Copy Message Text</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSent(false);
+                      setFormData({ name: '', email: '', phone: '', subject: 'Styling & Saree Selection', message: '' });
+                    }}
+                    style={{ fontSize: '0.78rem', color: '#8F7263', textDecoration: 'underline', marginTop: '0.35rem', padding: '0.25rem' }}
+                  >
+                    Send Another Inquiry
+                  </button>
+                </div>
               </div>
             ) : (
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit} noValidate>
+                {submitError && (
+                  <div
+                    role="alert"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '0.75rem 0.9rem',
+                      backgroundColor: 'rgba(201, 130, 120, 0.14)',
+                      border: '1px solid #C98278',
+                      color: '#8A2A20',
+                      fontSize: '0.82rem',
+                      marginBottom: '1rem'
+                    }}
+                  >
+                    <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                    <span>{submitError}</span>
+                  </div>
+                )}
+
                 <div className="form-group">
-                  <label className="form-label">Full Name</label>
+                  <label className="form-label" htmlFor="contact-name">Full Name *</label>
                   <input
+                    id="contact-name"
                     type="text"
                     required
                     autoComplete="name"
                     className="form-input"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, name: e.target.value });
+                      if (fieldErrors.name) setFieldErrors({ ...fieldErrors, name: '' });
+                    }}
                     placeholder="e.g. Parvathi Sharma"
                   />
+                  {fieldErrors.name && <span style={{ display: 'block', fontSize: '0.75rem', color: '#8A2A20', marginTop: '0.3rem' }}>{fieldErrors.name}</span>}
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '0.85rem' }}>
                   <div className="form-group">
-                    <label className="form-label">Email</label>
+                    <label className="form-label" htmlFor="contact-email">Email *</label>
                     <input
+                      id="contact-email"
                       type="email"
                       required
                       autoComplete="email"
                       className="form-input"
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, email: e.target.value });
+                        if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: '' });
+                      }}
                       placeholder="patron@example.com"
                     />
+                    {fieldErrors.email && <span style={{ display: 'block', fontSize: '0.75rem', color: '#8A2A20', marginTop: '0.3rem' }}>{fieldErrors.email}</span>}
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Phone</label>
+                    <label className="form-label" htmlFor="contact-phone">WhatsApp Mobile (Optional)</label>
                     <input
+                      id="contact-phone"
                       type="tel"
                       inputMode="numeric"
                       autoComplete="tel"
                       className="form-input"
                       value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="+91..."
+                      onChange={(e) => {
+                        setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '').slice(0, 10) });
+                        if (fieldErrors.phone) setFieldErrors({ ...fieldErrors, phone: '' });
+                      }}
+                      placeholder="10-digit mobile number"
                     />
+                    {fieldErrors.phone && <span style={{ display: 'block', fontSize: '0.75rem', color: '#8A2A20', marginTop: '0.3rem' }}>{fieldErrors.phone}</span>}
                   </div>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Inquiry Subject</label>
+                  <label className="form-label" htmlFor="contact-subject">Inquiry Subject</label>
                   <select
+                    id="contact-subject"
                     className="form-input"
                     value={formData.subject}
                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
@@ -254,23 +362,29 @@ export const ContactConciergePage = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Message</label>
+                  <label className="form-label" htmlFor="contact-message">Message *</label>
                   <textarea
+                    id="contact-message"
                     required
                     rows={4}
                     className="form-input"
                     value={formData.message}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, message: e.target.value });
+                      if (fieldErrors.message) setFieldErrors({ ...fieldErrors, message: '' });
+                    }}
                     placeholder="Tell us what you are looking for..."
                   />
+                  {fieldErrors.message && <span style={{ display: 'block', fontSize: '0.75rem', color: '#8A2A20', marginTop: '0.3rem' }}>{fieldErrors.message}</span>}
                 </div>
 
                 <button
                   type="submit"
+                  disabled={isSubmitting}
                   className="btn btn-primary"
-                  style={{ width: '100%', padding: '0.95rem', minHeight: '48px' }}
+                  style={{ width: '100%', padding: '0.95rem', minHeight: '48px', opacity: isSubmitting ? 0.7 : 1, cursor: isSubmitting ? 'wait' : 'pointer' }}
                 >
-                  <span>Dispatch Message</span>
+                  <span>{isSubmitting ? 'Saving Enquiry...' : 'Save & Prepare WhatsApp Message'}</span>
                   <Send size={15} />
                 </button>
               </form>

@@ -19,6 +19,7 @@ import {
   Star
 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
+import { trackBeginCheckout, trackWhatsAppHandover } from '../services/analyticsService';
 import {
   isValidIndianPhone,
   isValidIndianPincode,
@@ -111,6 +112,9 @@ export const CheckoutModal = () => {
     setFormErrors({});
     setPopupBlockedNotice(false);
     setCopiedMessage(false);
+    if (cart.length > 0) {
+      trackBeginCheckout(cart, total);
+    }
 
     if (patronUser) {
       const preferred =
@@ -414,6 +418,8 @@ export const CheckoutModal = () => {
       if (!opened) {
         setPopupBlockedNotice(true);
       }
+
+      trackWhatsAppHandover(cart, total);
 
       // Transition to honest handover state WITHOUT clearing the bag or faking an order confirmation
       setStep(4);

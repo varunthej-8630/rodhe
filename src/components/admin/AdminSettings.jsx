@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, CheckCircle2, Phone, Mail, Shield, Sparkles, Database } from 'lucide-react';
+import { Save, CheckCircle2, Phone, Shield, Database, AlertCircle } from 'lucide-react';
 import { storeService } from '../../services/storeService';
 import { isSupabaseConfigured } from '../../services/supabaseClient';
 import { authService } from '../../services/authService';
@@ -8,6 +8,7 @@ export const AdminSettings = () => {
   const [settings, setSettings] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -20,12 +21,13 @@ export const AdminSettings = () => {
   const handleSave = async (e) => {
     e.preventDefault();
     setIsSaving(true);
+    setSaveError('');
     try {
       await storeService.updateSettings(settings);
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 2500);
     } catch (err) {
-      alert('Error updating settings: ' + err.message);
+      setSaveError('Error updating settings: ' + (err?.message || 'Unable to save store settings.'));
     } finally {
       setIsSaving(false);
     }
@@ -68,6 +70,26 @@ export const AdminSettings = () => {
           <span>{savedSuccess ? 'Settings Saved!' : isSaving ? 'Saving...' : 'Save Settings'}</span>
         </button>
       </div>
+
+      {saveError && (
+        <div
+          role="alert"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.6rem',
+            padding: '0.85rem 1rem',
+            backgroundColor: 'rgba(181, 67, 50, 0.08)',
+            border: '1px solid rgba(181, 67, 50, 0.3)',
+            borderRadius: '4px',
+            color: '#9E3C2B',
+            fontSize: '0.84rem'
+          }}
+        >
+          <AlertCircle size={16} style={{ flexShrink: 0 }} />
+          <span>{saveError}</span>
+        </div>
+      )}
 
       <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         {/* Card 1: WhatsApp Ordering Configuration */}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, X, ArrowRight, Tag } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
+import { trackSearch } from '../services/analyticsService';
 
 export const SearchModal = () => {
   const { isSearchOpen, setIsSearchOpen, PRODUCTS, navigateTo } = useShop();
@@ -32,6 +33,15 @@ export const SearchModal = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isSearchOpen, setIsSearchOpen]);
 
+  useEffect(() => {
+    const clean = query.trim();
+    if (!isSearchOpen || clean.length < 2) return;
+    const timer = setTimeout(() => {
+      trackSearch(clean);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [isSearchOpen, query]);
+
   if (!isSearchOpen) return null;
 
   const publishedProducts = (PRODUCTS || []).filter((p) => !p.status || p.status === 'published');
@@ -61,6 +71,9 @@ export const SearchModal = () => {
   ];
 
   const handleSelectProduct = (productId) => {
+    if (query.trim()) {
+      trackSearch(query.trim());
+    }
     setIsSearchOpen(false);
     navigateTo('product', productId);
   };

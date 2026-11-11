@@ -10,19 +10,22 @@ import { ProductGrid } from './components/ProductGrid';
 import { FindYourPieceSection } from './components/FindYourPieceSection';
 import { CustomerReviewsSection } from './components/CustomerReviewsSection';
 import { EditorialLookbookSection } from './components/EditorialLookbookSection';
-import { CollectionPage } from './components/CollectionPage';
-import { ProductDetailPage } from './components/ProductDetailPage';
 import { CartDrawer } from './components/CartDrawer';
 import { WishlistDrawer } from './components/WishlistDrawer';
 import { SearchModal } from './components/SearchModal';
-import { AuthModal } from './components/AuthModal';
-import { CheckoutModal } from './components/CheckoutModal';
-import { TrackOrderModal } from './components/TrackOrderModal';
-import { ProductQuickViewModal } from './components/ProductQuickViewModal';
+import { CookieConsentBanner } from './components/CookieConsentBanner';
 import { Toast } from './components/Toast';
 import { Footer } from './components/Footer';
+import { applyRouteSeoMeta, getPageMeta } from './services/seoService';
+import { trackPageView } from './services/analyticsService';
 
-// Code-split non-critical and administrative views to optimize initial bundle size & LCP
+// Code-split secondary pages, checkout/account modals, and administrative views for faster initial LCP
+const CollectionPage = lazy(() => import('./components/CollectionPage').then((m) => ({ default: m.CollectionPage })));
+const ProductDetailPage = lazy(() => import('./components/ProductDetailPage').then((m) => ({ default: m.ProductDetailPage })));
+const AuthModal = lazy(() => import('./components/AuthModal').then((m) => ({ default: m.AuthModal })));
+const CheckoutModal = lazy(() => import('./components/CheckoutModal').then((m) => ({ default: m.CheckoutModal })));
+const TrackOrderModal = lazy(() => import('./components/TrackOrderModal').then((m) => ({ default: m.TrackOrderModal })));
+const ProductQuickViewModal = lazy(() => import('./components/ProductQuickViewModal').then((m) => ({ default: m.ProductQuickViewModal })));
 const BrandStoryPage = lazy(() => import('./components/BrandStoryPage').then((m) => ({ default: m.BrandStoryPage })));
 const ContactConciergePage = lazy(() => import('./components/ContactConciergePage').then((m) => ({ default: m.ContactConciergePage })));
 const LegalPolicyPage = lazy(() => import('./components/LegalPolicyPage').then((m) => ({ default: m.LegalPolicyPage })));
@@ -39,20 +42,33 @@ const SuspenseFallback = () => (
 );
 
 const MainLayout = () => {
-  const { currentPage, selectedProductId, navigateTo, setSelectedCraft, isTrackOrderOpen, setIsTrackOrderOpen } = useShop();
+  const {
+    currentPage,
+    selectedProductId,
+    selectedCraft,
+    navigateTo,
+    setSelectedCraft,
+    isTrackOrderOpen,
+    setIsTrackOrderOpen,
+    isAuthOpen,
+    isCheckoutOpen,
+    quickViewProduct
+  } = useShop();
 
-  // URL route sync: checks query parameters (?product=..., ?page=...) and hash routes
+  // URL route sync: checks query parameters (?product=..., ?page=...), paths, and hash routes
   useEffect(() => {
     const syncRouteFromUrl = () => {
       try {
-        const path = window.location.pathname.toLowerCase();
+        const rawPath = window.location.pathname || '/';
+        const path = rawPath.length > 1 ? rawPath.replace(/\/+$/, '').toLowerCase() : '/';
         const hash = window.location.hash.toLowerCase();
-        const search = window.location.search;
-        const searchParams = new URLSearchParams(search);
+        const searchParams = new URLSearchParams(window.location.search);
 
         const productQuery = searchParams.get('product');
+        const idQuery = searchParams.get('id');
         const pageQuery = searchParams.get('page');
         const craftQuery = searchParams.get('craft');
+        const tabQuery = searchParams.get('tab');
 
         if (productQuery) {
           navigateTo('product', productQuery);
@@ -60,29 +76,62 @@ const MainLayout = () => {
         }
 
         if (pageQuery) {
-          if (['shipping-delivery', 'returns-exchanges', 'privacy-policy', 'terms-of-service'].includes(pageQuery)) {
-            navigateTo('policies', pageQuery);
-          } else if (pageQuery === 'shop' || pageQuery === 'collections') {
+          const normalizedPage = pageQuery.toLowerCase();
+          const policyTabMap = {
+            'shipping-delivery': 'shipping',
+            'returns-exchanges': 'returns',
+            'privacy-policy': 'privacy',
+            'terms-of-service': 'terms',
+            shipping: 'shipping',
+            returns: 'returns',
+            privacy: 'privacy',
+            terms: 'terms',
+            care: 'care'
+          };
+          if (normalizedPage === 'product' && (idQuery || productQuery)) {
+            navigateTo('product', idQuery || productQuery);
+          } else if (
+            ['policies', 'shipping-delivery', 'returns-exchanges', 'privacy-policy', 'terms-of-service'].includes(normalizedPage)
+          ) {
+            const resolvedTab =
+              normalizedPage === 'policies'
+                ? policyTabMap[(tabQuery || 'shipping').toLowerCase()] || 'shipping'
+                : policyTabMap[normalizedPage];
+            navigateTo('policies', resolvedTab);
+          } else if (normalizedPage === 'shop' || normalizedPage === 'collections') {
             if (craftQuery && typeof setSelectedCraft === 'function') {
-              setSelectedCraft(craftQuery);
+              const normalizedCraft = craftQuery.toLowerCase() === 'indigo' ? 'tie-dye' : craftQuery;
+              setSelectedCraft(normalizedCraft);
             }
             navigateTo('shop');
-          } else if (['story', 'contact', 'home'].includes(pageQuery)) {
-            navigateTo(pageQuery);
+          } else if (['story', 'contact', 'home'].includes(normalizedPage)) {
+            navigateTo(normalizedPage);
+          } else {
+            navigateTo('not-found');
           }
           return;
         }
 
-        if (path.includes('/admin') || hash.includes('admin')) {
+        if (path === '/admin' || hash.includes('admin')) {
           navigateTo('admin');
-        } else if (hash.includes('shop') || hash.includes('collection')) {
+        } else if (path === '/shop' || path === '/collections' || hash.includes('shop') || hash.includes('collection')) {
           navigateTo('shop');
-        } else if (hash.includes('story') || hash.includes('craft')) {
+        } else if (path === '/story' || hash.includes('story') || hash.includes('craft')) {
           navigateTo('story');
-        } else if (hash.includes('contact') || hash.includes('concierge')) {
+        } else if (path === '/contact' || hash.includes('contact') || hash.includes('concierge')) {
           navigateTo('contact');
-        } else if (hash.includes('policy') || hash.includes('privacy') || hash.includes('terms') || hash.includes('shipping') || hash.includes('returns')) {
-          navigateTo('policies');
+        } else if (hash.includes('privacy')) {
+          navigateTo('policies', 'privacy');
+        } else if (hash.includes('terms')) {
+          navigateTo('policies', 'terms');
+        } else if (hash.includes('shipping')) {
+          navigateTo('policies', 'shipping');
+        } else if (hash.includes('returns') || hash.includes('exchange')) {
+          navigateTo('policies', 'returns');
+        } else if (hash.includes('care')) {
+          navigateTo('policies', 'care');
+        } else if (path === '/policies' || hash.includes('policy')) {
+          navigateTo('policies', 'shipping');
         } else if (hash.includes('product')) {
           const match = window.location.hash.match(/product\/([a-zA-Z0-9_-]+)/i);
           if (match && match[1]) {
@@ -90,6 +139,10 @@ const MainLayout = () => {
           } else {
             navigateTo('shop');
           }
+        } else if (path !== '/' && path !== '/index.html') {
+          navigateTo('not-found');
+        } else if (hash && hash !== '#' && hash !== '#/' && hash !== '#home') {
+          navigateTo('not-found');
         }
       } catch (e) {}
     };
@@ -102,6 +155,24 @@ const MainLayout = () => {
       window.removeEventListener('popstate', syncRouteFromUrl);
     };
   }, [navigateTo, setSelectedCraft]);
+
+  // Apply unique route SEO title, description, canonical, robots, and consented page_view tracking
+  useEffect(() => {
+    if (currentPage === 'product') return; // ProductDetailPage sets product-specific SEO & JSON-LD
+    applyRouteSeoMeta({
+      currentPage,
+      selectedCraft,
+      policyTab: currentPage === 'policies' ? selectedProductId : null
+    });
+    const meta = getPageMeta({
+      currentPage,
+      selectedCraft,
+      policyTab: currentPage === 'policies' ? selectedProductId : null
+    });
+    if (currentPage !== 'admin') {
+      trackPageView(meta.title, meta.canonical);
+    }
+  }, [currentPage, selectedCraft, selectedProductId]);
 
   // Scroll to top on page change
   useEffect(() => {
@@ -145,9 +216,16 @@ const MainLayout = () => {
             </>
           )}
 
-          {currentPage === 'shop' && <CollectionPage />}
-          {currentPage === 'collections' && <CollectionPage />}
-          {currentPage === 'product' && <ProductDetailPage key={selectedProductId || 'product'} productId={selectedProductId} />}
+          {(currentPage === 'shop' || currentPage === 'collections') && (
+            <Suspense fallback={<SuspenseFallback />}>
+              <CollectionPage />
+            </Suspense>
+          )}
+          {currentPage === 'product' && (
+            <Suspense fallback={<SuspenseFallback />}>
+              <ProductDetailPage key={selectedProductId || 'product'} productId={selectedProductId} />
+            </Suspense>
+          )}
           {currentPage === 'story' && (
             <Suspense fallback={<SuspenseFallback />}>
               <BrandStoryPage />
@@ -160,7 +238,7 @@ const MainLayout = () => {
           )}
           {currentPage === 'policies' && (
             <Suspense fallback={<SuspenseFallback />}>
-              <LegalPolicyPage />
+              <LegalPolicyPage initialTab={selectedProductId || 'shipping'} />
             </Suspense>
           )}
           {!['home', 'shop', 'collections', 'product', 'story', 'contact', 'policies'].includes(currentPage) && (
@@ -170,14 +248,17 @@ const MainLayout = () => {
           )}
         </main>
 
-        {/* Modals & Slide-Over Drawers */}
+        {/* Modals, Consent Banner & Slide-Over Drawers */}
         <CartDrawer />
         <WishlistDrawer />
         <SearchModal />
-        <AuthModal />
-        <CheckoutModal />
-        <TrackOrderModal isOpen={isTrackOrderOpen} onClose={() => setIsTrackOrderOpen(false)} />
-        <ProductQuickViewModal />
+        <Suspense fallback={null}>
+          {isAuthOpen && <AuthModal />}
+          {isCheckoutOpen && <CheckoutModal />}
+          {isTrackOrderOpen && <TrackOrderModal isOpen={isTrackOrderOpen} onClose={() => setIsTrackOrderOpen(false)} />}
+          {quickViewProduct && <ProductQuickViewModal />}
+        </Suspense>
+        <CookieConsentBanner />
         <Toast />
 
         {/* Complete Trust Footer */}

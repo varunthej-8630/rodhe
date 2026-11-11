@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, ShoppingBag, Star, ShieldCheck, Truck, RotateCcw, Sparkles, ChevronRight, Share2, Check, ArrowRight, MessageCircle } from 'lucide-react';
+import { Heart, ShoppingBag, ShieldCheck, Truck, RotateCcw, ChevronRight, Share2, MessageCircle } from 'lucide-react';
 import { ProductCard } from './ProductCard';
 import { useShop, isSameProduct } from '../context/ShopContext';
+import { trackViewItem } from '../services/analyticsService';
 
 export const ProductDetailPage = ({ productId }) => {
   const {
@@ -12,6 +13,8 @@ export const ProductDetailPage = ({ productId }) => {
     toggleWishlist,
     isInWishlist,
     setIsCheckoutOpen,
+    isAnyOverlayOpen,
+    cookieConsent,
     showToast,
     navigateTo
   } = useShop();
@@ -157,6 +160,7 @@ export const ProductDetailPage = ({ productId }) => {
     };
 
     script.textContent = JSON.stringify(schemaData);
+    trackViewItem(product);
 
     return () => {
       const el = document.getElementById(scriptId);
@@ -167,7 +171,7 @@ export const ProductDetailPage = ({ productId }) => {
       if (ogUrl) ogUrl.setAttribute('content', 'https://www.rodhe.in/');
       if (ogTitle) ogTitle.setAttribute('content', 'RODHE — Woven with Trust | Handcrafted Luxury Sarees');
       if (ogDesc) ogDesc.setAttribute('content', 'Discover pure mulmul, handblock Bagru, natural indigo shibori, and sheer Chanderi sarees. Nature-inspired Indian textiles handcrafted by generational artisans.');
-      if (ogImage) ogImage.setAttribute('content', 'https://www.rodhe.in/assets/RODHE%20Woven%20Luxury%20Wordmark.png');
+      if (ogImage) ogImage.setAttribute('content', 'https://www.rodhe.in/assets/og-rodhe-share.jpg');
     };
   }, [product, isPublished, isAvailable, images, unitPrice]);
 
@@ -296,6 +300,8 @@ export const ProductDetailPage = ({ productId }) => {
               {images.map((img, idx) => (
                 <button
                   key={idx}
+                  type="button"
+                  aria-label={`View image ${idx + 1} of ${product.name}`}
                   onClick={() => setSelectedImageIndex(idx)}
                   style={{
                     width: 'clamp(58px, 16vw, 78px)',
@@ -311,7 +317,9 @@ export const ProductDetailPage = ({ productId }) => {
                 >
                   <img
                     src={img}
-                    alt=""
+                    alt={`${product.name} thumbnail ${idx + 1}`}
+                    loading="lazy"
+                    decoding="async"
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     onError={(e) => {
                       e.currentTarget.onerror = null;
@@ -356,16 +364,11 @@ export const ProductDetailPage = ({ productId }) => {
               {product.tagline}
             </p>
 
-            {/* Rating */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', gap: '0.15rem' }}>
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} size={15} fill="#B88D4A" color="#B88D4A" />
-                ))}
-              </div>
-              <span style={{ fontSize: '0.84rem', color: '#6F4E3E', fontWeight: 500 }}>
-                {product.rating} ({product.reviewCount} patron reviews)
-              </span>
+            {/* SKU & Craft Metadata */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginBottom: '1.25rem', flexWrap: 'wrap', fontSize: '0.82rem', color: '#6F4E3E' }}>
+              <span><strong>SKU:</strong> {product.sku || 'RODHE-SAR'}</span>
+              <span aria-hidden="true">•</span>
+              <span>Handcrafted Botanical Dye Batch</span>
             </div>
 
             {/* Price Box */}
@@ -585,15 +588,15 @@ export const ProductDetailPage = ({ productId }) => {
             <div className="pdp-trust-badges">
               <div className="trust-badge-item">
                 <Truck size={20} color="#B88D4A" />
-                <span>Complimentary Express Shipping Across India</span>
+                <span>Complimentary India Shipping Above ₹{(storeSettings?.freeShippingThreshold ?? 2999).toLocaleString('en-IN')}</span>
               </div>
               <div className="trust-badge-item">
                 <ShieldCheck size={20} color="#B88D4A" />
-                <span>100% Authentic Handcrafted Guarantee</span>
+                <span>Authentic Botanical Dye &amp; Handloom Cotton</span>
               </div>
               <div className="trust-badge-item">
                 <RotateCcw size={20} color="#B88D4A" />
-                <span>7-Day Hassle-Free Exchange</span>
+                <span>WhatsApp Concierge Sizing &amp; Exchange Support</span>
               </div>
             </div>
 
@@ -698,47 +701,49 @@ export const ProductDetailPage = ({ productId }) => {
         )}
       </div>
 
-      {/* Sticky Mobile Add to Cart Bar */}
-      <div
-        className="d-md-none sticky-mobile-pdp-bar"
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          backgroundColor: '#FFFDF9',
-          borderTop: '1px solid rgba(184, 141, 74, 0.3)',
-          padding: '0.75rem 1.25rem',
-          paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          zIndex: 800,
-          boxShadow: '0 -4px 20px rgba(0,0,0,0.08)'
-        }}
-      >
-        <div>
-          <div style={{ fontSize: '0.72rem', color: '#8F7263', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Price</div>
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', fontWeight: 700, color: '#4B3024' }}>
-            ₹{unitPrice.toLocaleString('en-IN')}
-          </div>
-        </div>
-
-        <button
-          onClick={() => addToCart(product, quantity, true)}
-          disabled={!isAvailable}
-          className="btn btn-primary"
+      {/* Sticky Mobile Add to Cart Bar (hidden cleanly while drawers/modals/cookie consent banner are open) */}
+      {!isAnyOverlayOpen && Boolean(cookieConsent) && (
+        <div
+          className="d-md-none sticky-mobile-pdp-bar"
           style={{
-            padding: '0.75rem 1.4rem',
-            minHeight: '44px',
-            opacity: isAvailable ? 1 : 0.55,
-            cursor: isAvailable ? 'pointer' : 'not-allowed'
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: '#FFFDF9',
+            borderTop: '1px solid rgba(184, 141, 74, 0.3)',
+            padding: '0.75rem 1.25rem',
+            paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            zIndex: 800,
+            boxShadow: '0 -4px 20px rgba(0,0,0,0.08)'
           }}
         >
-          <ShoppingBag size={16} />
-          <span>{isAvailable ? 'Add to Bag' : 'Out of Stock'}</span>
-        </button>
-      </div>
+          <div>
+            <div style={{ fontSize: '0.72rem', color: '#8F7263', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Price</div>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', fontWeight: 700, color: '#4B3024' }}>
+              ₹{unitPrice.toLocaleString('en-IN')}
+            </div>
+          </div>
+
+          <button
+            onClick={() => addToCart(product, quantity, true)}
+            disabled={!isAvailable}
+            className="btn btn-primary"
+            style={{
+              padding: '0.75rem 1.4rem',
+              minHeight: '44px',
+              opacity: isAvailable ? 1 : 0.55,
+              cursor: isAvailable ? 'pointer' : 'not-allowed'
+            }}
+          >
+            <ShoppingBag size={16} />
+            <span>{isAvailable ? 'Add to Bag' : 'Out of Stock'}</span>
+          </button>
+        </div>
+      )}
 
       <style>{`
         .pdp-showcase-grid {
