@@ -225,6 +225,7 @@ export const CartDrawer = () => {
           style={{
             flex: 1,
             overflowY: 'auto',
+            overflowX: 'hidden',
             WebkitOverflowScrolling: 'touch',
             padding: 'clamp(1rem, 3vw, 1.4rem)',
             display: 'flex',

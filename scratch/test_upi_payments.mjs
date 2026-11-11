@@ -515,6 +515,50 @@ async function runTests() {
       [...document.querySelectorAll('[aria-label="Shopping Bag"] button')].find(b => b.textContent.includes('Proceed to Checkout'))?.click();
     `);
     await cdp.waitFor("document.querySelector('[aria-label=\"Checkout\"]') && !document.body.innerText.includes('Loading RODHE')");
+
+    const assertCheckoutMobileFits = async (stepLabel, screenshotFile = null) => {
+      const check = await cdp.eval(`
+        const modal = document.querySelector('[aria-label="Checkout"]');
+        const card = modal?.querySelector('.checkout-modal-card') || modal?.firstElementChild;
+        const mainScroll = modal?.querySelector('.checkout-main-content');
+        const cardRect = card ? card.getBoundingClientRect() : null;
+        const docOverflow = document.documentElement.scrollWidth > document.documentElement.clientWidth + 1;
+        const mainOverflow = mainScroll ? mainScroll.scrollWidth > mainScroll.clientWidth + 1 : false;
+        const clipped = [];
+        if (cardRect && modal) {
+          for (const el of modal.querySelectorAll('button, input, textarea, select')) {
+            const r = el.getBoundingClientRect();
+            if (r.width === 0 || r.height === 0) continue;
+            const style = getComputedStyle(el);
+            if (style.display === 'none' || style.visibility === 'hidden') continue;
+            if (r.right > cardRect.right + 1 || r.left < cardRect.left - 1) {
+              clipped.push((el.textContent || el.placeholder || el.getAttribute('aria-label') || el.tagName).trim().slice(0, 40) + ' [r=' + Math.round(r.right) + '>card=' + Math.round(cardRect.right) + ']');
+            }
+          }
+        }
+        return {
+          docOverflow,
+          mainOverflow,
+          scrollW: mainScroll ? mainScroll.scrollWidth : 0,
+          clientW: mainScroll ? mainScroll.clientWidth : 0,
+          clipped
+        };
+      `);
+      assert(
+        !check.docOverflow && !check.mainOverflow && check.clipped.length === 0,
+        `${stepLabel} fits 360px mobile without inner/outer overflow or clipped controls`,
+        `scroll=${check.scrollW}/${check.clientW}, clipped=[${check.clipped.join('; ')}]`
+      );
+      if (screenshotFile) {
+        await cdp.screenshot(screenshotFile);
+      }
+    };
+
+    // Check Step 1 on 360x740 mobile before switching back or stay mobile-friendly
+    await cdp.setViewport(360, 740, true);
+    await delay(200);
+    await assertCheckoutMobileFits('Step 1 (Review Bag) at 360x740', 'qa-mobile-360-checkout-step1.png');
+
     await cdp.eval(`
       [...document.querySelectorAll('[aria-label="Checkout"] button')].find(b => b.textContent.includes('Continue to Customer Details'))?.click();
     `);
@@ -538,10 +582,27 @@ async function runTests() {
     await setCheckoutField('[aria-label="Checkout"] input[placeholder*="Bengaluru"]', 'Hyderabad');
     await setCheckoutField('[aria-label="Checkout"] input[placeholder*="Karnataka"]', 'Telangana');
     await delay(100);
+    // Scroll Step 2 down to check PIN Code / City / State / Continue button fit on 360x740 mobile!
+    await cdp.eval(`
+      const mainScroll = document.querySelector('[aria-label="Checkout"] .checkout-main-content');
+      if (mainScroll) mainScroll.scrollTop = 260;
+    `);
+    await delay(150);
+    await assertCheckoutMobileFits('Step 2 (Details & Address) at 360x740', 'qa-mobile-360-checkout-step2.png');
+
     await cdp.eval(`
       [...document.querySelectorAll('[aria-label="Checkout"] button')].find(b => b.textContent.includes('Continue to Final Review'))?.click();
     `);
     await cdp.waitFor("document.querySelector('[aria-label=\"Checkout\"]')?.textContent.includes('Select Direct UPI Payment')");
+    await cdp.eval(`
+      const mainScroll = document.querySelector('[aria-label="Checkout"] .checkout-main-content');
+      if (mainScroll) mainScroll.scrollTop = 180;
+    `);
+    await delay(150);
+    await assertCheckoutMobileFits('Step 3 (Payment & Review) at 360x740', 'qa-mobile-360-checkout-step3.png');
+
+    await cdp.setViewport(1440, 900, false);
+    await delay(120);
 
     // Select Google Pay -> Create pending UPI order
     await cdp.eval(`
@@ -598,12 +659,14 @@ async function runTests() {
     assert(phonepeSwitch.hasPhonePeVpa && phonepeSwitch.hasKrupakar && phonepeSwitch.qrLoaded && dbState.orders.length === 1,
       'Switching to PhonePe updates QR & VPA cleanly on same order (orders=' + dbState.orders.length + ')');
 
-    // Mobile 375x812 responsive check on Step 4 UPI QR screen
+    // Mobile 360x740 & 375x812 responsive check on Step 4 UPI QR screen
+    await cdp.setViewport(360, 740, true);
+    await delay(200);
+    await assertCheckoutMobileFits('Step 4 (UPI Payment QR) at 360x740', 'qa-mobile-360-checkout-step4.png');
+
     await cdp.setViewport(375, 812, true);
     await delay(250);
-    const mobileOverflow = await cdp.eval(`return document.documentElement.scrollWidth > document.documentElement.clientWidth + 1;`);
-    assert(!mobileOverflow, 'UPI Payment screen has zero horizontal overflow at 375x812 mobile');
-    await cdp.screenshot('qa-upi-mobile-375.png');
+    await assertCheckoutMobileFits('Step 4 (UPI Payment QR) at 375x812', 'qa-upi-mobile-375.png');
 
     // Close modal -> reload page -> verify Shopping Bag shows "Resume Payment" -> Resume -> Submit UTR
     await cdp.setViewport(1440, 900, false);

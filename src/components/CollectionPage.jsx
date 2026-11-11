@@ -730,7 +730,7 @@ export const CollectionPage = () => {
         }
         @media (max-width: 900px) {
           .collection-layout {
-            grid-template-columns: 1fr !important;
+            grid-template-columns: minmax(0, 1fr) !important;
           }
           .desktop-filter-sidebar {
             display: none !important;

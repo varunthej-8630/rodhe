@@ -554,12 +554,14 @@ export const CheckoutModal = () => {
       aria-label="Checkout"
     >
       <div
+        className="checkout-modal-card"
         style={{
-          width: 'min(980px, 95vw)',
+          width: 'min(980px, 100%)',
+          maxWidth: '100%',
           backgroundColor: '#FFFDF9',
           border: '1px solid rgba(184, 141, 74, 0.3)',
           boxShadow: '0 25px 60px rgba(42, 26, 19, 0.3)',
-          maxHeight: '92vh',
+          maxHeight: '94vh',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -570,22 +572,23 @@ export const CheckoutModal = () => {
         {/* Checkout Header */}
         <div
           style={{
-            padding: '0.95rem clamp(1rem, 3vw, 2rem)',
+            padding: '0.85rem clamp(0.85rem, 3vw, 2rem)',
             borderBottom: '1px solid rgba(75, 48, 36, 0.12)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            gap: '0.5rem',
             backgroundColor: '#FAF6EE',
             flexShrink: 0
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
             <img
               src="/assets/RODHE Woven Luxury Wordmark.png"
               alt="RODHE"
-              style={{ height: 'clamp(22px, 4.5vw, 30px)', width: 'auto' }}
+              style={{ height: 'clamp(22px, 4.5vw, 30px)', width: 'auto', flexShrink: 0 }}
             />
-            <span style={{ fontSize: '0.72rem', color: '#B88D4A', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: 'clamp(0.64rem, 2.4vw, 0.72rem)', color: '#B88D4A', fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase' }}>
               • Secure Saree Checkout
             </span>
           </div>
@@ -593,26 +596,14 @@ export const CheckoutModal = () => {
           <button
             onClick={() => setIsCheckoutOpen(false)}
             aria-label="Close checkout"
-            style={{ color: '#8F7263', padding: '0.4rem', background: 'none', border: 'none', cursor: 'pointer', minWidth: '36px', minHeight: '36px' }}
+            style={{ color: '#8F7263', padding: '0.4rem', background: 'none', border: 'none', cursor: 'pointer', minWidth: '36px', minHeight: '36px', flexShrink: 0 }}
           >
             <X size={20} />
           </button>
         </div>
 
         {/* 4-Step Progress Bar */}
-        <div
-          style={{
-            padding: '0.65rem clamp(0.65rem, 3vw, 2rem)',
-            backgroundColor: '#FFFDF9',
-            borderBottom: '1px solid rgba(75, 48, 36, 0.08)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexWrap: 'wrap',
-            gap: '0.35rem clamp(0.6rem, 2.2vw, 1.75rem)',
-            flexShrink: 0
-          }}
-        >
+        <div className="checkout-steps-bar">
           {[
             { num: 1, label: '1. Review Bag' },
             { num: 2, label: '2. Details & Address' },
@@ -623,6 +614,7 @@ export const CheckoutModal = () => {
               key={s.num}
               type="button"
               disabled={s.num > step}
+              className="checkout-step-pill"
               onClick={() => {
                 if (s.num < step && step < 4) setStep(s.num);
               }}
@@ -632,14 +624,14 @@ export const CheckoutModal = () => {
                 gap: '0.3rem',
                 color: step === s.num ? '#4B3024' : step > s.num ? '#525B3A' : '#8F7263',
                 fontWeight: step === s.num ? 700 : 500,
-                fontSize: 'clamp(0.65rem, 2.3vw, 0.74rem)',
+                fontSize: 'clamp(0.64rem, 2.3vw, 0.74rem)',
                 letterSpacing: '0.04em',
                 textTransform: 'uppercase',
-                whiteSpace: 'nowrap',
                 background: 'none',
                 border: 'none',
                 cursor: s.num < step && step < 4 ? 'pointer' : 'default',
-                padding: '0.15rem 0'
+                padding: '0.15rem 0',
+                minWidth: 0
               }}
             >
               <span>{s.label}</span>
@@ -845,7 +837,7 @@ export const CheckoutModal = () => {
           ) : (
             <div className="checkout-two-col-grid">
               {/* Left Column: Active Checkout Step */}
-              <div style={{ padding: 'clamp(1.15rem, 3.5vw, 1.85rem)', minWidth: 0 }}>
+              <div className="checkout-left-col">
                 {/* STEP 1: REVIEW BAG */}
                 {step === 1 && (
                   <div>
@@ -973,7 +965,7 @@ export const CheckoutModal = () => {
                           <span>Add RODHE Heritage Keepsake Box (+₹{storeSettings.giftWrapFee})</span>
                         </label>
 
-                        <form onSubmit={handleApplyCoupon} style={{ display: 'flex', gap: '0.5rem', marginBottom: couponError ? '0.35rem' : '1rem' }}>
+                        <form onSubmit={handleApplyCoupon} style={{ display: 'flex', gap: '0.5rem', marginBottom: couponError ? '0.35rem' : '1rem', width: '100%' }}>
                           <input
                             type="text"
                             placeholder="Promo code (e.g. WOVEN10)"
@@ -983,9 +975,9 @@ export const CheckoutModal = () => {
                               if (couponError) setCouponError('');
                             }}
                             className="form-input"
-                            style={{ flex: 1, minHeight: '40px', padding: '0.5rem 0.75rem', fontSize: '0.82rem' }}
+                            style={{ flex: 1, minWidth: 0, minHeight: '40px', padding: '0.5rem 0.75rem', fontSize: '0.82rem' }}
                           />
-                          <button type="submit" className="btn btn-primary btn-sm" style={{ minHeight: '40px' }}>
+                          <button type="submit" className="btn btn-primary btn-sm" style={{ minHeight: '40px', flexShrink: 0 }}>
                             Apply
                           </button>
                         </form>
@@ -1070,7 +1062,7 @@ export const CheckoutModal = () => {
                                   cursor: 'pointer'
                                 }}
                               >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', gap: '0.5rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', gap: '0.5rem', flexWrap: 'wrap' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <input
                                       type="radio"
@@ -1155,15 +1147,15 @@ export const CheckoutModal = () => {
 
                           <div className="form-group">
                             <label className="form-label">WhatsApp Number (10 digits) *</label>
-                            <div style={{ display: 'flex' }}>
-                              <span style={{ padding: '0.75rem 0.75rem', backgroundColor: '#F4ECE1', border: '1px solid rgba(75, 48, 36, 0.15)', fontSize: '0.86rem', fontWeight: 600 }}>
+                            <div style={{ display: 'flex', minWidth: 0, width: '100%' }}>
+                              <span style={{ padding: '0.75rem 0.75rem', backgroundColor: '#F4ECE1', border: '1px solid rgba(75, 48, 36, 0.15)', fontSize: '0.86rem', fontWeight: 600, flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}>
                                 +91
                               </span>
                               <input
                                 type="tel"
                                 inputMode="numeric"
                                 className="form-input"
-                                style={{ borderLeft: 'none' }}
+                                style={{ borderLeft: 'none', flex: 1, minWidth: 0 }}
                                 placeholder="10-digit mobile"
                                 value={formData.phone}
                                 onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
@@ -1275,12 +1267,12 @@ export const CheckoutModal = () => {
                       </div>
                     )}
 
-                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem' }}>
+                    <div style={{ display: 'flex', gap: '0.65rem', marginTop: '0.75rem', width: '100%', maxWidth: '100%' }}>
                       <button
                         type="button"
                         onClick={() => setStep(1)}
                         className="btn btn-outline"
-                        style={{ padding: '0.85rem 1.25rem', minHeight: '48px' }}
+                        style={{ padding: '0.85rem 1rem', minHeight: '48px', flexShrink: 0 }}
                         aria-label="Back to bag review"
                       >
                         <ArrowLeft size={16} />
@@ -1290,10 +1282,10 @@ export const CheckoutModal = () => {
                         onClick={validateAndProceedFromDetails}
                         disabled={isSavingStep}
                         className="btn btn-primary"
-                        style={{ flex: 1, minHeight: '48px' }}
+                        style={{ flex: 1, minWidth: 0, minHeight: '48px', padding: '0.85rem 1rem' }}
                       >
                         <span>{isSavingStep ? 'Saving Details...' : 'Continue to Final Review'}</span>
-                        <ArrowRight size={16} />
+                        <ArrowRight size={16} style={{ flexShrink: 0 }} />
                       </button>
                     </div>
                   </div>
@@ -1337,7 +1329,7 @@ export const CheckoutModal = () => {
                         </button>
                       </div>
 
-                      <div style={{ color: '#4B3024', lineHeight: 1.55 }}>
+                      <div style={{ color: '#4B3024', lineHeight: 1.55, overflowWrap: 'anywhere' }}>
                         <strong>{effectiveDelivery.fullName}</strong> • +91 {effectiveDelivery.phone}
                         {effectiveDelivery.email ? ` • ${effectiveDelivery.email}` : ''}<br />
                         {effectiveDelivery.addressLine1}
@@ -1411,12 +1403,12 @@ export const CheckoutModal = () => {
                         (Payee: <strong>{getUpiMethodConfig(selectedUpiMethod).payeeName}</strong>). Payment status remains <strong>Pending / Awaiting Verification</strong> until verified by our atelier team.
                       </p>
 
-                      <div style={{ display: 'flex', gap: '0.75rem' }}>
+                      <div style={{ display: 'flex', gap: '0.65rem', width: '100%', maxWidth: '100%' }}>
                         <button
                           type="button"
                           onClick={() => setStep(2)}
                           className="btn btn-outline"
-                          style={{ padding: '0.85rem 1.15rem', minHeight: '48px' }}
+                          style={{ padding: '0.85rem 1rem', minHeight: '48px', flexShrink: 0 }}
                           aria-label="Back to delivery details"
                         >
                           <ArrowLeft size={16} />
@@ -1428,14 +1420,16 @@ export const CheckoutModal = () => {
                           className="btn btn-primary"
                           style={{
                             flex: 1,
+                            minWidth: 0,
                             minHeight: '48px',
+                            padding: '0.85rem 1rem',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: '0.55rem'
+                            gap: '0.5rem'
                           }}
                         >
-                          <Smartphone size={17} color="#EADAB5" />
+                          <Smartphone size={17} color="#EADAB5" style={{ flexShrink: 0 }} />
                           <span>
                             {isProcessing
                               ? 'Reserving Sarees...'
@@ -1474,23 +1468,25 @@ export const CheckoutModal = () => {
                         className="btn"
                         style={{
                           width: '100%',
+                          minWidth: 0,
                           minHeight: '44px',
+                          padding: '0.8rem 1rem',
                           backgroundColor: '#525B3A',
                           color: '#FAF6EE',
                           border: 'none',
                           borderRadius: '3px',
-                          fontSize: '0.8rem',
+                          fontSize: '0.78rem',
                           fontWeight: 600,
                           letterSpacing: '0.06em',
                           textTransform: 'uppercase',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: '0.55rem',
+                          gap: '0.5rem',
                           cursor: 'pointer'
                         }}
                       >
-                        <MessageCircle size={17} color="#D4AC68" />
+                        <MessageCircle size={17} color="#D4AC68" style={{ flexShrink: 0 }} />
                         <span>{isProcessing ? 'Preparing WhatsApp...' : 'Send Order Enquiry on WhatsApp'}</span>
                       </button>
                     </div>
@@ -1499,7 +1495,7 @@ export const CheckoutModal = () => {
               </div>
 
               {/* Right Column: Consistent Live Order Summary */}
-              <div style={{ padding: 'clamp(1.15rem, 3.5vw, 1.85rem)', backgroundColor: '#FAF6EE', borderLeft: '1px solid rgba(75, 48, 36, 0.08)', minWidth: 0 }}>
+              <div className="checkout-summary-col">
                 <h4 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', color: '#4B3024', marginBottom: '0.9rem' }}>
                   Order Summary ({cart.length} {cart.length === 1 ? 'saree' : 'sarees'})
                 </h4>
@@ -1589,28 +1585,99 @@ export const CheckoutModal = () => {
         </div>
 
         <style>{`
+          .checkout-modal-card {
+            max-height: 94dvh !important;
+          }
+          .checkout-steps-bar {
+            padding: 0.6rem clamp(0.75rem, 3vw, 2rem);
+            background-color: #FFFDF9;
+            border-bottom: 1px solid rgba(75, 48, 36, 0.08);
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.35rem 0.65rem;
+            flex-shrink: 0;
+          }
+          .checkout-step-pill {
+            justify-content: flex-start;
+            text-align: left;
+            white-space: normal;
+            line-height: 1.25;
+          }
+          @media (min-width: 600px) {
+            .checkout-steps-bar {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex-wrap: wrap;
+              gap: 0.35rem clamp(0.85rem, 2.2vw, 1.75rem);
+            }
+            .checkout-step-pill {
+              justify-content: center;
+              text-align: center;
+              white-space: nowrap;
+            }
+          }
           .checkout-main-content {
             flex-grow: 1;
             overflow-y: auto;
+            overflow-x: hidden;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
             -webkit-overflow-scrolling: touch;
           }
           .checkout-two-col-grid {
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: minmax(0, 1fr);
+            width: 100%;
+            max-width: 100%;
+          }
+          .checkout-left-col {
+            padding: clamp(0.95rem, 3.2vw, 1.85rem);
+            min-width: 0;
+            max-width: 100%;
+            box-sizing: border-box;
+          }
+          .checkout-summary-col {
+            padding: clamp(0.95rem, 3.2vw, 1.85rem);
+            background-color: #FAF6EE;
+            border-top: 1px solid rgba(75, 48, 36, 0.1);
+            min-width: 0;
+            max-width: 100%;
+            box-sizing: border-box;
           }
           @media (min-width: 768px) {
             .checkout-two-col-grid {
               grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
             }
+            .checkout-summary-col {
+              border-top: none;
+              border-left: 1px solid rgba(75, 48, 36, 0.08);
+            }
+          }
+          @media (max-width: 540px) {
+            .checkout-modal-card .btn {
+              white-space: normal;
+              text-align: center;
+              padding: 0.78rem 0.9rem;
+              font-size: 0.76rem;
+              letter-spacing: 0.07em;
+              line-height: 1.3;
+              min-width: 0;
+            }
+            .checkout-modal-card .btn-sm {
+              padding: 0.45rem 0.75rem;
+              font-size: 0.7rem;
+            }
           }
           .form-two-col {
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: minmax(0, 1fr);
             gap: 0.75rem;
           }
           @media (min-width: 520px) {
             .form-two-col {
-              grid-template-columns: 1fr 1fr;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
             }
           }
           .field-err {

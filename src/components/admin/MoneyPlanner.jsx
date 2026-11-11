@@ -929,7 +929,7 @@ export const MoneyPlanner = ({ registerNavigationGuard }) => {
               Batch details
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '1rem' }}>
               <div>
                 <label
                   htmlFor="mp-batch-name"
@@ -1738,7 +1738,7 @@ export const MoneyPlanner = ({ registerNavigationGuard }) => {
               : 'No saved batches yet. Enter your saree batch costs above and tap "Save batch".'}
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(295px, 1fr))', gap: '0.9rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 295px), 1fr))', gap: '0.9rem' }}>
             {savedBatches.map((item) => {
               const isCurrent = draft.id === item.id;
               const dateText = item.updatedAt || item.createdAt
@@ -1957,7 +1957,7 @@ export const MoneyPlanner = ({ registerNavigationGuard }) => {
         }
         @media (max-width: 1023px) {
           .money-planner-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: minmax(0, 1fr);
           }
           .money-planner-results-col {
             position: static;
@@ -1966,7 +1966,7 @@ export const MoneyPlanner = ({ registerNavigationGuard }) => {
         }
         @media (max-width: 560px) {
           .money-line-row {
-            grid-template-columns: 1fr auto;
+            grid-template-columns: minmax(0, 1fr) auto;
           }
           .money-line-row > input:first-child {
             grid-column: 1 / -1;

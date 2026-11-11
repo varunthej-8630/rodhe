@@ -595,6 +595,91 @@ async function runAuditQA() {
     assert(!tabletShopOverflow, 'Shop page fits 768x1024 tablet without overflow');
     await cdp.screenshot('qa-tablet-768-shop.png');
 
+    // Mobile Modals/Drawers 360x740 & 320x568 check (CartDrawer, AuthModal, TrackOrderModal)
+    await cdp.goto(url);
+    for (const mvp of [{ width: 320, height: 568 }, { width: 360, height: 740 }]) {
+      await cdp.setViewport(mvp.width, mvp.height, true);
+      await delay(180);
+      const docOver = await cdp.eval(`return document.documentElement.scrollWidth > document.documentElement.clientWidth + 1;`);
+      assert(!docOver, `Home has zero overflow at ${mvp.width}x${mvp.height}`);
+    }
+
+    // Open mobile hamburger menu -> Sign In -> AuthModal -> CartDrawer -> TrackOrderModal at 360x740
+    await cdp.setViewport(360, 740, true);
+    await cdp.eval(`document.querySelector('[aria-label="Open navigation menu"]')?.click();`);
+    await cdp.waitFor("document.querySelector('.drawer-content.drawer-left')", 6000);
+    await delay(150);
+    const mobileMenuCheck = await cdp.eval(`
+      const drawer = document.querySelector('.drawer-content.drawer-left');
+      return { opened: Boolean(drawer), scrollW: drawer?.scrollWidth || 0, clientW: drawer?.clientWidth || 0 };
+    `);
+    assert(
+      mobileMenuCheck.opened && mobileMenuCheck.scrollW <= mobileMenuCheck.clientW + 1,
+      'Mobile nav drawer fits 360x740 without inner overflow',
+      `scroll=${mobileMenuCheck.scrollW}/${mobileMenuCheck.clientW}`
+    );
+
+    await cdp.eval(`
+      const btn = Array.from(document.querySelectorAll('.drawer-content.drawer-left button')).find((b) => (b.textContent || '').includes('Sign In'));
+      btn?.click();
+    `);
+    await cdp.waitFor("document.querySelector('[role=\"dialog\"][aria-label=\"Customer Account\"]')", 6000);
+    await delay(150);
+    const authOpenCheck = await cdp.eval(`
+      const dlg = document.querySelector('[role="dialog"][aria-label="Customer Account"]');
+      const card = dlg?.firstElementChild;
+      return { opened: Boolean(dlg), scrollW: card?.scrollWidth || 0, clientW: card?.clientWidth || 0 };
+    `);
+    assert(
+      authOpenCheck.opened && authOpenCheck.scrollW <= authOpenCheck.clientW + 1,
+      'AuthModal has zero inner horizontal overflow at 360x740',
+      `scroll=${authOpenCheck.scrollW}/${authOpenCheck.clientW}`
+    );
+    await cdp.eval(`document.querySelector('[aria-label="Close account modal"]')?.click();`);
+    await delay(180);
+
+    // Add an item & inspect CartDrawer at 360x740
+    await cdp.eval(`document.querySelector('.product-card .btn-ecommerce-add-to-cart')?.click();`);
+    await cdp.waitFor("document.querySelector('[aria-label=\"Shopping Bag\"] .drawer-content')", 6000);
+    await delay(420);
+    const cartOpenCheck = await cdp.eval(`
+      const backdrop = document.querySelector('[aria-label="Shopping Bag"]');
+      const drawer = backdrop?.querySelector('.drawer-content');
+      return {
+        opened: Boolean(drawer),
+        scrollW: Math.max(backdrop?.scrollWidth || 0, drawer?.scrollWidth || 0),
+        clientW: drawer?.clientWidth || 0
+      };
+    `);
+    assert(
+      cartOpenCheck.opened && cartOpenCheck.scrollW <= cartOpenCheck.clientW + 1,
+      'CartDrawer has zero inner horizontal overflow at 360x740',
+      `scroll=${cartOpenCheck.scrollW}/${cartOpenCheck.clientW}`
+    );
+    await cdp.screenshot('qa-mobile-360-cartdrawer.png');
+    await cdp.eval(`document.querySelector('[aria-label="Close shopping bag"]')?.click();`);
+    await delay(180);
+
+    // Open Track Order modal via Footer button at 360x740 & verify inner scrollWidth
+    await cdp.eval(`
+      const btn = Array.from(document.querySelectorAll('footer button')).find((b) => (b.textContent || '').trim().toLowerCase().includes('track'));
+      btn?.click();
+    `);
+    await cdp.waitFor("document.querySelector('[aria-label=\"Close track order modal\"]')", 6000);
+    await delay(150);
+    const trackOpenCheck = await cdp.eval(`
+      const closeBtn = document.querySelector('[aria-label="Close track order modal"]');
+      const card = closeBtn?.closest('div[style*="maxHeight"]') || closeBtn?.parentElement?.parentElement;
+      return { opened: Boolean(closeBtn), scrollW: card?.scrollWidth || 0, clientW: card?.clientWidth || 0 };
+    `);
+    assert(
+      trackOpenCheck.opened && trackOpenCheck.scrollW <= trackOpenCheck.clientW + 1,
+      'TrackOrderModal has zero inner horizontal overflow at 360x740',
+      `scroll=${trackOpenCheck.scrollW}/${trackOpenCheck.clientW}`
+    );
+    await cdp.eval(`document.querySelector('[aria-label="Close track order modal"]')?.click();`);
+    await delay(150);
+
     // Runtime Console & Exception & Asset Error assertions
     console.log('\n--- QA 7: Runtime Console Errors, Page Exceptions & Static Assets ---');
     assert(pageExceptions.length === 0, 'Zero unhandled JS exceptions during full audit', pageExceptions.join('; '));

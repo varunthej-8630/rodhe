@@ -285,12 +285,14 @@ export const AuthModal = () => {
     >
       <div
         style={{
-          width: 'min(560px, 95vw)',
+          width: 'min(560px, 100%)',
+          maxWidth: '100%',
           backgroundColor: '#FFFDF9',
           border: '1px solid rgba(184, 141, 74, 0.3)',
           boxShadow: '0 25px 60px rgba(42, 26, 19, 0.25)',
           overflowY: 'auto',
-          maxHeight: '92vh',
+          overflowX: 'hidden',
+          maxHeight: '92dvh',
           animation: 'slideUp 0.28s ease'
         }}
         onClick={(e) => e.stopPropagation()}
@@ -335,7 +337,7 @@ export const AuthModal = () => {
         {patronUser ? (
           <div>
             {/* Signed-In Navigation Tabs */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderBottom: '1px solid rgba(75, 48, 36, 0.1)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', borderBottom: '1px solid rgba(75, 48, 36, 0.1)' }}>
               {[
                 { id: 'profile', label: 'Details' },
                 { id: 'addresses', label: `Addresses (${customerAddresses.length})` },
@@ -529,7 +531,7 @@ export const AuthModal = () => {
                         <button
                           onClick={() => setIsAuthOpen(false)}
                           className="btn btn-primary"
-                          style={{ flex: 1, padding: '0.75rem', minWidth: '160px' }}
+                          style={{ flex: '1 1 min(100%, 160px)', padding: '0.75rem', minWidth: 0 }}
                         >
                           <span>Continue Shopping</span>
                           <ArrowRight size={15} />
@@ -576,7 +578,7 @@ export const AuthModal = () => {
                         </div>
                       )}
 
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '0.75rem' }}>
                         <div className="form-group">
                           <label className="form-label">Address Label</label>
                           <select
@@ -604,7 +606,7 @@ export const AuthModal = () => {
                         </div>
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '0.75rem' }}>
                         <div className="form-group">
                           <label className="form-label">Mobile Number *</label>
                           <input
@@ -645,7 +647,7 @@ export const AuthModal = () => {
                         />
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '0.75rem' }}>
                         <div className="form-group">
                           <label className="form-label">Street / Area / Locality</label>
                           <input
@@ -669,7 +671,7 @@ export const AuthModal = () => {
                         </div>
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '0.75rem' }}>
                         <div className="form-group">
                           <label className="form-label">City *</label>
                           <input

@@ -538,7 +538,7 @@ export const AdminOrders = ({ adminEmail = 'administrator' }) => {
                         backgroundColor: '#FAF6EE',
                         borderTop: '1px solid rgba(75, 48, 36, 0.08)',
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 290px), 1fr))',
                         gap: '1.35rem'
                       }}
                     >

@@ -219,7 +219,7 @@ export const UpiPaymentSection = ({
   const isTerminalClosed = [PAYMENT_STATUS.CANCELLED, PAYMENT_STATUS.REFUNDED].includes(currentStatus);
 
   return (
-    <div style={{ padding: 'clamp(1.1rem, 3.5vw, 2rem)', maxWidth: '780px', margin: '0 auto', width: '100%' }}>
+    <div style={{ padding: 'clamp(0.95rem, 3.5vw, 2rem)', maxWidth: '780px', margin: '0 auto', width: '100%', boxSizing: 'border-box', minWidth: 0 }}>
       {/* Top Order & Honest Status Header */}
       <div
         style={{
@@ -261,7 +261,7 @@ export const UpiPaymentSection = ({
             </div>
           </div>
 
-          <div style={{ textAlign: 'right' }}>
+          <div className="upi-amount-summary">
             <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8F7263', fontWeight: 600 }}>
               Exact Payable Amount
             </div>
@@ -479,11 +479,13 @@ export const UpiPaymentSection = ({
                 backgroundColor: '#FFFDF9',
                 border: '1px solid rgba(184, 141, 74, 0.35)',
                 borderRadius: '4px',
-                padding: '1.15rem',
+                padding: 'clamp(0.85rem, 3vw, 1.15rem)',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                textAlign: 'center'
+                textAlign: 'center',
+                minWidth: 0,
+                boxSizing: 'border-box'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.74rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#4B3024', marginBottom: '0.75rem' }}>
@@ -571,7 +573,7 @@ export const UpiPaymentSection = ({
             </div>
 
             {/* Right: Verified Beneficiary Info + UPI App Launch + Instructions */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem', minWidth: 0 }}>
               <div
                 style={{
                   backgroundColor: '#FFFDF9',
@@ -592,8 +594,8 @@ export const UpiPaymentSection = ({
 
                   <div>
                     <span style={{ color: '#8F7263', fontSize: '0.74rem', display: 'block' }}>{methodCfg.name} UPI ID:</span>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginTop: '0.15rem', backgroundColor: '#FAF6EE', padding: '0.45rem 0.65rem', borderRadius: '3px', border: '1px solid rgba(75, 48, 36, 0.12)' }}>
-                      <code style={{ fontSize: '0.82rem', color: '#4B3024', fontWeight: 600, wordBreak: 'break-all' }}>{methodCfg.vpa}</code>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.15rem', backgroundColor: '#FAF6EE', padding: '0.45rem 0.65rem', borderRadius: '3px', border: '1px solid rgba(75, 48, 36, 0.12)', minWidth: 0 }}>
+                      <code style={{ fontSize: '0.82rem', color: '#4B3024', fontWeight: 600, wordBreak: 'break-all', minWidth: 0 }}>{methodCfg.vpa}</code>
                       <button
                         type="button"
                         onClick={() => handleCopy('vpa', methodCfg.vpa, `${methodCfg.name} UPI ID`)}
@@ -625,9 +627,9 @@ export const UpiPaymentSection = ({
                     type="button"
                     onClick={() => handleLaunchUpiIntent(true)}
                     className="btn btn-gold"
-                    style={{ width: '100%', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem' }}
+                    style={{ width: '100%', minWidth: 0, minHeight: '44px', padding: '0.75rem 0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem' }}
                   >
-                    <Smartphone size={16} />
+                    <Smartphone size={16} style={{ flexShrink: 0 }} />
                     <span>Open {methodCfg.name} App (₹{grandTotal.toLocaleString('en-IN')})</span>
                   </button>
 
@@ -635,9 +637,9 @@ export const UpiPaymentSection = ({
                     type="button"
                     onClick={() => handleLaunchUpiIntent(false)}
                     className="btn btn-outline btn-sm"
-                    style={{ width: '100%', minHeight: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                    style={{ width: '100%', minWidth: 0, minHeight: '38px', padding: '0.5rem 0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
                   >
-                    <ExternalLink size={13} />
+                    <ExternalLink size={13} style={{ flexShrink: 0 }} />
                     <span>Open Any Installed UPI App</span>
                   </button>
                 </div>
@@ -724,14 +726,14 @@ export const UpiPaymentSection = ({
                   if (utrError) setUtrError('');
                 }}
                 className="form-input"
-                style={{ flex: '1 1 220px', minHeight: '44px' }}
+                style={{ flex: '1 1 min(100%, 220px)', minWidth: 0, minHeight: '44px' }}
                 aria-label="UPI Transaction or UTR Reference"
               />
               <button
                 type="submit"
                 disabled={isSubmittingUtr}
                 className="btn btn-primary"
-                style={{ minHeight: '44px', whiteSpace: 'nowrap' }}
+                style={{ minHeight: '44px', minWidth: 0, flex: '1 1 auto', maxWidth: '100%' }}
               >
                 {isSubmittingUtr ? 'Recording UTR...' : 'Submit UTR for Verification'}
               </button>
@@ -786,6 +788,17 @@ export const UpiPaymentSection = ({
           </button>
         </div>
       </div>
+
+      <style>{`
+        .upi-amount-summary {
+          text-align: left;
+        }
+        @media (min-width: 440px) {
+          .upi-amount-summary {
+            text-align: right;
+          }
+        }
+      `}</style>
     </div>
   );
 };

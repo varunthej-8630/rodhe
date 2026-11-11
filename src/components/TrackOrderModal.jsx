@@ -81,12 +81,14 @@ export const TrackOrderModal = ({ isOpen, onClose }) => {
     <div className="modal-backdrop" onClick={onClose}>
       <div
         style={{
-          width: 'min(640px, 94vw)',
+          width: 'min(640px, 100%)',
+          maxWidth: '100%',
           backgroundColor: '#FFFDF9',
           border: '1px solid rgba(184, 141, 74, 0.3)',
           boxShadow: '0 25px 60px rgba(42, 26, 19, 0.25)',
           overflowY: 'auto',
-          maxHeight: '92vh',
+          overflowX: 'hidden',
+          maxHeight: '92dvh',
           animation: 'slideUp 0.3s ease'
         }}
         onClick={(e) => e.stopPropagation()}
@@ -127,7 +129,7 @@ export const TrackOrderModal = ({ isOpen, onClose }) => {
               Enter your official Order Number along with the Phone Number or Email provided during checkout to view live atelier dispatch tracking.
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8F7263', fontWeight: 600, marginBottom: '0.3rem' }}>
                   Order Number
@@ -324,7 +326,7 @@ export const TrackOrderModal = ({ isOpen, onClose }) => {
 
               {/* Progress Timeline */}
               <div style={{ margin: '1.5rem 0' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', textAlign: 'center', position: 'relative' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '0.4rem', textAlign: 'center', position: 'relative' }}>
                   {[
                     { step: 1, label: 'Placed', icon: CheckCircle2 },
                     { step: 2, label: 'Handcrafted', icon: Package },

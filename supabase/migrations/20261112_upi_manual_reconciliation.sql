@@ -593,26 +593,7 @@ BEGIN
         v_order_number := public.generate_order_number();
     END IF;
 
-    -- 7. Deduct stock & record ledger
-    FOR v_item IN SELECT * FROM jsonb_array_elements(v_resolved_items)
-    LOOP
-        UPDATE public.products
-        SET stock_count = stock_count - (v_item->>'quantity')::INT,
-            in_stock = ((stock_count - (v_item->>'quantity')::INT) > 0),
-            updated_at = NOW()
-        WHERE id = (v_item->>'product_uuid')::UUID;
-
-        INSERT INTO public.inventory_movements (product_id, delta, reason, reference_order_id, notes)
-        VALUES (
-            (v_item->>'product_uuid'),
-            -((v_item->>'quantity')::INT),
-            'order_placed',
-            v_order_id,
-            'Order #' || v_order_number || ' reserved via ' || v_payment_method
-        );
-    END LOOP;
-
-    -- 8. Insert Order Header
+    -- 7. Insert Order Header first so child foreign keys (order_items, inventory_movements, payments) succeed
     INSERT INTO public.orders (
         id, order_number, idempotency_key, customer_id,
         customer_name, customer_email, customer_phone, shipping_address,
@@ -641,6 +622,25 @@ BEGIN
         'Express Air Logistics',
         NULLIF(TRIM(COALESCE(p_order->>'notes', '')), '')
     );
+
+    -- 8. Deduct stock & record inventory ledger referencing the created order
+    FOR v_item IN SELECT * FROM jsonb_array_elements(v_resolved_items)
+    LOOP
+        UPDATE public.products
+        SET stock_count = stock_count - (v_item->>'quantity')::INT,
+            in_stock = ((stock_count - (v_item->>'quantity')::INT) > 0),
+            updated_at = NOW()
+        WHERE id = (v_item->>'product_uuid')::UUID;
+
+        INSERT INTO public.inventory_movements (product_id, delta, reason, reference_order_id, notes)
+        VALUES (
+            (v_item->>'product_uuid'),
+            -((v_item->>'quantity')::INT),
+            'order_placed',
+            v_order_id,
+            'Order #' || v_order_number || ' reserved via ' || v_payment_method
+        );
+    END LOOP;
 
     -- 9. Insert Order Items
     INSERT INTO public.order_items (order_id, product_id, sku, name, unit_price, quantity, subtotal, primary_image)
