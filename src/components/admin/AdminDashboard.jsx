@@ -10,7 +10,8 @@ import {
   Database, 
   ExternalLink,
   FolderTree,
-  XCircle
+  XCircle,
+  ShoppingBag
 } from 'lucide-react';
 import { storeService } from '../../services/storeService';
 import { isSupabaseConfigured } from '../../services/supabaseClient';
@@ -116,6 +117,26 @@ export const AdminDashboard = ({ onNavigateTab, onNewProduct, onEditProduct }) =
 
         {/* Header Action Shortcuts */}
         <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => onNavigateTab('orders')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.55rem 0.95rem',
+              backgroundColor: '#FAF6EE',
+              border: '1px solid rgba(184, 141, 74, 0.4)',
+              borderRadius: '3px',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              color: '#4B3024',
+              cursor: 'pointer'
+            }}
+          >
+            <ShoppingBag size={14} color="#B88D4A" />
+            <span>Orders & UPI</span>
+          </button>
+
           <button
             onClick={() => onNavigateTab('collections')}
             style={{

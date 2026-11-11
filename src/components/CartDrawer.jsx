@@ -40,6 +40,9 @@ export const CartDrawer = () => {
     total,
     storeSettings,
     setIsCheckoutOpen,
+    pendingUpiOrder,
+    openPendingUpiOrder,
+    clearPendingUpiOrder,
     navigateTo
   } = useShop();
 
@@ -115,6 +118,48 @@ export const CartDrawer = () => {
             <X size={20} />
           </button>
         </div>
+
+        {/* Pending UPI Order Recovery Banner */}
+        {pendingUpiOrder && pendingUpiOrder.paymentStatus !== 'PAID' && (
+          <div
+            style={{
+              backgroundColor: 'rgba(184, 141, 74, 0.14)',
+              borderBottom: '1px solid rgba(184, 141, 74, 0.35)',
+              padding: '0.8rem 1.35rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.75rem',
+              flexWrap: 'wrap',
+              flexShrink: 0
+            }}
+          >
+            <div style={{ fontSize: '0.78rem', color: '#4B3024', lineHeight: 1.4 }}>
+              <strong>Pending UPI Order #{pendingUpiOrder.orderNumber}</strong>
+              <span style={{ display: 'block', color: '#6F4E3E', fontSize: '0.73rem' }}>
+                Amount: ₹{Number(pendingUpiOrder.grandTotal || 0).toLocaleString('en-IN')} • Status: {pendingUpiOrder.paymentStatus}
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => openPendingUpiOrder(pendingUpiOrder)}
+                className="btn btn-primary btn-sm"
+                style={{ fontSize: '0.7rem', padding: '0.38rem 0.7rem', minHeight: '34px' }}
+              >
+                Resume Payment
+              </button>
+              <button
+                type="button"
+                onClick={clearPendingUpiOrder}
+                aria-label="Dismiss pending order banner"
+                style={{ background: 'none', border: 'none', color: '#8F7263', cursor: 'pointer', padding: '0.25rem' }}
+              >
+                <X size={15} />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Free Shipping Banner (when cart has items) */}
         {cart.length > 0 && (

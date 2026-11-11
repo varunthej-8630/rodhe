@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { PRODUCTS as STATIC_PRODUCTS } from '../data/products';
 import { storeService } from '../services/storeService';
 import { customerService } from '../services/customerService';
+import { paymentService } from '../services/paymentService';
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 import {
   getCookieConsent,
@@ -98,6 +99,21 @@ export const ShopProvider = ({ children }) => {
     const saved = persistCookieConsent({ analytics: Boolean(analyticsOptIn) });
     setCookieConsent(saved);
     setIsCookiePrefsOpen(false);
+  }, []);
+
+  // Pending UPI Order Session Recovery State (tab-scoped sessionStorage)
+  const [pendingUpiOrder, setPendingUpiOrder] = useState(() => paymentService.getPendingSessionOrder());
+  const [resumePendingUpiFlag, setResumePendingUpiFlag] = useState(false);
+
+  const savePendingUpiOrder = useCallback((summary) => {
+    paymentService.savePendingSessionOrder(summary);
+    setPendingUpiOrder(summary || null);
+  }, []);
+
+  const clearPendingUpiOrder = useCallback(() => {
+    paymentService.clearPendingSessionOrder();
+    setPendingUpiOrder(null);
+    setResumePendingUpiFlag(false);
   }, []);
 
   // Intro video session state
@@ -248,6 +264,18 @@ export const ShopProvider = ({ children }) => {
     setIsTrackOrderOpen(false);
     setIsCookiePrefsOpen(false);
     setQuickViewProduct(null);
+  }, []);
+
+  const openPendingUpiOrder = useCallback((summary = null) => {
+    const target = summary || paymentService.getPendingSessionOrder();
+    if (!target) return;
+    paymentService.savePendingSessionOrder(target);
+    setPendingUpiOrder(target);
+    setIsCartOpen(false);
+    setIsTrackOrderOpen(false);
+    setIsAuthOpen(false);
+    setResumePendingUpiFlag(true);
+    setIsCheckoutOpen(true);
   }, []);
 
   // Centralized Scroll Lock when any overlay is open
@@ -424,6 +452,9 @@ export const ShopProvider = ({ children }) => {
     setCustomerAddresses([]);
     setSelectedAddressId(null);
     setGuestCheckoutDraftState(null);
+    paymentService.clearPendingSessionOrder();
+    setPendingUpiOrder(null);
+    setResumePendingUpiFlag(false);
     showToast('Signed out of your account.', 'info');
   };
 
@@ -925,6 +956,12 @@ export const ShopProvider = ({ children }) => {
         setIsAuthOpen,
         isCheckoutOpen,
         setIsCheckoutOpen,
+        pendingUpiOrder,
+        savePendingUpiOrder,
+        clearPendingUpiOrder,
+        resumePendingUpiFlag,
+        setResumePendingUpiFlag,
+        openPendingUpiOrder,
         isTrackOrderOpen,
         setIsTrackOrderOpen,
         quickViewProduct,

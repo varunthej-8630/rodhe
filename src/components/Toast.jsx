@@ -3,13 +3,15 @@ import { CheckCircle2, AlertCircle, Info, X, RotateCcw } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 
 export const Toast = () => {
-  const { toasts, removeToast } = useShop();
+  const { toasts, removeToast, isCheckoutOpen } = useShop();
 
-  if (!toasts || toasts.length === 0) return null;
+  // Keep UPI QR codes and mobile checkout surfaces unobstructed by non-error popups
+  const visibleToasts = isCheckoutOpen ? (toasts || []).filter((t) => t.type === 'error') : (toasts || []);
+  if (visibleToasts.length === 0) return null;
 
   return (
     <div className="toast-container" role="status" aria-live="polite">
-      {toasts.map((toast) => (
+      {visibleToasts.map((toast) => (
         <div key={toast.id} className="toast-item">
           {toast.type === 'success' && <CheckCircle2 size={18} color="#D4AC68" style={{ flexShrink: 0 }} />}
           {toast.type === 'error' && <AlertCircle size={18} color="#C98278" style={{ flexShrink: 0 }} />}

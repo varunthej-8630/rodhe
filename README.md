@@ -477,6 +477,14 @@ CREATE INDEX IF NOT EXISTS idx_inventory_movements_prod ON public.inventory_move
 ### 10.6 SQL Migrations & Rollback Scripts
 - **Consolidated Master Migration**: [`supabase/migrations/20261108_final_commerce_production.sql`](file:///c:/Users/VARUN%20THEJ/OneDrive/Desktop/Rodhe/supabase/migrations/20261108_final_commerce_production.sql)
 - **Rollback Script**: [`supabase/migrations/20261108_final_commerce_rollback.sql`](file:///c:/Users/VARUN%20THEJ/OneDrive/Desktop/Rodhe/supabase/migrations/20261108_final_commerce_rollback.sql)
+- **Direct UPI & Manual Reconciliation Migration**: [`supabase/migrations/20261112_upi_manual_reconciliation.sql`](file:///c:/Users/VARUN%20THEJ/OneDrive/Desktop/Rodhe/supabase/migrations/20261112_upi_manual_reconciliation.sql)
+- **Money Planner (Saree Batch Cost & Pricing Planner) Migration**: [`supabase/migrations/20261112_crm_money_planner.sql`](file:///c:/Users/VARUN%20THEJ/OneDrive/Desktop/Rodhe/supabase/migrations/20261112_crm_money_planner.sql)
+
+### 9.13 Module 12: Money Planner (`MoneyPlanner` — Owner-Only Batch Costing)
+Located inside the authenticated CRM sidebar (`Money Planner`), helping owners plan batch budgets without technical accounting jargon:
+- **Integer-Paise Financial Engine** ([`src/utils/moneyPlannerCalc.js`](file:///c:/Users/VARUN%20THEJ/OneDrive/Desktop/Rodhe/src/utils/moneyPlannerCalc.js)): Exact two-decimal arithmetic for `Spent once (setup)`, `Spent on every saree`, live SVG donut/share chart (`Biggest expense` badge + tie detection), and optional markup-on-cost selling price estimator.
+- **Organization-Isolated Persistence & Concurrency** ([`src/services/moneyPlannerService.js`](file:///c:/Users/VARUN%20THEJ/OneDrive/Desktop/Rodhe/src/services/moneyPlannerService.js)): Backed by PostgreSQL `money_batches` + `money_batch_lines` tables and `SECURITY DEFINER` RPCs (`list_money_batches`, `get_money_batch`, `save_money_batch_atomic`, `delete_money_batch`) that recompute all totals server-side and enforce `public.is_admin()` + `public.current_admin_org_id()` RLS and optimistic locking.
+- **Exports & Unsaved-Change Protection** ([`src/utils/moneyPlannerExports.js`](file:///c:/Users/VARUN%20THEJ/OneDrive/Desktop/Rodhe/src/utils/moneyPlannerExports.js)): Formula-injection-safe Excel/CSV export and multi-page vector PDF 1.4 export with zero customer PII, plus navigation guards across CRM tabs and browser refresh.
 
 ---
 

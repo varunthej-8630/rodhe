@@ -24,6 +24,12 @@ import {
   isValidIndianPhone,
   isValidIndianPincode
 } from '../services/customerService';
+import {
+  PAYMENT_STATUS,
+  formatPaymentMethodLabel,
+  getPaymentStatusMeta,
+  normalizePaymentStatus
+} from '../config/upiConfig';
 
 const EMPTY_ADDRESS_FORM = {
   id: null,
@@ -52,7 +58,8 @@ export const AuthModal = () => {
     updateCustomerProfile,
     saveCustomerAddress,
     setDefaultCustomerAddress,
-    deleteCustomerAddress
+    deleteCustomerAddress,
+    openPendingUpiOrder
   } = useShop();
 
   const [tab, setTab] = useState('login'); // 'login' | 'register' | 'forgot'
@@ -846,45 +853,84 @@ export const AuthModal = () => {
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', maxHeight: '380px', overflowY: 'auto' }}>
-                      {orders.map((o) => (
-                        <div
-                          key={o.id || o.order_number}
-                          style={{
-                            backgroundColor: '#FAF6EE',
-                            border: '1px solid rgba(184, 141, 74, 0.2)',
-                            borderRadius: '4px',
-                            padding: '0.85rem 1rem',
-                            fontSize: '0.82rem'
-                          }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                            <strong style={{ color: '#4B3024' }}>#{o.order_number || o.orderNumber}</strong>
-                            <span
-                              style={{
-                                fontSize: '0.68rem',
-                                fontWeight: 700,
-                                textTransform: 'uppercase',
-                                padding: '0.2rem 0.5rem',
-                                borderRadius: '2px',
-                                backgroundColor: (o.fulfillment_status === 'delivered' || o.fulfillmentStatus === 'delivered') ? 'rgba(82, 91, 58, 0.15)' : 'rgba(184, 141, 74, 0.15)',
-                                color: (o.fulfillment_status === 'delivered' || o.fulfillmentStatus === 'delivered') ? '#525B3A' : '#B88D4A'
-                              }}
-                            >
-                              {o.fulfillment_status || o.fulfillmentStatus || 'Processing'}
-                            </span>
-                          </div>
-                          <div style={{ color: '#8F7263', fontSize: '0.75rem', marginBottom: '0.4rem' }}>
-                            {new Date(o.created_at || o.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
-                            {' • '}Total: <strong>₹{(o.grand_total || o.grandTotal || 0).toLocaleString('en-IN')}</strong>
-                          </div>
-                          {(o.tracking_number || o.trackingNumber) && (
-                            <div style={{ fontSize: '0.75rem', color: '#4B3024', marginTop: '0.25rem' }}>
-                              <Truck size={12} style={{ display: 'inline', marginRight: '4px' }} />
-                              Courier: {o.courier_partner || o.courierPartner || 'Express Air'} • AWB: <code>{o.tracking_number || o.trackingNumber}</code>
+                      {orders.map((o) => {
+                        const pStatus = normalizePaymentStatus(o.payment_status || o.paymentStatus);
+                        const pMeta = getPaymentStatusMeta(pStatus);
+                        const canResumeUpi = [
+                          PAYMENT_STATUS.CREATED,
+                          PAYMENT_STATUS.PENDING,
+                          PAYMENT_STATUS.FAILED,
+                          PAYMENT_STATUS.EXPIRED
+                        ].includes(pStatus);
+                        const utr = o.utr_reference || o.utrReference || '';
+                        return (
+                          <div
+                            key={o.id || o.order_number}
+                            style={{
+                              backgroundColor: '#FAF6EE',
+                              border: '1px solid rgba(184, 141, 74, 0.2)',
+                              borderRadius: '4px',
+                              padding: '0.85rem 1rem',
+                              fontSize: '0.82rem'
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem', flexWrap: 'wrap', gap: '0.35rem' }}>
+                              <strong style={{ color: '#4B3024' }}>#{o.order_number || o.orderNumber}</strong>
+                              <span
+                                style={{
+                                  fontSize: '0.68rem',
+                                  fontWeight: 700,
+                                  textTransform: 'uppercase',
+                                  padding: '0.2rem 0.5rem',
+                                  borderRadius: '2px',
+                                  backgroundColor: pMeta.bg,
+                                  color: pMeta.color,
+                                  border: `1px solid ${pMeta.border}`
+                                }}
+                              >
+                                {pMeta.shortLabel}
+                              </span>
                             </div>
-                          )}
-                        </div>
-                      ))}
+                            <div style={{ color: '#8F7263', fontSize: '0.75rem', marginBottom: '0.35rem' }}>
+                              {new Date(o.created_at || o.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              {' • '}Total: <strong>₹{(o.grand_total || o.grandTotal || 0).toLocaleString('en-IN')}</strong>
+                              {' • '}{formatPaymentMethodLabel(o.payment_method || o.paymentMethod)}
+                            </div>
+                            {utr && (
+                              <div style={{ fontSize: '0.74rem', color: '#4B3024', marginBottom: '0.35rem' }}>
+                                UTR Ref: <code>{utr}</code>
+                              </div>
+                            )}
+                            {(o.tracking_number || o.trackingNumber) && (
+                              <div style={{ fontSize: '0.75rem', color: '#4B3024', marginTop: '0.25rem' }}>
+                                <Truck size={12} style={{ display: 'inline', marginRight: '4px' }} />
+                                Courier: {o.courier_partner || o.courierPartner || 'Express Air'} • AWB: <code>{o.tracking_number || o.trackingNumber}</code>
+                              </div>
+                            )}
+                            {canResumeUpi && (
+                              <div style={{ marginTop: '0.5rem' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => openPendingUpiOrder({
+                                    orderId: o.id,
+                                    orderNumber: o.order_number || o.orderNumber,
+                                    grandTotal: o.grand_total || o.grandTotal,
+                                    paymentMethod: o.payment_method || o.paymentMethod,
+                                    paymentStatus: pStatus,
+                                    paymentExpiresAt: o.payment_expires_at || o.paymentExpiresAt,
+                                    utrReference: utr,
+                                    contact: patronUser?.email || patronUser?.phone || ''
+                                  })}
+                                  className="btn btn-primary btn-sm"
+                                  style={{ fontSize: '0.7rem', padding: '0.35rem 0.7rem', minHeight: '32px' }}
+                                >
+                                  Complete / Resume UPI Payment
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

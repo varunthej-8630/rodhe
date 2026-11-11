@@ -5,15 +5,22 @@ import {
   Truck, 
   CheckCircle2, 
   Package, 
-  AlertCircle, 
+  AlertCircle,
   MessageCircle,
-  Sparkles
+  Sparkles,
+  Smartphone
 } from 'lucide-react';
 import { storeService } from '../services/storeService';
 import { useShop } from '../context/ShopContext';
+import {
+  PAYMENT_STATUS,
+  formatPaymentMethodLabel,
+  getPaymentStatusMeta,
+  normalizePaymentStatus
+} from '../config/upiConfig';
 
 export const TrackOrderModal = ({ isOpen, onClose }) => {
-  const { storeSettings } = useShop();
+  const { storeSettings, openPendingUpiOrder } = useShop();
   const [orderNumber, setOrderNumber] = useState('');
   const [contact, setContact] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -228,21 +235,92 @@ export const TrackOrderModal = ({ isOpen, onClose }) => {
                   <div style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', color: '#4B3024', fontWeight: 700 }}>
                     ₹{(orderData.grand_total || orderData.grandTotal || 0).toLocaleString('en-IN')}
                   </div>
-                  <span
-                    style={{
-                      fontSize: '0.7rem',
-                      fontWeight: 600,
-                      textTransform: 'uppercase',
-                      padding: '0.2rem 0.5rem',
-                      borderRadius: '2px',
-                      backgroundColor: (orderData.payment_status === 'captured' || orderData.paymentStatus === 'captured') ? 'rgba(82, 91, 58, 0.1)' : 'rgba(184, 141, 74, 0.12)',
-                      color: (orderData.payment_status === 'captured' || orderData.paymentStatus === 'captured') ? '#525B3A' : '#B88D4A'
-                    }}
-                  >
-                    {orderData.payment_status || orderData.paymentStatus}
-                  </span>
+                  {(() => {
+                    const pMeta = getPaymentStatusMeta(orderData.payment_status || orderData.paymentStatus);
+                    return (
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: '2px',
+                          backgroundColor: pMeta.bg,
+                          color: pMeta.color,
+                          border: `1px solid ${pMeta.border}`,
+                          marginTop: '0.25rem'
+                        }}
+                      >
+                        {formatPaymentMethodLabel(orderData.payment_method || orderData.paymentMethod)} • {pMeta.shortLabel}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
+
+              {/* Direct UPI Verification Metadata & Safe Resume Payment */}
+              {(() => {
+                const pStatus = normalizePaymentStatus(orderData.payment_status || orderData.paymentStatus);
+                const utr = orderData.utr_reference || orderData.utrReference || '';
+                const canResumeUpi = [
+                  PAYMENT_STATUS.CREATED,
+                  PAYMENT_STATUS.PENDING,
+                  PAYMENT_STATUS.FAILED,
+                  PAYMENT_STATUS.EXPIRED
+                ].includes(pStatus);
+
+                return (
+                  <div
+                    style={{
+                      backgroundColor: '#FFFDF9',
+                      border: '1px solid rgba(184, 141, 74, 0.25)',
+                      borderRadius: '3px',
+                      padding: '0.75rem 0.9rem',
+                      marginBottom: '1rem',
+                      fontSize: '0.8rem',
+                      color: '#4B3024',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '0.6rem'
+                    }}
+                  >
+                    <div>
+                      <div><strong>Payment Status:</strong> {getPaymentStatusMeta(pStatus).label}</div>
+                      {utr && <div style={{ fontSize: '0.75rem', color: '#6F4E3E', marginTop: '0.15rem' }}>Submitted UTR: <code>{utr}</code></div>}
+                      {orderData.verification_notes && (
+                        <div style={{ fontSize: '0.75rem', color: '#6F4E3E', marginTop: '0.15rem' }}>
+                          Atelier Note: {orderData.verification_notes}
+                        </div>
+                      )}
+                    </div>
+
+                    {canResumeUpi && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          openPendingUpiOrder({
+                            orderNumber: orderData.order_number || orderData.orderNumber,
+                            grandTotal: orderData.grand_total || orderData.grandTotal,
+                            paymentMethod: orderData.payment_method || orderData.paymentMethod,
+                            paymentStatus: pStatus,
+                            paymentExpiresAt: orderData.payment_expires_at || orderData.paymentExpiresAt,
+                            utrReference: utr,
+                            contact: contact.trim()
+                          });
+                        }}
+                        className="btn btn-primary btn-sm"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem' }}
+                      >
+                        <Smartphone size={13} />
+                        <span>Complete / Resume UPI</span>
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Progress Timeline */}
               <div style={{ margin: '1.5rem 0' }}>

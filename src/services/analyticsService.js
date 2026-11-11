@@ -225,6 +225,25 @@ export function trackBeginCheckout(cart = [], total = 0) {
 }
 
 /**
+ * Tracks selecting a UPI / payment method WITHOUT firing a purchase event.
+ */
+export function trackAddPaymentInfo(paymentMethod, cart = [], total = 0) {
+  return trackEvent('add_payment_info', {
+    currency: 'INR',
+    value: Number(total) || 0,
+    payment_type: paymentMethod || 'upi',
+    items: (cart || []).map((item) => {
+      const p = item.product || item;
+      return {
+        item_id: p.sku || p.id,
+        item_name: p.name,
+        quantity: item.quantity || 1
+      };
+    })
+  });
+}
+
+/**
  * Tracks opening the WhatsApp enquiry message WITHOUT reporting it as a paid purchase.
  */
 export function trackWhatsAppHandover(cart = [], total = 0) {

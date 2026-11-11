@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { authService } from '../../services/authService';
 import { supabase, isSupabaseConfigured } from '../../services/supabaseClient';
 import { AdminLogin } from './AdminLogin';
 import { AdminLayout } from './AdminLayout';
 import { AdminDashboard } from './AdminDashboard';
 import { AdminOrders } from './AdminOrders';
+import { MoneyPlanner } from './MoneyPlanner';
 import { AdminProductList } from './AdminProductList';
 import { AdminProductForm } from './AdminProductForm';
 import { AdminBulkImport } from './AdminBulkImport';
@@ -21,6 +22,19 @@ export const AdminPortal = ({ onNavigateToStorefront }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [editingProduct, setEditingProduct] = useState(null);
   const [isCreatingProduct, setIsCreatingProduct] = useState(false);
+  const navGuardRef = useRef(null);
+
+  const registerNavigationGuard = useCallback((guardFn) => {
+    navGuardRef.current = guardFn;
+  }, []);
+
+  const attemptNavigation = useCallback((proceed) => {
+    if (activeTab === 'money-planner' && typeof navGuardRef.current === 'function') {
+      const allowed = navGuardRef.current(proceed);
+      if (!allowed) return;
+    }
+    proceed();
+  }, [activeTab]);
 
   useEffect(() => {
     let isMounted = true;
@@ -78,12 +92,14 @@ export const AdminPortal = ({ onNavigateToStorefront }) => {
   };
 
   const handleLogout = async () => {
-    await authService.logout();
-    setSession(null);
-    setIsCheckingAuth(false);
-    if (onNavigateToStorefront) {
-      onNavigateToStorefront('home');
-    }
+    attemptNavigation(async () => {
+      await authService.logout();
+      setSession(null);
+      setIsCheckingAuth(false);
+      if (onNavigateToStorefront) {
+        onNavigateToStorefront('home');
+      }
+    });
   };
 
   const handleStartNewProduct = () => {
@@ -159,11 +175,18 @@ export const AdminPortal = ({ onNavigateToStorefront }) => {
       session={session}
       activeTab={activeTab}
       setActiveTab={(tab) => {
-        setIsCreatingProduct(false);
-        setEditingProduct(null);
-        setActiveTab(tab);
+        if (tab === activeTab) return;
+        attemptNavigation(() => {
+          setIsCreatingProduct(false);
+          setEditingProduct(null);
+          setActiveTab(tab);
+        });
       }}
-      onNavigateToStorefront={onNavigateToStorefront}
+      onNavigateToStorefront={(target = 'home') => {
+        attemptNavigation(() => {
+          if (onNavigateToStorefront) onNavigateToStorefront(target);
+        });
+      }}
       onLogout={handleLogout}
     >
       {activeTab === 'dashboard' && (
@@ -174,7 +197,15 @@ export const AdminPortal = ({ onNavigateToStorefront }) => {
         />
       )}
 
-      {activeTab === 'orders' && <AdminOrders />}
+      {activeTab === 'orders' && (
+        <AdminOrders
+          adminEmail={session?.email || session?.user?.email || 'administrator'}
+        />
+      )}
+
+      {activeTab === 'money-planner' && (
+        <MoneyPlanner registerNavigationGuard={registerNavigationGuard} />
+      )}
 
       {activeTab === 'products' && (
         isCreatingProduct || editingProduct ? (

@@ -16,10 +16,15 @@ import {
   Check,
   Tag,
   User,
-  Star
+  Star,
+  Smartphone,
+  QrCode
 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
-import { trackBeginCheckout, trackWhatsAppHandover } from '../services/analyticsService';
+import { trackBeginCheckout, trackWhatsAppHandover, trackAddPaymentInfo } from '../services/analyticsService';
+import { UPI_METHOD_LIST, getUpiMethodConfig } from '../config/upiConfig';
+import { paymentService } from '../services/paymentService';
+import { UpiPaymentSection } from './UpiPaymentSection';
 import {
   isValidIndianPhone,
   isValidIndianPincode,
@@ -53,6 +58,12 @@ export const CheckoutModal = () => {
     hasUnavailableCartItems,
     updateQuantity,
     removeFromCart,
+    clearCart,
+    pendingUpiOrder,
+    savePendingUpiOrder,
+    clearPendingUpiOrder,
+    resumePendingUpiFlag,
+    setResumePendingUpiFlag,
     subtotal,
     discountAmount,
     appliedCoupon,
@@ -90,6 +101,10 @@ export const CheckoutModal = () => {
   const [couponInput, setCouponInput] = useState('');
   const [couponError, setCouponError] = useState('');
   const [lastAutoFillPin, setLastAutoFillPin] = useState('');
+  const [checkoutMode, setCheckoutMode] = useState('upi');
+  const [selectedUpiMethod, setSelectedUpiMethod] = useState('upi_phonepe');
+  const [activeUpiOrder, setActiveUpiOrder] = useState(null);
+  const [idempotencyKey, setIdempotencyKey] = useState('');
 
   // Close on Escape when not mid-submit
   useEffect(() => {
@@ -107,11 +122,29 @@ export const CheckoutModal = () => {
   useEffect(() => {
     if (!isCheckoutOpen) return;
 
-    setStep(1);
     setOrderError('');
     setFormErrors({});
     setPopupBlockedNotice(false);
     setCopiedMessage(false);
+
+    if (resumePendingUpiFlag && pendingUpiOrder) {
+      setCheckoutMode('upi');
+      setActiveUpiOrder(pendingUpiOrder);
+      setSelectedUpiMethod(getUpiMethodConfig(pendingUpiOrder.paymentMethod).id);
+      setStep(4);
+      setResumePendingUpiFlag(false);
+      return;
+    }
+
+    setStep(1);
+    setActiveUpiOrder(null);
+    setCheckoutMode('upi');
+    const fingerprint = (cart || [])
+      .map((i) => `${i.product?.sku || i.product?.id || i.sku}:${i.quantity}`)
+      .sort()
+      .join(',');
+    setIdempotencyKey(`rdh-${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${fingerprint.slice(0, 24)}`);
+
     if (cart.length > 0) {
       trackBeginCheckout(cart, total);
     }
@@ -399,6 +432,72 @@ export const CheckoutModal = () => {
     };
   };
 
+  const handleCreateUpiOrder = async () => {
+    if (isProcessing) return;
+    if (cart.length === 0 || hasUnavailableCartItems) {
+      setOrderError('Please ensure all sarees in your bag are available before proceeding.');
+      return;
+    }
+
+    setIsProcessing(true);
+    setOrderError('');
+
+    try {
+      const result = await paymentService.createPendingUpiOrder({
+        items: cart,
+        customer: effectiveDelivery,
+        shippingAddress: {
+          label: formData.label || 'Home',
+          recipientName: effectiveDelivery.fullName,
+          phone: effectiveDelivery.phone,
+          addressLine1: effectiveDelivery.addressLine1,
+          addressLine2: effectiveDelivery.addressLine2,
+          landmark: effectiveDelivery.landmark,
+          city: effectiveDelivery.city,
+          state: effectiveDelivery.state,
+          pincode: effectiveDelivery.pincode
+        },
+        appliedCoupon,
+        giftWrap,
+        shippingFee,
+        discountAmount,
+        upiMethod: selectedUpiMethod,
+        notes: formData.notes?.trim() || '',
+        idempotencyKey: idempotencyKey || undefined
+      });
+
+      trackAddPaymentInfo(selectedUpiMethod, cart, result.order?.grandTotal ?? total);
+      savePendingUpiOrder(result.sessionRecord);
+      setActiveUpiOrder({
+        ...result.order,
+        ...result.sessionRecord
+      });
+      setCheckoutMode('upi');
+      clearCart();
+      setStep(4);
+      showToast(`Order #${result.order.orderNumber} created. Complete UPI payment below.`, 'success');
+    } catch (err) {
+      setOrderError(err.message || 'Unable to initiate UPI order right now. Your shopping bag is preserved.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleWhatsAppSupportForUpi = (upiOrder) => {
+    const waNumber = (storeSettings?.whatsappNumber || '919490658858').replace(/[^0-9]/g, '') || '919490658858';
+    const orderNum = upiOrder?.orderNumber || upiOrder?.order_number || '';
+    const amount = Number(upiOrder?.grandTotal ?? upiOrder?.grand_total ?? total) || 0;
+    const utr = upiOrder?.utrReference || upiOrder?.utr_reference || '';
+    const methodLabel = getUpiMethodConfig(upiOrder?.paymentMethod || selectedUpiMethod).name;
+    const msg =
+      `Namaste RODHE Concierge,\n\n` +
+      `I have placed UPI Order #${orderNum} (₹${amount.toLocaleString('en-IN')}) via ${methodLabel}.\n` +
+      (utr ? `• Submitted UTR: ${utr}\n` : '') +
+      `• Current Status: ${upiOrder?.paymentStatus || 'PENDING'}\n\n` +
+      `Could you please assist with payment verification / confirmation? Thank you!`;
+    window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
+  };
+
   const handleSendToWhatsApp = () => {
     if (cart.length === 0 || hasUnavailableCartItems) {
       setOrderError('Please ensure all sarees in your bag are available before proceeding.');
@@ -408,6 +507,7 @@ export const CheckoutModal = () => {
     setIsProcessing(true);
     setOrderError('');
     setPopupBlockedNotice(false);
+    setCheckoutMode('whatsapp');
 
     try {
       const payload = buildWhatsAppPayload();
@@ -486,7 +586,7 @@ export const CheckoutModal = () => {
               style={{ height: 'clamp(22px, 4.5vw, 30px)', width: 'auto' }}
             />
             <span style={{ fontSize: '0.72rem', color: '#B88D4A', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              • Order Enquiry Checkout
+              • Secure Saree Checkout
             </span>
           </div>
 
@@ -502,23 +602,22 @@ export const CheckoutModal = () => {
         {/* 4-Step Progress Bar */}
         <div
           style={{
-            padding: '0.7rem clamp(0.75rem, 3vw, 2rem)',
+            padding: '0.65rem clamp(0.65rem, 3vw, 2rem)',
             backgroundColor: '#FFFDF9',
             borderBottom: '1px solid rgba(75, 48, 36, 0.08)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 'clamp(0.65rem, 2.5vw, 2rem)',
-            overflowX: 'auto',
-            scrollbarWidth: 'none',
+            flexWrap: 'wrap',
+            gap: '0.35rem clamp(0.6rem, 2.2vw, 1.75rem)',
             flexShrink: 0
           }}
         >
           {[
             { num: 1, label: '1. Review Bag' },
             { num: 2, label: '2. Details & Address' },
-            { num: 3, label: '3. Final Review' },
-            { num: 4, label: '4. WhatsApp Handover' }
+            { num: 3, label: '3. Payment & Review' },
+            { num: 4, label: checkoutMode === 'upi' ? '4. UPI Payment' : '4. WhatsApp Handover' }
           ].map((s) => (
             <button
               key={s.num}
@@ -530,17 +629,17 @@ export const CheckoutModal = () => {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.35rem',
+                gap: '0.3rem',
                 color: step === s.num ? '#4B3024' : step > s.num ? '#525B3A' : '#8F7263',
                 fontWeight: step === s.num ? 700 : 500,
-                fontSize: '0.75rem',
-                letterSpacing: '0.05em',
+                fontSize: 'clamp(0.65rem, 2.3vw, 0.74rem)',
+                letterSpacing: '0.04em',
                 textTransform: 'uppercase',
                 whiteSpace: 'nowrap',
                 background: 'none',
                 border: 'none',
                 cursor: s.num < step && step < 4 ? 'pointer' : 'default',
-                padding: '0.2rem 0'
+                padding: '0.15rem 0'
               }}
             >
               <span>{s.label}</span>
@@ -550,7 +649,75 @@ export const CheckoutModal = () => {
 
         {/* Modal Body */}
         <div className="checkout-main-content">
-          {step === 4 ? (
+          {step < 4 && pendingUpiOrder && pendingUpiOrder.paymentStatus !== 'PAID' && (
+            <div
+              style={{
+                backgroundColor: 'rgba(184, 141, 74, 0.14)',
+                borderBottom: '1px solid rgba(184, 141, 74, 0.35)',
+                padding: '0.75rem clamp(1rem, 3vw, 2rem)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '0.75rem',
+                flexWrap: 'wrap',
+                fontSize: '0.8rem'
+              }}
+            >
+              <span style={{ color: '#4B3024' }}>
+                <strong>Pending UPI Order #{pendingUpiOrder.orderNumber}</strong> (₹{Number(pendingUpiOrder.grandTotal || 0).toLocaleString('en-IN')}) — {pendingUpiOrder.paymentStatus}
+              </span>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCheckoutMode('upi');
+                    setActiveUpiOrder(pendingUpiOrder);
+                    setSelectedUpiMethod(getUpiMethodConfig(pendingUpiOrder.paymentMethod).id);
+                    setStep(4);
+                  }}
+                  className="btn btn-primary btn-sm"
+                  style={{ fontSize: '0.72rem', padding: '0.35rem 0.75rem', minHeight: '32px' }}
+                >
+                  Resume UPI Payment
+                </button>
+                <button
+                  type="button"
+                  onClick={clearPendingUpiOrder}
+                  style={{ fontSize: '0.72rem', color: '#6F4E3E', background: 'none', border: 'none', textDecoration: 'underline', cursor: 'pointer' }}
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 4 && checkoutMode === 'upi' && activeUpiOrder ? (
+            <UpiPaymentSection
+              key={`${activeUpiOrder.orderNumber}-${getUpiMethodConfig(activeUpiOrder.paymentMethod).id}`}
+              order={activeUpiOrder}
+              onOrderChange={(updated) => {
+                setActiveUpiOrder(updated);
+                savePendingUpiOrder({
+                  ...pendingUpiOrder,
+                  orderId: updated.id || pendingUpiOrder?.orderId,
+                  orderNumber: updated.orderNumber || updated.order_number,
+                  grandTotal: updated.grandTotal ?? updated.grand_total,
+                  paymentMethod: updated.paymentMethod || updated.payment_method,
+                  paymentStatus: updated.paymentStatus || updated.payment_status,
+                  paymentExpiresAt: updated.paymentExpiresAt || updated.payment_expires_at,
+                  utrReference: updated.utrReference || updated.utr_reference || '',
+                  contact: pendingUpiOrder?.contact || effectiveDelivery.email || effectiveDelivery.phone
+                });
+              }}
+              onOpenWhatsAppSupport={handleWhatsAppSupportForUpi}
+              showToast={showToast}
+              onDismissSessionOrder={() => {
+                clearPendingUpiOrder();
+                setIsCheckoutOpen(false);
+                navigateTo('home');
+              }}
+            />
+          ) : step === 4 ? (
             /* STEP 4: Honest WhatsApp Handover Screen */
             <div style={{ padding: 'clamp(1.75rem, 4.5vw, 3rem) clamp(1rem, 3vw, 2rem)', textAlign: 'center', maxWidth: '640px', margin: '0 auto', width: '100%' }}>
               <div
@@ -1193,22 +1360,89 @@ export const CheckoutModal = () => {
                       />
                     </div>
 
-                    {/* Honest Commerce Notice */}
+                    {/* STEP 3: UPI PAYMENT SELECTION & WHATSAPP ENQUIRY ALTERNATIVE */}
                     <div
                       style={{
-                        padding: '0.85rem 1rem',
-                        backgroundColor: '#F4ECE1',
-                        borderLeft: '3px solid #525B3A',
-                        fontSize: '0.78rem',
-                        color: '#4B3024',
-                        lineHeight: 1.5,
-                        marginBottom: '1.2rem'
+                        backgroundColor: '#FAF6EE',
+                        border: '1px solid rgba(184, 141, 74, 0.35)',
+                        borderRadius: '4px',
+                        padding: '1rem',
+                        marginBottom: '1rem'
                       }}
                     >
-                      <strong>How RODHE Orders Work:</strong>
-                      <p style={{ margin: '0.3rem 0 0', color: '#6F4E3E' }}>
-                        No online payment is taken here. Continuing opens WhatsApp (+{storeSettings.whatsappNumber}) with your complete order enquiry so our atelier team can confirm weave stock and share UPI / Bank Transfer details in chat.
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                        <span style={{ fontSize: '0.74rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', color: '#4B3024', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <QrCode size={15} color="#B88D4A" /> Select Direct UPI Payment (Scan & Pay or App)
+                        </span>
+                        <span style={{ fontSize: '0.7rem', color: '#525B3A', fontWeight: 600 }}>Zero Gateway Fee</span>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '0.6rem', marginBottom: '0.85rem' }}>
+                        {UPI_METHOD_LIST.map((m) => {
+                          const isSelected = selectedUpiMethod === m.id;
+                          return (
+                            <button
+                              key={m.id}
+                              type="button"
+                              onClick={() => setSelectedUpiMethod(m.id)}
+                              aria-pressed={isSelected}
+                              style={{
+                                padding: '0.75rem 0.45rem',
+                                borderRadius: '4px',
+                                border: isSelected ? '2px solid #4B3024' : '1px solid rgba(75, 48, 36, 0.18)',
+                                backgroundColor: isSelected ? '#EADAB5' : '#FFFDF9',
+                                color: '#4B3024',
+                                cursor: 'pointer',
+                                textAlign: 'center',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>{m.name}</div>
+                              <div style={{ fontSize: '0.68rem', color: '#6F4E3E', marginTop: '0.15rem' }}>
+                                QR & UPI ID
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <p style={{ margin: '0 0 0.85rem', fontSize: '0.76rem', color: '#6F4E3E', lineHeight: 1.5 }}>
+                        Clicking below creates your pending order & reveals the verified <strong>{getUpiMethodConfig(selectedUpiMethod).name}</strong> QR code
+                        (Payee: <strong>{getUpiMethodConfig(selectedUpiMethod).payeeName}</strong>). Payment status remains <strong>Pending / Awaiting Verification</strong> until verified by our atelier team.
                       </p>
+
+                      <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <button
+                          type="button"
+                          onClick={() => setStep(2)}
+                          className="btn btn-outline"
+                          style={{ padding: '0.85rem 1.15rem', minHeight: '48px' }}
+                          aria-label="Back to delivery details"
+                        >
+                          <ArrowLeft size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCreateUpiOrder}
+                          disabled={isProcessing}
+                          className="btn btn-primary"
+                          style={{
+                            flex: 1,
+                            minHeight: '48px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.55rem'
+                          }}
+                        >
+                          <Smartphone size={17} color="#EADAB5" />
+                          <span>
+                            {isProcessing
+                              ? 'Reserving Sarees...'
+                              : `Pay ₹${total.toLocaleString('en-IN')} with ${getUpiMethodConfig(selectedUpiMethod).name}`}
+                          </span>
+                        </button>
+                      </div>
                     </div>
 
                     {orderError && (
@@ -1218,39 +1452,45 @@ export const CheckoutModal = () => {
                       </div>
                     )}
 
-                    <div style={{ display: 'flex', gap: '0.75rem' }}>
-                      <button
-                        type="button"
-                        onClick={() => setStep(2)}
-                        className="btn btn-outline"
-                        style={{ padding: '0.85rem 1.25rem', minHeight: '48px' }}
-                      >
-                        <ArrowLeft size={16} />
-                      </button>
+                    {/* Preserved Concierge WhatsApp Enquiry Alternative */}
+                    <div
+                      style={{
+                        padding: '0.85rem 1rem',
+                        backgroundColor: '#F4ECE1',
+                        borderLeft: '3px solid #525B3A',
+                        fontSize: '0.78rem',
+                        color: '#4B3024',
+                        lineHeight: 1.5
+                      }}
+                    >
+                      <strong style={{ display: 'block', marginBottom: '0.25rem' }}>Prefer Concierge Enquiry First?</strong>
+                      <p style={{ margin: '0 0 0.7rem', color: '#6F4E3E' }}>
+                        No online payment is taken when using WhatsApp. Send your enquiry so our stylists confirm weave availability first.
+                      </p>
                       <button
                         type="button"
                         onClick={handleSendToWhatsApp}
                         disabled={isProcessing}
                         className="btn"
                         style={{
-                          flex: 1,
-                          minHeight: '48px',
+                          width: '100%',
+                          minHeight: '44px',
                           backgroundColor: '#525B3A',
                           color: '#FAF6EE',
                           border: 'none',
                           borderRadius: '3px',
-                          fontSize: '0.86rem',
+                          fontSize: '0.8rem',
                           fontWeight: 600,
                           letterSpacing: '0.06em',
                           textTransform: 'uppercase',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: '0.6rem',
+                          gap: '0.55rem',
                           cursor: 'pointer'
                         }}
                       >
-                        <MessageCircle size={18} color="#D4AC68" />
+                        <MessageCircle size={17} color="#D4AC68" />
                         <span>{isProcessing ? 'Preparing WhatsApp...' : 'Send Order Enquiry on WhatsApp'}</span>
                       </button>
                     </div>

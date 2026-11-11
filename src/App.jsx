@@ -52,7 +52,8 @@ const MainLayout = () => {
     setIsTrackOrderOpen,
     isAuthOpen,
     isCheckoutOpen,
-    quickViewProduct
+    quickViewProduct,
+    pendingUpiOrder
   } = useShop();
 
   // URL route sync: checks query parameters (?product=..., ?page=...), paths, and hash routes
@@ -193,8 +194,8 @@ const MainLayout = () => {
 
   return (
     <div className="rodhe-app" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Scroll-Driven Brand Introduction Experience (Active on Home) */}
-      {currentPage === 'home' && <ScrollIntroExperience />}
+      {/* Scroll-Driven Brand Introduction Experience (Active on Home unless modal or pending UPI resume) */}
+      {currentPage === 'home' && !isCheckoutOpen && !isTrackOrderOpen && !isAuthOpen && !pendingUpiOrder && <ScrollIntroExperience />}
 
       {/* Main Real Website Content */}
       <div id="rodhe-real-site" style={{ position: 'relative', width: '100%', minHeight: '100vh', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>

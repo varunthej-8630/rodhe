@@ -420,14 +420,22 @@ export const ScrollIntroExperience = ({ onComplete }) => {
       headerLogo.style.opacity = '1';
     }
 
+    try {
+      sessionStorage.setItem('rodhe_intro_played', 'true');
+    } catch {}
+
     setIsIntroFinished(true);
     if (onComplete) onComplete();
   };
 
   useEffect(() => {
-    // Check for reduced-motion preference
+    // Check for reduced-motion preference or an already-completed / pending-payment session
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) {
+    let shouldSkip = false;
+    try {
+      shouldSkip = sessionStorage.getItem('rodhe_intro_played') === 'true' || Boolean(sessionStorage.getItem('rodhe_pending_upi_order'));
+    } catch {}
+    if (prefersReducedMotion || shouldSkip) {
       completeIntroImmediately();
       return;
     }
@@ -538,6 +546,10 @@ export const ScrollIntroExperience = ({ onComplete }) => {
         if (headerLogo) {
           headerLogo.style.opacity = '1';
         }
+
+        try {
+          sessionStorage.setItem('rodhe_intro_played', 'true');
+        } catch {}
 
         setIsIntroFinished(true);
         if (onComplete) onComplete();

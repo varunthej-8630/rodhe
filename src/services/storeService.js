@@ -1,6 +1,12 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient.js';
 import { PRODUCTS as SEED_PRODUCTS } from '../data/products.js';
 import { TESTIMONIALS as SEED_TESTIMONIALS } from '../data/storyData.js';
+import {
+  PAYMENT_STATUS,
+  UPI_PAYMENT_WINDOW_MINUTES,
+  getUpiMethodConfig,
+  isUpiMethod
+} from '../config/upiConfig.js';
 
 // Storage keys for persistent local storage engine
 const STORAGE_KEYS = {
@@ -12,7 +18,8 @@ const STORAGE_KEYS = {
   SETTINGS: 'rodhe_db_settings',
   ENQUIRIES: 'rodhe_db_enquiries',
   SIGNUPS: 'rodhe_db_signups',
-  ORDERS: 'rodhe_db_orders'
+  ORDERS: 'rodhe_db_orders',
+  PAYMENT_LOGS: 'rodhe_db_payment_logs'
 };
 
 // Initial Seed Data for Store Settings
@@ -1092,24 +1099,44 @@ export const storeService = {
       throw new Error('Cannot place an order with an empty shopping bag.');
     }
 
+    const idempotencyKey = String(orderPayload.idempotencyKey || orderPayload.idempotency_key || '').trim() || null;
+
+    if (!isSupabaseConfigured && idempotencyKey) {
+      const existingLocal = getLocalData(STORAGE_KEYS.ORDERS, []).find(
+        (o) => (o.idempotencyKey || o.idempotency_key) === idempotencyKey
+      );
+      if (existingLocal) {
+        return { ...existingLocal, idempotentReplay: true };
+      }
+    }
+
     const currentProducts = getLocalData(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS);
 
-    // 1. Pre-flight Inventory Validation: Ensure items are in stock
-    for (const item of rawItems) {
-      const prod = item.product || item;
-      const targetId = String(prod.id || prod.slug || '');
-      const targetSku = prod.sku || '';
-      const matching = currentProducts.find(p => p.id === targetId || p.sku === targetSku || p.slug === targetId);
-      const available = Number(matching?.stockCount ?? matching?.stock_count ?? 10);
-      const requested = Number(item.quantity) || 1;
+    // 1. Pre-flight Inventory Validation (server also re-validates under FOR UPDATE lock)
+    if (!isSupabaseConfigured) {
+      for (const item of rawItems) {
+        const prod = item.product || item;
+        const targetId = String(prod.id || prod.slug || '');
+        const targetSku = prod.sku || '';
+        const matching = currentProducts.find((p) => p.id === targetId || p.sku === targetSku || p.slug === targetId);
+        const available = Number(matching?.stockCount ?? matching?.stock_count ?? 10);
+        const requested = Number(item.quantity) || 1;
 
-      if (available < requested) {
-        throw new Error(`Insufficient inventory for "${prod.name || 'saree'}". Only ${available} available in atelier.`);
+        if (matching && (matching.status === 'draft' || matching.status === 'archived' || matching.inStock === false || matching.in_stock === false)) {
+          throw new Error(`Saree "${prod.name || 'saree'}" is currently unavailable.`);
+        }
+        if (available < requested) {
+          throw new Error(`Insufficient inventory for "${prod.name || 'saree'}". Only ${available} available in atelier.`);
+        }
       }
     }
 
     const orderNumber = `RDH-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
     const orderId = `order-${Date.now()}`;
+    const paymentMethodRaw = String(orderPayload.paymentMethod || 'upi_phonepe').toLowerCase().trim();
+    const isSpecificUpi = ['upi_phonepe', 'upi_gpay', 'upi_paytm'].includes(paymentMethodRaw);
+    const upiMeta = isUpiMethod(paymentMethodRaw) ? getUpiMethodConfig(paymentMethodRaw) : null;
+    const expiresAt = new Date(Date.now() + UPI_PAYMENT_WINDOW_MINUTES * 60 * 1000).toISOString();
 
     // Normalize items
     const formattedItems = rawItems.map((item, idx) => {
@@ -1121,7 +1148,7 @@ export const storeService = {
         productId: String(prod.id || prod.slug || `saree-${idx}`),
         sku: prod.sku || `RDH-${String(idx + 1).padStart(3, '0')}`,
         name: prod.name || 'Handcrafted Cotton Saree',
-        unitPrice: unitPrice,
+        unitPrice,
         unit_price: unitPrice,
         quantity: qty,
         subtotal: unitPrice * qty,
@@ -1135,13 +1162,20 @@ export const storeService = {
     const giftWrapFee = Number(orderPayload.giftWrapFee || (orderPayload.giftWrap ? 150 : 0));
     const grandTotal = Math.max(0, subtotal - discountAmount + shippingFee + giftWrapFee);
 
-    // Initial payment status: NEVER fake 'captured' without gateway confirmation
-    const paymentStatus = orderPayload.paymentMethod === 'cod' ? 'pending_cod' : 'pending_payment';
+    // NEVER mark any client-initiated order as 'PAID' or 'captured'
+    const paymentStatus =
+      paymentMethodRaw === 'cod'
+        ? 'pending_cod'
+        : isSpecificUpi
+        ? PAYMENT_STATUS.PENDING
+        : 'pending_payment';
 
     const orderRecord = {
       id: orderId,
       orderNumber,
       order_number: orderNumber,
+      idempotencyKey,
+      idempotency_key: idempotencyKey,
       customerName: orderPayload.customerName || orderPayload.name || 'Patron',
       customer_name: orderPayload.customerName || orderPayload.name || 'Patron',
       customerEmail: orderPayload.customerEmail || orderPayload.email || '',
@@ -1173,44 +1207,43 @@ export const storeService = {
       grand_total: grandTotal,
       appliedCoupon: orderPayload.appliedCoupon || null,
       applied_coupon: orderPayload.appliedCoupon || null,
-      paymentMethod: orderPayload.paymentMethod || 'upi',
-      payment_method: orderPayload.paymentMethod || 'upi',
-      paymentStatus: paymentStatus,
+      paymentMethod: paymentMethodRaw,
+      payment_method: paymentMethodRaw,
+      paymentStatus,
       payment_status: paymentStatus,
+      paymentExpiresAt: expiresAt,
+      payment_expires_at: expiresAt,
+      utrReference: '',
+      utr_reference: '',
+      merchantVpa: upiMeta?.vpa || null,
+      payeeName: upiMeta?.payeeName || null,
       fulfillmentStatus: 'unfulfilled',
       fulfillment_status: 'unfulfilled',
       trackingNumber: '',
       tracking_number: '',
       courierPartner: 'Express Air Logistics',
       courier_partner: 'Express Air Logistics',
+      notes: orderPayload.notes || '',
       createdAt: new Date().toISOString(),
       created_at: new Date().toISOString()
     };
 
-    // 2. Synchronous Cloud Persistence (Fail-Safe Verification with Atomic RPC)
+    // 2. Server-Authoritative Cloud Persistence (never fall back to unverified direct table inserts)
     if (isSupabaseConfigured && supabase) {
       const dbOrderPayload = {
-        order_number: orderRecord.order_number,
+        idempotency_key: idempotencyKey,
         customer_name: orderRecord.customer_name,
         customer_email: orderRecord.customer_email,
         customer_phone: orderRecord.customer_phone,
         shipping_address: orderRecord.shipping_address,
-        subtotal: orderRecord.subtotal,
-        discount_amount: orderRecord.discount_amount,
-        shipping_fee: orderRecord.shipping_fee,
-        gift_wrap_fee: orderRecord.gift_wrap_fee,
-        grand_total: orderRecord.grand_total,
+        gift_wrap: Boolean(orderPayload.giftWrap),
         applied_coupon: orderRecord.applied_coupon,
-        payment_method: orderRecord.payment_method,
-        payment_status: orderRecord.payment_status,
-        fulfillment_status: orderRecord.fulfillment_status,
-        courier_partner: orderRecord.courier_partner,
-        gateway_payment_id: orderPayload.gatewayPaymentId || null,
-        gateway_order_id: orderPayload.gatewayOrderId || null,
-        gateway_signature: orderPayload.gatewaySignature || null
+        payment_method: paymentMethodRaw,
+        notes: orderPayload.notes || '',
+        courier_partner: orderRecord.courier_partner
       };
 
-      const dbItems = formattedItems.map(it => ({
+      const dbItems = formattedItems.map((it) => ({
         product_id: it.productId,
         sku: it.sku,
         name: it.name,
@@ -1220,72 +1253,62 @@ export const storeService = {
         primary_image: it.primaryImage
       }));
 
-      let rpcSucceeded = false;
-      try {
-        const { data: rpcResult, error: rpcErr } = await supabase.rpc('create_order_atomic', {
-          p_order: dbOrderPayload,
-          p_items: dbItems
-        });
+      const { data: rpcResult, error: rpcErr } = await supabase.rpc('create_order_atomic', {
+        p_order: dbOrderPayload,
+        p_items: dbItems
+      });
 
-        if (rpcErr) {
-          if (rpcErr.message && (rpcErr.message.includes('Insufficient') || rpcErr.message.includes('stock'))) {
-            throw new Error(rpcErr.message);
-          }
-          console.warn('create_order_atomic RPC notice, falling back to direct insert:', rpcErr.message);
-        } else if (rpcResult?.success) {
-          rpcSucceeded = true;
-          if (rpcResult.order_number) {
-            orderRecord.orderNumber = rpcResult.order_number;
-            orderRecord.order_number = rpcResult.order_number;
-          }
-          if (rpcResult.order_id) {
-            orderRecord.id = rpcResult.order_id;
-          }
+      if (rpcErr) {
+        const msg = String(rpcErr.message || '');
+        if (
+          rpcErr.code === 'PGRST202' ||
+          rpcErr.code === 'PGRST205' ||
+          msg.includes('Could not find the function') ||
+          msg.includes('Could not find the table')
+        ) {
+          throw new Error(
+            'Online UPI checkout database migration is not yet activated on Supabase. Please send your order enquiry on WhatsApp Concierge (+91 9490658858).'
+          );
         }
-      } catch (err) {
-        if (err.message && err.message.includes('Insufficient')) {
-          throw err;
-        }
-        console.warn('RPC execution attempt notice:', err);
+        throw new Error(rpcErr.message || 'Unable to create order securely right now. Your shopping bag is preserved.');
       }
 
-      if (!rpcSucceeded) {
-        const { data: dbOrder, error: orderErr } = await supabase
-          .from('orders')
-          .insert([dbOrderPayload])
-          .select('id')
-          .maybeSingle();
-
-        if (orderErr) {
-          console.error('Supabase order creation rejected:', orderErr);
-          throw new Error(orderErr.message || 'Unable to secure order in cloud database. Bag preserved.');
-        }
-
-        if (dbOrder?.id) {
-          const itemsToInsert = dbItems.map(it => ({ ...it, order_id: dbOrder.id }));
-          const { error: itemsErr } = await supabase.from('order_items').insert(itemsToInsert);
-          if (itemsErr) {
-            console.error('Failed to persist order items:', itemsErr);
-            throw new Error('Failed to record order items in cloud registry.');
-          }
-
-          // Deduct inventory in Supabase products table
-          for (const it of formattedItems) {
-            try {
-              await supabase.rpc('decrement_product_stock', {
-                p_sku: it.sku,
-                p_qty: it.quantity
-              });
-            } catch {}
-          }
-        }
+      if (!rpcResult?.success) {
+        throw new Error(rpcResult?.message || 'Unable to verify inventory or create order.');
       }
+
+      orderRecord.id = rpcResult.order_id || orderRecord.id;
+      orderRecord.orderNumber = rpcResult.order_number || orderRecord.orderNumber;
+      orderRecord.order_number = orderRecord.orderNumber;
+      if (typeof rpcResult.subtotal === 'number') orderRecord.subtotal = rpcResult.subtotal;
+      if (typeof rpcResult.discount_amount === 'number') {
+        orderRecord.discountAmount = rpcResult.discount_amount;
+        orderRecord.discount_amount = rpcResult.discount_amount;
+      }
+      if (typeof rpcResult.shipping_fee === 'number') {
+        orderRecord.shippingFee = rpcResult.shipping_fee;
+        orderRecord.shipping_fee = rpcResult.shipping_fee;
+      }
+      if (typeof rpcResult.gift_wrap_fee === 'number') {
+        orderRecord.giftWrapFee = rpcResult.gift_wrap_fee;
+        orderRecord.gift_wrap_fee = rpcResult.gift_wrap_fee;
+      }
+      if (typeof rpcResult.grand_total === 'number') {
+        orderRecord.grandTotal = rpcResult.grand_total;
+        orderRecord.grand_total = rpcResult.grand_total;
+      }
+      orderRecord.paymentStatus = rpcResult.payment_status || paymentStatus;
+      orderRecord.payment_status = orderRecord.paymentStatus;
+      orderRecord.paymentExpiresAt = rpcResult.payment_expires_at || expiresAt;
+      orderRecord.payment_expires_at = orderRecord.paymentExpiresAt;
+      orderRecord.idempotentReplay = Boolean(rpcResult.idempotent_replay);
+      return orderRecord;
     }
 
-    // 3. Decrement stock in local store & persist verified order
+    // 3. Offline / Hermetic Test Local Mode ONLY
     try {
-      const updatedProducts = currentProducts.map(p => {
-        const matchingItem = formattedItems.find(it => it.productId === p.id || it.sku === p.sku);
+      const updatedProducts = currentProducts.map((p) => {
+        const matchingItem = formattedItems.find((it) => it.productId === p.id || it.sku === p.sku);
         if (matchingItem) {
           const newStock = Math.max(0, (p.stockCount ?? p.stock_count ?? 10) - matchingItem.quantity);
           return {
@@ -1306,20 +1329,337 @@ export const storeService = {
     const orders = getLocalData(STORAGE_KEYS.ORDERS, []);
     setLocalData(STORAGE_KEYS.ORDERS, [orderRecord, ...orders]);
 
+    const logs = getLocalData(STORAGE_KEYS.PAYMENT_LOGS, []);
+    setLocalData(STORAGE_KEYS.PAYMENT_LOGS, [
+      {
+        id: `plog-${Date.now()}`,
+        order_id: orderRecord.id,
+        orderNumber: orderRecord.orderNumber,
+        action: 'payment_created',
+        previous_status: 'CREATED',
+        new_status: orderRecord.paymentStatus,
+        utr_reference: '',
+        actor_role: 'customer',
+        actor_email: orderRecord.customerEmail,
+        notes: `Order initialized via ${paymentMethodRaw}`,
+        created_at: new Date().toISOString()
+      },
+      ...logs
+    ]);
+
     return orderRecord;
+  },
+
+  async submitUpiReference({ orderNumber, contact, utrReference, upiMethod }) {
+    const cleanNum = String(orderNumber || '').trim();
+    const cleanUtr = String(utrReference || '').trim().toUpperCase();
+    const cleanContact = String(contact || '').trim().toLowerCase();
+    if (!cleanNum || !cleanUtr) {
+      throw new Error('Order number and UPI reference / UTR are required.');
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.rpc('submit_upi_reference', {
+        p_order_number: cleanNum,
+        p_contact: cleanContact,
+        p_utr: cleanUtr,
+        p_upi_app: upiMethod || null
+      });
+      if (error) {
+        throw new Error(error.message || 'Unable to record UTR reference right now.');
+      }
+      if (!data?.success) {
+        throw new Error(data?.message || 'Could not update payment reference.');
+      }
+      return data;
+    }
+
+    const orders = getLocalData(STORAGE_KEYS.ORDERS, []);
+    let matchedOrder = null;
+    const cleanDigits = cleanContact.replace(/\D/g, '');
+    const updated = orders.map((o) => {
+      if ((o.orderNumber || o.order_number || '').toUpperCase() !== cleanNum.toUpperCase()) {
+        return o;
+      }
+      const orderEmail = String(o.customerEmail || o.customer_email || '').toLowerCase();
+      const orderPhoneDigits = String(o.customerPhone || o.customer_phone || '').replace(/\D/g, '');
+      const contactMatch =
+        (cleanContact && orderEmail === cleanContact) ||
+        (cleanDigits.length >= 10 && orderPhoneDigits.slice(-10) === cleanDigits.slice(-10));
+      if (!contactMatch) {
+        return o;
+      }
+      if ([PAYMENT_STATUS.PAID, 'captured', PAYMENT_STATUS.CANCELLED, PAYMENT_STATUS.REFUNDED].includes(o.paymentStatus)) {
+        throw new Error(`Order payment status (${o.paymentStatus}) cannot be modified.`);
+      }
+      const prevStatus = o.paymentStatus || PAYMENT_STATUS.PENDING;
+      const isLate = o.paymentExpiresAt && Date.now() > new Date(o.paymentExpiresAt).getTime();
+      matchedOrder = {
+        ...o,
+        paymentMethod: upiMethod || o.paymentMethod,
+        payment_method: upiMethod || o.payment_method,
+        paymentStatus: PAYMENT_STATUS.AWAITING_VERIFICATION,
+        payment_status: PAYMENT_STATUS.AWAITING_VERIFICATION,
+        utrReference: cleanUtr,
+        utr_reference: cleanUtr,
+        paymentSubmittedAt: new Date().toISOString(),
+        payment_submitted_at: new Date().toISOString(),
+        _prevStatus: prevStatus,
+        _isLate: Boolean(isLate)
+      };
+      return matchedOrder;
+    });
+
+    if (!matchedOrder) {
+      throw new Error('Matching order and contact details not found.');
+    }
+
+    setLocalData(STORAGE_KEYS.ORDERS, updated);
+    const logs = getLocalData(STORAGE_KEYS.PAYMENT_LOGS, []);
+    setLocalData(STORAGE_KEYS.PAYMENT_LOGS, [
+      {
+        id: `plog-${Date.now()}`,
+        order_id: matchedOrder.id,
+        orderNumber: matchedOrder.orderNumber,
+        action: 'utr_submitted',
+        previous_status: matchedOrder._prevStatus,
+        new_status: PAYMENT_STATUS.AWAITING_VERIFICATION,
+        utr_reference: cleanUtr,
+        actor_role: 'customer',
+        notes: matchedOrder._isLate
+          ? 'Customer submitted UTR after payment window; manual verification required'
+          : 'Customer submitted UTR reference for manual review',
+        created_at: new Date().toISOString()
+      },
+      ...logs
+    ]);
+
+    return {
+      success: true,
+      order_number: matchedOrder.orderNumber,
+      payment_status: PAYMENT_STATUS.AWAITING_VERIFICATION,
+      utr_reference: cleanUtr
+    };
+  },
+
+  async retryUpiPayment({ orderNumber, contact, upiMethod }) {
+    const cleanNum = String(orderNumber || '').trim();
+    const cleanContact = String(contact || '').trim().toLowerCase();
+    const methodId = upiMethod || 'upi_phonepe';
+
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.rpc('initiate_upi_retry', {
+        p_order_number: cleanNum,
+        p_contact: cleanContact,
+        p_upi_app: methodId
+      });
+      if (error) {
+        throw new Error(error.message || 'Unable to switch or retry UPI payment method.');
+      }
+      return data;
+    }
+
+    const orders = getLocalData(STORAGE_KEYS.ORDERS, []);
+    const newExpiry = new Date(Date.now() + UPI_PAYMENT_WINDOW_MINUTES * 60 * 1000).toISOString();
+    let matchedOrder = null;
+    const cleanDigits = cleanContact.replace(/\D/g, '');
+    const updated = orders.map((o) => {
+      if ((o.orderNumber || o.order_number || '').toUpperCase() !== cleanNum.toUpperCase()) return o;
+      const orderEmail = String(o.customerEmail || o.customer_email || '').toLowerCase();
+      const orderPhoneDigits = String(o.customerPhone || o.customer_phone || '').replace(/\D/g, '');
+      const ok =
+        !cleanContact ||
+        orderEmail === cleanContact ||
+        (cleanDigits.length >= 10 && orderPhoneDigits.slice(-10) === cleanDigits.slice(-10));
+      if (!ok) return o;
+      if ([PAYMENT_STATUS.PAID, 'captured', PAYMENT_STATUS.CANCELLED, PAYMENT_STATUS.REFUNDED].includes(o.paymentStatus)) {
+        throw new Error(`Cannot retry payment for order in status ${o.paymentStatus}.`);
+      }
+      matchedOrder = {
+        ...o,
+        paymentMethod: methodId,
+        payment_method: methodId,
+        paymentStatus: PAYMENT_STATUS.PENDING,
+        payment_status: PAYMENT_STATUS.PENDING,
+        paymentExpiresAt: newExpiry,
+        payment_expires_at: newExpiry
+      };
+      return matchedOrder;
+    });
+
+    if (!matchedOrder) {
+      throw new Error('Order not found for retry.');
+    }
+
+    setLocalData(STORAGE_KEYS.ORDERS, updated);
+    const logs = getLocalData(STORAGE_KEYS.PAYMENT_LOGS, []);
+    setLocalData(STORAGE_KEYS.PAYMENT_LOGS, [
+      {
+        id: `plog-${Date.now()}`,
+        order_id: matchedOrder.id,
+        orderNumber: matchedOrder.orderNumber,
+        action: 'retry_initiated',
+        previous_status: matchedOrder.paymentStatus,
+        new_status: PAYMENT_STATUS.PENDING,
+        actor_role: 'customer',
+        notes: `Customer switched/retried payment via ${methodId}`,
+        created_at: new Date().toISOString()
+      },
+      ...logs
+    ]);
+
+    return {
+      success: true,
+      order_number: matchedOrder.orderNumber,
+      payment_method: methodId,
+      payment_status: PAYMENT_STATUS.PENDING,
+      payment_expires_at: newExpiry
+    };
+  },
+
+  async verifyPaymentAdmin({ orderId, action, verifiedUtr = '', notes = '', adminEmail = 'admin' }) {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.rpc('verify_upi_payment_admin', {
+        p_order_id: orderId,
+        p_action: action,
+        p_verified_utr: verifiedUtr || null,
+        p_notes: notes || ''
+      });
+      if (error) {
+        throw new Error(error.message || 'Payment verification failed.');
+      }
+      if (!data?.success) {
+        throw new Error(data?.message || 'Verification action rejected.');
+      }
+      return data;
+    }
+
+    // Offline / Hermetic Test Simulation
+    const orders = getLocalData(STORAGE_KEYS.ORDERS, []);
+    const target = orders.find((o) => o.id === orderId || o.orderNumber === orderId || o.order_number === orderId);
+    if (!target) throw new Error('Order not found.');
+
+    const upperAction = String(action || '').toUpperCase();
+    const currentStatus = target.paymentStatus || target.payment_status || PAYMENT_STATUS.PENDING;
+    if (upperAction === 'VERIFY_PAID' && [PAYMENT_STATUS.PAID, 'captured'].includes(currentStatus)) {
+      throw new Error('This order payment is already verified as PAID (prevents duplicate verification).');
+    }
+    if ((upperAction === 'REJECT_MISMATCH' || upperAction === 'MARK_REFUNDED') && !String(notes || '').trim()) {
+      throw new Error('Verification notes explaining mismatch or refund are required.');
+    }
+
+    const statusMap = {
+      VERIFY_PAID: PAYMENT_STATUS.PAID,
+      REJECT_MISMATCH: PAYMENT_STATUS.FAILED,
+      MARK_EXPIRED: PAYMENT_STATUS.EXPIRED,
+      MARK_CANCELLED: PAYMENT_STATUS.CANCELLED,
+      MARK_REFUNDED: PAYMENT_STATUS.REFUNDED
+    };
+    const nextPaymentStatus = statusMap[upperAction];
+    if (!nextPaymentStatus) throw new Error(`Unsupported action: ${action}`);
+
+    const nextFulfillment =
+      upperAction === 'VERIFY_PAID' && (target.fulfillmentStatus || 'unfulfilled') === 'unfulfilled'
+        ? 'processing'
+        : upperAction === 'MARK_CANCELLED' || upperAction === 'MARK_REFUNDED'
+        ? 'cancelled'
+        : target.fulfillmentStatus || 'unfulfilled';
+
+    if (upperAction === 'MARK_CANCELLED') {
+      await this.updateOrderStatus(target.id, {
+        fulfillmentStatus: 'cancelled',
+        paymentStatus: PAYMENT_STATUS.CANCELLED
+      });
+    }
+
+    const latestOrders = getLocalData(STORAGE_KEYS.ORDERS, []);
+    const nowIso = new Date().toISOString();
+    const finalOrders = latestOrders.map((o) => {
+      if (o.id === target.id) {
+        return {
+          ...o,
+          paymentStatus: nextPaymentStatus,
+          payment_status: nextPaymentStatus,
+          fulfillmentStatus: nextFulfillment,
+          fulfillment_status: nextFulfillment,
+          utrReference: verifiedUtr ? String(verifiedUtr).trim().toUpperCase() : o.utrReference,
+          utr_reference: verifiedUtr ? String(verifiedUtr).trim().toUpperCase() : o.utr_reference,
+          verifiedByEmail: adminEmail,
+          verified_by_email: adminEmail,
+          verifiedAt: nowIso,
+          verified_at: nowIso,
+          verificationNotes: notes,
+          verification_notes: notes,
+          updatedAt: nowIso
+        };
+      }
+      return o;
+    });
+    setLocalData(STORAGE_KEYS.ORDERS, finalOrders);
+
+    const logs = getLocalData(STORAGE_KEYS.PAYMENT_LOGS, []);
+    setLocalData(STORAGE_KEYS.PAYMENT_LOGS, [
+      {
+        id: `plog-${Date.now()}`,
+        order_id: target.id,
+        orderNumber: target.orderNumber,
+        action: upperAction.toLowerCase(),
+        previous_status: currentStatus,
+        new_status: nextPaymentStatus,
+        utr_reference: verifiedUtr || target.utrReference || '',
+        actor_email: adminEmail,
+        actor_role: 'admin',
+        notes,
+        created_at: nowIso
+      },
+      ...logs
+    ]);
+
+    return {
+      success: true,
+      order_id: target.id,
+      payment_status: nextPaymentStatus,
+      fulfillment_status: nextFulfillment,
+      verified_by_email: adminEmail
+    };
+  },
+
+  async getPaymentAuditLogs(orderId) {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('payment_verification_logs')
+          .select('*')
+          .eq('order_id', orderId)
+          .order('created_at', { ascending: false });
+        if (!error && Array.isArray(data)) return data;
+      } catch {}
+    }
+    const logs = getLocalData(STORAGE_KEYS.PAYMENT_LOGS, []);
+    return logs.filter((l) => l.order_id === orderId || l.orderNumber === orderId);
   },
 
   async getOrders(filters = {}) {
     // Try reading cloud database when Supabase is configured (never fabricate fake customer orders)
     if (isSupabaseConfigured && supabase) {
       try {
-        let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
+        let query = supabase
+          .from('orders')
+          .select('*, order_items(*), payments(*), payment_verification_logs(*)')
+          .order('created_at', { ascending: false });
         if (filters.status && filters.status !== 'all') {
           query = query.eq('fulfillment_status', filters.status);
         }
         const { data, error } = await query;
         if (!error && Array.isArray(data)) {
-          return data;
+          return data.map((o) => ({
+            ...o,
+            items: Array.isArray(o.order_items) ? o.order_items : Array.isArray(o.items) ? o.items : [],
+            payments: Array.isArray(o.payments) ? o.payments : [],
+            verificationLogs: Array.isArray(o.payment_verification_logs)
+              ? [...o.payment_verification_logs].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+              : []
+          }));
         }
         if (error) {
           console.warn('Orders query restricted or unavailable:', error.message);
@@ -1331,10 +1671,15 @@ export const storeService = {
     }
 
     const localOrders = getLocalData(STORAGE_KEYS.ORDERS, []);
+    const allLogs = getLocalData(STORAGE_KEYS.PAYMENT_LOGS, []);
+    const hydrated = localOrders.map((o) => ({
+      ...o,
+      verificationLogs: allLogs.filter((l) => l.order_id === o.id || l.orderNumber === o.orderNumber)
+    }));
     if (filters.status && filters.status !== 'all') {
-      return localOrders.filter(o => o.fulfillmentStatus === filters.status || o.fulfillment_status === filters.status);
+      return hydrated.filter((o) => o.fulfillmentStatus === filters.status || o.fulfillment_status === filters.status);
     }
-    return localOrders;
+    return hydrated;
   },
 
   async getOrderById(orderId) {
@@ -1458,8 +1803,9 @@ export const storeService = {
           .from('orders')
           .select(`
             id, order_number, customer_name, customer_email,
-            grand_total, subtotal, shipping_fee, payment_method,
-            payment_status, fulfillment_status, courier_partner,
+            grand_total, subtotal, discount_amount, shipping_fee, gift_wrap_fee, payment_method,
+            payment_status, utr_reference, payment_submitted_at, payment_expires_at,
+            verified_at, verification_notes, fulfillment_status, courier_partner,
             tracking_number, created_at,
             order_items (
               id, sku, name, unit_price, quantity, subtotal, primary_image

@@ -1,30 +1,30 @@
 import React, { useState } from 'react';
-import { 
-  LayoutDashboard, 
+import {
+  LayoutDashboard,
   ShoppingBag,
-  Package, 
-  Upload, 
-  FolderTree, 
-  LayoutTemplate, 
-  Tag, 
-  MessageSquareQuote, 
-  Mail, 
-  Settings, 
-  LogOut, 
+  Package,
+  Upload,
+  FolderTree,
+  LayoutTemplate,
+  Tag,
+  MessageSquareQuote,
+  Mail,
+  Settings,
+  LogOut,
   ExternalLink,
   Menu,
   X,
-  Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  Calculator
 } from 'lucide-react';
-import { authService } from '../../services/authService';
 
 export const AdminLayout = ({ children, activeTab, setActiveTab, onNavigateToStorefront, onLogout, session }) => {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   const navItems = [
     { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
-    
+    { id: 'orders', label: 'Orders & UPI Payments', icon: ShoppingBag },
+    { id: 'money-planner', label: 'Money Planner', icon: Calculator },
     { id: 'products', label: 'Saree Inventory', icon: Package },
     { id: 'bulk-import', label: 'Bulk Import & CSV', icon: Upload },
     { id: 'collections', label: 'Collections', icon: FolderTree },
