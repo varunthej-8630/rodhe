@@ -106,19 +106,51 @@ export function buildMoneyPlannerCsv({
   if (calc.sellingPricePaise !== null && calc.profitValidation.hasValue) {
     rows.push([
       sanitizeCsvTextCell(safeBatchName),
-      sanitizeCsvTextCell('Profit percentage on cost (%)'),
+      sanitizeCsvTextCell('Profit percentage (%)'),
       sanitizeCsvNumericCell(calc.profitValidation.percent, 2)
     ].join(','));
     rows.push([
       sanitizeCsvTextCell(safeBatchName),
-      sanitizeCsvTextCell('Estimated selling price per saree (INR)'),
+      sanitizeCsvTextCell('Markup selling price per saree (INR)'),
       sanitizeCsvNumericCell(calc.sellingPriceRupees, 2)
     ].join(','));
     rows.push([
       sanitizeCsvTextCell(safeBatchName),
-      sanitizeCsvTextCell('Estimated profit per saree (INR)'),
+      sanitizeCsvTextCell('Markup profit per saree (INR)'),
       sanitizeCsvNumericCell(calc.profitPerSareeRupees, 2)
     ].join(','));
+    rows.push([
+      sanitizeCsvTextCell(safeBatchName),
+      sanitizeCsvTextCell('Markup total batch revenue (INR)'),
+      sanitizeCsvNumericCell(calc.markupBatchRevenueRupees, 2)
+    ].join(','));
+    rows.push([
+      sanitizeCsvTextCell(safeBatchName),
+      sanitizeCsvTextCell('Markup total batch profit (INR)'),
+      sanitizeCsvNumericCell(calc.markupBatchProfitRupees, 2)
+    ].join(','));
+    if (calc.marginSupported && calc.marginSellingPricePaise !== null) {
+      rows.push([
+        sanitizeCsvTextCell(safeBatchName),
+        sanitizeCsvTextCell('Margin selling price per saree (INR)'),
+        sanitizeCsvNumericCell(calc.marginSellingPriceRupees, 2)
+      ].join(','));
+      rows.push([
+        sanitizeCsvTextCell(safeBatchName),
+        sanitizeCsvTextCell('Margin profit per saree (INR)'),
+        sanitizeCsvNumericCell(calc.marginProfitPerSareeRupees, 2)
+      ].join(','));
+      rows.push([
+        sanitizeCsvTextCell(safeBatchName),
+        sanitizeCsvTextCell('Margin total batch revenue (INR)'),
+        sanitizeCsvNumericCell(calc.marginBatchRevenueRupees, 2)
+      ].join(','));
+      rows.push([
+        sanitizeCsvTextCell(safeBatchName),
+        sanitizeCsvTextCell('Margin total batch profit (INR)'),
+        sanitizeCsvNumericCell(calc.marginBatchProfitRupees, 2)
+      ].join(','));
+    }
   }
 
   return rows.join('\r\n');
@@ -417,12 +449,13 @@ export function buildMoneyPlannerPdfBytes({
   }
 
   // --- 4. OPTIONAL ESTIMATED SELLING PRICE ---
-  if (calc.sellingPricePaise !== null && calc.profitValidation.hasValue) {
+  if (!calc.hasCalculationIssue && calc.sellingPricePaise !== null && calc.profitValidation.hasValue) {
     cursorY -= 10;
-    ensureSpace(74);
+    const boxHeight = calc.marginSupported && calc.marginSellingPricePaise !== null ? 104 : 74;
+    ensureSpace(boxHeight + 10);
     const estTop = cursorY;
-    drawRect(marginX, estTop - 64, contentWidth, 64, { fill: '0.980 0.965 0.933', stroke: '0.514 0.369 0.278', lineWidth: 0.6 });
-    drawText(marginX + 12, estTop - 16, `ESTIMATED SELLING PRICE (PROFIT ${calc.profitValidation.percent}% ON COST)`, {
+    drawRect(marginX, estTop - boxHeight, contentWidth, boxHeight, { fill: '0.980 0.965 0.933', stroke: '0.514 0.369 0.278', lineWidth: 0.6 });
+    drawText(marginX + 12, estTop - 16, `ESTIMATED SELLING PRICE & PROFIT (${calc.profitValidation.percent}%)`, {
       font: 'F2',
       size: 8.8,
       color: '0.561 0.447 0.388'
@@ -430,16 +463,30 @@ export function buildMoneyPlannerPdfBytes({
     drawText(
       marginX + 12,
       estTop - 34,
-      `Sell each saree at ${formatPaiseCurrency(calc.sellingPricePaise, { symbol: 'Rs ' })} to earn ${formatPaiseCurrency(calc.profitPerSareePaise, { symbol: 'Rs ' })} profit per saree.`,
-      { font: 'F2', size: 10, color: '0.294 0.188 0.141' }
+      `Markup on cost: Sell at ${formatPaiseCurrency(calc.sellingPricePaise, { symbol: 'Rs ' })} (Profit ${formatPaiseCurrency(calc.profitPerSareePaise, { symbol: 'Rs ' })}/saree | Batch profit ${formatPaiseCurrency(calc.markupBatchProfitPaise, { symbol: 'Rs ' })})`,
+      { font: 'F2', size: 9.2, color: '0.294 0.188 0.141' }
     );
+    if (calc.marginSupported && calc.marginSellingPricePaise !== null) {
+      drawText(
+        marginX + 12,
+        estTop - 54,
+        `Margin on price: Sell at ${formatPaiseCurrency(calc.marginSellingPricePaise, { symbol: 'Rs ' })} (Keep ${formatPaiseCurrency(calc.marginProfitPerSareePaise, { symbol: 'Rs ' })}/saree | Batch profit ${formatPaiseCurrency(calc.marginBatchProfitPaise, { symbol: 'Rs ' })})`,
+        { font: 'F2', size: 9.2, color: '0.322 0.357 0.227' }
+      );
+      drawText(
+        marginX + 12,
+        estTop - 74,
+        `Batch revenue at markup: ${formatPaiseCurrency(calc.markupBatchRevenuePaise, { symbol: 'Rs ' })} | At margin: ${formatPaiseCurrency(calc.marginBatchRevenuePaise, { symbol: 'Rs ' })}`,
+        { font: 'F1', size: 8.4, color: '0.435 0.306 0.243' }
+      );
+    }
     drawText(
       marginX + 12,
-      estTop - 52,
-      'Note: Estimated markup on manufacturing cost only (excludes GST, marketplace fees, or extra shipping).',
+      estTop - boxHeight + 12,
+      'Note: Estimates exclude GST, shipping, or marketplace fees.',
       { font: 'F1', size: 8, color: '0.561 0.447 0.388' }
     );
-    cursorY = estTop - 74;
+    cursorY = estTop - boxHeight - 10;
   }
 
   if (ops.length > 0) {

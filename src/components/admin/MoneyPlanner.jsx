@@ -47,8 +47,26 @@ const CHART_PALETTE = [
 
 const BATCHES_PAGE_SIZE = 6;
 
-function MoneyBreakdownDonut({ breakdown, totalPaise }) {
+function MoneyBreakdownDonut({ breakdown, totalPaise, quantity = 0, setupTotalPaise = 0, perSareeBatchTotalPaise = 0, setupSharePercent = 0, perSareeSharePercent = 0, hasCalculationIssue = false, issueMessage = '' }) {
   const positiveSegments = breakdown.filter((item) => item.contributionPaise > 0);
+  if (hasCalculationIssue) {
+    return (
+      <div
+        style={{
+          padding: '1.15rem',
+          borderRadius: '4px',
+          backgroundColor: '#FDF4F2',
+          border: '1px dashed rgba(158, 60, 43, 0.45)',
+          textAlign: 'center',
+          color: '#9E3C2B',
+          fontSize: '0.84rem',
+          fontWeight: 600
+        }}
+      >
+        {issueMessage || 'Fix invalid numbers below to view where your money goes.'}
+      </div>
+    );
+  }
   if (totalPaise <= 0 || positiveSegments.length === 0) {
     return (
       <div
@@ -151,15 +169,15 @@ function MoneyBreakdownDonut({ breakdown, totalPaise }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
               <span>Setup money:</span>
               <strong style={{ whiteSpace: 'nowrap' }}>
-                {formatPaiseCurrency(breakdown.filter((b) => b.kind === 'setup').reduce((s, b) => s + b.contributionPaise, 0), { symbol: '₹' })}{' '}
-                ({formatSharePercentage((breakdown.filter((b) => b.kind === 'setup').reduce((s, b) => s + b.contributionPaise, 0) / totalPaise) * 100)})
+                {formatPaiseCurrency(setupTotalPaise, { symbol: '₹' })}{' '}
+                ({formatSharePercentage(setupSharePercent)})
               </strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
               <span>Per-saree money:</span>
               <strong style={{ whiteSpace: 'nowrap' }}>
-                {formatPaiseCurrency(breakdown.filter((b) => b.kind === 'per_saree').reduce((s, b) => s + b.contributionPaise, 0), { symbol: '₹' })}{' '}
-                ({formatSharePercentage((breakdown.filter((b) => b.kind === 'per_saree').reduce((s, b) => s + b.contributionPaise, 0) / totalPaise) * 100)})
+                {formatPaiseCurrency(perSareeBatchTotalPaise, { symbol: '₹' })}{' '}
+                ({formatSharePercentage(perSareeSharePercent)})
               </strong>
             </div>
           </div>
@@ -178,13 +196,13 @@ function MoneyBreakdownDonut({ breakdown, totalPaise }) {
           >
             <div
               style={{
-                width: `${(breakdown.filter((b) => b.kind === 'setup').reduce((s, b) => s + b.contributionPaise, 0) / totalPaise) * 100}%`,
+                width: `${setupSharePercent}%`,
                 backgroundColor: '#B88D4A'
               }}
             />
             <div
               style={{
-                width: `${(breakdown.filter((b) => b.kind === 'per_saree').reduce((s, b) => s + b.contributionPaise, 0) / totalPaise) * 100}%`,
+                width: `${perSareeSharePercent}%`,
                 backgroundColor: '#4B3024'
               }}
             />
@@ -210,50 +228,55 @@ function MoneyBreakdownDonut({ breakdown, totalPaise }) {
                 gap: '0.35rem'
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap', minWidth: 0 }}>
-                  <span
-                    aria-hidden="true"
-                    style={{
-                      width: '10px',
-                      height: '10px',
-                      borderRadius: '2px',
-                      backgroundColor: barColor,
-                      flexShrink: 0
-                    }}
-                  />
-                  <span style={{ fontWeight: 600, fontSize: '0.84rem', color: '#4B3024', wordBreak: 'break-word' }}>
-                    {item.displayName}
-                  </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap', minWidth: 0 }}>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: '10px',
+                    height: '10px',
+                    borderRadius: '2px',
+                    backgroundColor: barColor,
+                    flexShrink: 0
+                  }}
+                />
+                <span style={{ fontWeight: 600, fontSize: '0.84rem', color: '#4B3024', wordBreak: 'break-word' }}>
+                  {item.displayName}
+                </span>
+                <span
+                  style={{
+                    fontSize: '0.68rem',
+                    padding: '0.1rem 0.45rem',
+                    borderRadius: '3px',
+                    backgroundColor: item.kind === 'setup' ? 'rgba(184, 141, 74, 0.16)' : 'rgba(75, 48, 36, 0.08)',
+                    color: '#4B3024',
+                    fontWeight: 600
+                  }}
+                >
+                  {typeText}
+                </span>
+                {item.isBiggestExpense && (
                   <span
                     style={{
                       fontSize: '0.68rem',
                       padding: '0.1rem 0.45rem',
                       borderRadius: '3px',
-                      backgroundColor: item.kind === 'setup' ? 'rgba(184, 141, 74, 0.16)' : 'rgba(75, 48, 36, 0.08)',
-                      color: '#4B3024',
-                      fontWeight: 600
+                      backgroundColor: '#9E3C2B',
+                      color: '#FAF6EE',
+                      fontWeight: 700,
+                      letterSpacing: '0.04em'
                     }}
                   >
-                    {typeText}
+                    {item.isBiggestTie ? 'Biggest expense (Tie)' : 'Biggest expense'}
                   </span>
-                  {item.isBiggestExpense && (
-                    <span
-                      style={{
-                        fontSize: '0.68rem',
-                        padding: '0.1rem 0.45rem',
-                        borderRadius: '3px',
-                        backgroundColor: '#9E3C2B',
-                        color: '#FAF6EE',
-                        fontWeight: 700,
-                        letterSpacing: '0.04em'
-                      }}
-                    >
-                      {item.isBiggestTie ? 'Biggest expense (Tie)' : 'Biggest expense'}
-                    </span>
-                  )}
-                </div>
-                <div style={{ textAlign: 'right', whiteSpace: 'nowrap', fontSize: '0.84rem', fontWeight: 700, color: '#4B3024' }}>
+                )}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 500, color: '#8F7263' }}>
+                  {item.kind === 'per_saree' && quantity > 0
+                    ? `${formatPaiseCurrency(item.amountPaise, { symbol: '₹' })} × ${formatIndianInteger(quantity)}`
+                    : 'Paid once for batch'}
+                </span>
+                <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#4B3024', whiteSpace: 'nowrap' }}>
                   {formatPaiseCurrency(item.contributionPaise, { symbol: '₹' })}{' '}
                   <span style={{ fontWeight: 500, color: '#6F4E3E', fontSize: '0.78rem' }}>
                     ({formatSharePercentage(item.sharePercent)})
@@ -1181,8 +1204,14 @@ export const MoneyPlanner = ({ registerNavigationGuard }) => {
                     Money spent separately for each saree you make.
                   </p>
                 </div>
-                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#4B3024', whiteSpace: 'nowrap' }}>
-                  Per saree: {formatPaiseCurrency(calc.perSareeUnitTotalPaise, { symbol: '₹' })}
+                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#4B3024', textAlign: 'right' }}>
+                  <div>Per saree: {formatPaiseCurrency(calc.perSareeUnitTotalPaise, { symbol: '₹' })}</div>
+                  {calc.quantityValidation.valid && (
+                    <div style={{ fontSize: '0.74rem', fontWeight: 600, color: '#6F4E3E', marginTop: '0.12rem' }}>
+                      × {formatIndianInteger(calc.quantity)} {calc.quantity === 1 ? 'saree' : 'sarees'} ={' '}
+                      {formatPaiseCurrency(calc.perSareeUnitTotalPaise * calc.quantity, { symbol: '₹' })}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1264,6 +1293,12 @@ export const MoneyPlanner = ({ registerNavigationGuard }) => {
                         {parsedLine && !parsedLine.isValidAmount && (
                           <span role="alert" style={{ fontSize: '0.76rem', color: '#9E3C2B', fontWeight: 600 }}>
                             {parsedLine.amountError}
+                          </span>
+                        )}
+                        {parsedLine && parsedLine.isValidAmount && parsedLine.amountPaise > 0 && calc.quantityValidation.valid && (
+                          <span style={{ fontSize: '0.73rem', color: '#6F4E3E' }}>
+                            Batch contribution: {formatPaiseCurrency(parsedLine.amountPaise, { symbol: '₹' })} × {formatIndianInteger(calc.quantity)} ={' '}
+                            <strong>{formatPaiseCurrency(parsedLine.amountPaise * calc.quantity, { symbol: '₹' })}</strong>
                           </span>
                         )}
                       </div>
@@ -1366,12 +1401,18 @@ export const MoneyPlanner = ({ registerNavigationGuard }) => {
                       fontFamily: 'var(--font-serif)',
                       fontSize: 'clamp(1.45rem, 3vw, 1.9rem)',
                       fontWeight: 700,
-                      color: '#4B3024',
+                      color: calc.hasCalculationIssue ? '#9E3C2B' : '#4B3024',
                       lineHeight: 1.15
                     }}
                   >
-                    {formatPaiseCurrency(calc.totalMoneyPaise, { symbol: '₹' })}
+                    {calc.hasCalculationIssue ? '—' : formatPaiseCurrency(calc.totalMoneyPaise, { symbol: '₹' })}
                   </div>
+                  {!calc.hasCalculationIssue && calc.hasAnyPositiveCost && (
+                    <div style={{ fontSize: '0.72rem', color: '#6F4E3E', marginTop: '0.35rem', lineHeight: 1.35 }}>
+                      {formatPaiseCurrency(calc.setupTotalPaise, { symbol: '₹' })} setup +{' '}
+                      {formatPaiseCurrency(calc.perSareeBatchTotalPaise, { symbol: '₹' })} batch
+                    </div>
+                  )}
                 </div>
 
                 <div
@@ -1396,24 +1437,30 @@ export const MoneyPlanner = ({ registerNavigationGuard }) => {
                       lineHeight: 1.15
                     }}
                   >
-                    {formatPaiseCurrency(calc.costOfOneSareePaise, { symbol: '₹' })}
+                    {calc.hasCalculationIssue ? '—' : formatPaiseCurrency(calc.costOfOneSareePaise, { symbol: '₹' })}
                   </div>
+                  {!calc.hasCalculationIssue && calc.hasAnyPositiveCost && (
+                    <div style={{ fontSize: '0.72rem', color: '#EADAB5', opacity: 0.9, marginTop: '0.35rem', lineHeight: 1.35 }}>
+                      {formatPaiseCurrency(calc.perSareeUnitTotalPaise, { symbol: '₹' })} per-saree +{' '}
+                      {formatPaiseCurrency(calc.setupSharePerSareePaise, { symbol: '₹' })} setup share
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* RESULT 3: Plain-English Sentence */}
               <div
-                role="status"
+                role={calc.hasCalculationIssue ? 'alert' : 'status'}
                 aria-live="polite"
                 data-testid="plain-english-summary"
                 style={{
                   padding: '0.85rem 1rem',
-                  backgroundColor: '#F4ECE1',
-                  borderLeft: '4px solid #B88D4A',
+                  backgroundColor: calc.hasCalculationIssue ? '#FDF4F2' : '#F4ECE1',
+                  borderLeft: `4px solid ${calc.hasCalculationIssue ? '#9E3C2B' : '#B88D4A'}`,
                   borderRadius: '2px',
                   fontSize: '0.94rem',
                   fontWeight: 600,
-                  color: '#4B3024',
+                  color: calc.hasCalculationIssue ? '#9E3C2B' : '#4B3024',
                   lineHeight: 1.5
                 }}
               >
@@ -1425,7 +1472,17 @@ export const MoneyPlanner = ({ registerNavigationGuard }) => {
                 <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.2rem', color: '#4B3024', margin: '0 0 0.75rem 0' }}>
                   Where your money goes
                 </h3>
-                <MoneyBreakdownDonut breakdown={calc.breakdown} totalPaise={calc.totalMoneyPaise} />
+                <MoneyBreakdownDonut
+                  breakdown={calc.breakdown}
+                  totalPaise={calc.totalMoneyPaise}
+                  quantity={calc.quantity}
+                  setupTotalPaise={calc.setupTotalPaise}
+                  perSareeBatchTotalPaise={calc.perSareeBatchTotalPaise}
+                  setupSharePercent={calc.setupSharePercent}
+                  perSareeSharePercent={calc.perSareeSharePercent}
+                  hasCalculationIssue={calc.hasCalculationIssue}
+                  issueMessage={calc.plainEnglishSummary}
+                />
               </div>
             </div>
 
@@ -1473,7 +1530,7 @@ export const MoneyPlanner = ({ registerNavigationGuard }) => {
                       htmlFor="mp-profit-percent"
                       style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#4B3024', marginBottom: '0.35rem' }}
                     >
-                      Profit percentage (added on top of saree cost)
+                      Desired profit percentage
                     </label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <input
@@ -1530,30 +1587,83 @@ export const MoneyPlanner = ({ registerNavigationGuard }) => {
                     )}
                   </div>
 
-                  {calc.sellingPricePaise !== null && calc.profitValidation.hasValue && (
-                    <div
-                      data-testid="selling-price-result"
-                      style={{
-                        padding: '0.85rem 1rem',
-                        borderRadius: '4px',
-                        backgroundColor: '#FAF6EE',
-                        border: '1px solid rgba(184, 141, 74, 0.38)',
-                        color: '#4B3024',
-                        fontSize: '0.92rem',
-                        fontWeight: 600,
-                        lineHeight: 1.45
-                      }}
-                    >
-                      Sell each saree at{' '}
-                      <strong>{formatPaiseCurrency(calc.sellingPricePaise, { symbol: '₹' })}</strong>{' '}
-                      to earn{' '}
-                      <strong>{formatPaiseCurrency(calc.profitPerSareePaise, { symbol: '₹' })}</strong>{' '}
-                      profit per saree.
+                  {!calc.hasCalculationIssue && calc.sellingPricePaise !== null && calc.profitValidation.hasValue && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+                      {/* Method 1: Profit added on top of cost (Markup) */}
+                      <div
+                        data-testid="selling-price-result"
+                        style={{
+                          padding: '0.85rem 1rem',
+                          borderRadius: '4px',
+                          backgroundColor: '#FAF6EE',
+                          border: '1px solid rgba(184, 141, 74, 0.42)',
+                          color: '#4B3024',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.3rem'
+                        }}
+                      >
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#8A6224' }}>
+                          Method 1 • {calc.profitValidation.percent}% Profit Added on Cost (Markup)
+                        </div>
+                        <div style={{ fontSize: '0.92rem', fontWeight: 600, lineHeight: 1.45 }}>
+                          Sell each saree at{' '}
+                          <strong>{formatPaiseCurrency(calc.sellingPricePaise, { symbol: '₹' })}</strong>{' '}
+                          to earn{' '}
+                          <strong>{formatPaiseCurrency(calc.profitPerSareePaise, { symbol: '₹' })}</strong>{' '}
+                          profit per saree.
+                        </div>
+                        <div style={{ fontSize: '0.76rem', color: '#6F4E3E', lineHeight: 1.4 }}>
+                          If all {formatIndianInteger(calc.quantity)} sarees sell: Total revenue{' '}
+                          <strong>{formatPaiseCurrency(calc.markupBatchRevenuePaise, { symbol: '₹' })}</strong> • Total batch profit{' '}
+                          <strong>{formatPaiseCurrency(calc.markupBatchProfitPaise, { symbol: '₹' })}</strong>{' '}
+                          {calc.sellingPricePaise > 0 && `(${formatSharePercentage(calc.effectiveSellingMarginPercent)} of selling price)`}
+                        </div>
+                      </div>
+
+                      {/* Method 2: Margin on Selling Price */}
+                      <div
+                        data-testid="margin-selling-price-result"
+                        style={{
+                          padding: '0.85rem 1rem',
+                          borderRadius: '4px',
+                          backgroundColor: '#FFFDF9',
+                          border: '1px solid rgba(75, 48, 36, 0.2)',
+                          color: '#4B3024',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.3rem'
+                        }}
+                      >
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#525B3A' }}>
+                          Method 2 • {calc.profitValidation.percent}% Profit Margin on Selling Price
+                        </div>
+                        {calc.marginSupported && calc.marginSellingPricePaise !== null ? (
+                          <>
+                            <div style={{ fontSize: '0.92rem', fontWeight: 600, lineHeight: 1.45 }}>
+                              Sell each saree at{' '}
+                              <strong>{formatPaiseCurrency(calc.marginSellingPricePaise, { symbol: '₹' })}</strong>{' '}
+                              to keep{' '}
+                              <strong>{formatPaiseCurrency(calc.marginProfitPerSareePaise, { symbol: '₹' })}</strong>{' '}
+                              profit ({calc.profitValidation.percent}% of selling price).
+                            </div>
+                            <div style={{ fontSize: '0.76rem', color: '#6F4E3E', lineHeight: 1.4 }}>
+                              If all {formatIndianInteger(calc.quantity)} sarees sell: Total revenue{' '}
+                              <strong>{formatPaiseCurrency(calc.marginBatchRevenuePaise, { symbol: '₹' })}</strong> • Total batch profit{' '}
+                              <strong>{formatPaiseCurrency(calc.marginBatchProfitPaise, { symbol: '₹' })}</strong>
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{ fontSize: '0.8rem', color: '#6F4E3E', lineHeight: 1.45 }}>
+                            Selling price margin must be under 100% of selling price (at {calc.profitValidation.percent}%, Method 1 above applies as cost markup).
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
                   <p style={{ fontSize: '0.76rem', color: '#8F7263', margin: 0, lineHeight: 1.45 }}>
-                    This is an estimated selling price based on your cost. It does not guarantee sales and does not include GST, shipping, or marketplace fees.
+                    Choose whichever method matches how you price sarees. Both exclude GST, shipping, or marketplace fees.
                   </p>
                 </div>
               )}

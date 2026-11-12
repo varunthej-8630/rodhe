@@ -96,18 +96,26 @@ export function validateQuantityInput(rawQuantity) {
 
 /**
  * Parses a numeric/string rupee input directly into exact integer paise (zero float drift).
+ * Strips harmless currency prefixes (₹, Rs, INR) and commas; allows leading decimal like .50.
  * Blank inputs normalize safely to 0 paise.
  */
 export function parseRupeesToPaise(rawAmount) {
   if (rawAmount === null || rawAmount === undefined) {
     return { valid: true, paise: 0, rupees: 0, isEmpty: true, error: '' };
   }
-  const normalized = String(rawAmount).replace(/,/g, '').trim();
+  let normalized = String(rawAmount)
+    .replace(/,/g, '')
+    .trim()
+    .replace(/^(?:₹|inr\b|rs\.?)/i, '')
+    .trim();
   if (normalized === '') {
     return { valid: true, paise: 0, rupees: 0, isEmpty: true, error: '' };
   }
   if (normalized.startsWith('-')) {
     return { valid: false, paise: 0, rupees: 0, isEmpty: false, error: 'Amount cannot be negative.' };
+  }
+  if (normalized.startsWith('.')) {
+    normalized = `0${normalized}`;
   }
   if (!/^\d+(?:\.\d*)?$/.test(normalized)) {
     return { valid: false, paise: 0, rupees: 0, isEmpty: false, error: 'Please enter a valid number.' };
@@ -331,24 +339,37 @@ export function calculateMoneyBatch({
     };
   });
 
+  const hasCalculationIssue = !qtyValidation.valid || hasLineError;
   const setupTotalPaise = normalizedSetup.reduce((acc, item) => acc + item.amountPaise, 0);
   const perSareeUnitTotalPaise = normalizedPerSaree.reduce((acc, item) => acc + item.amountPaise, 0);
-  const perSareeBatchTotalPaise = perSareeUnitTotalPaise * effectiveQty;
-  const totalMoneyPaise = setupTotalPaise + perSareeBatchTotalPaise;
-  const costOfOneSareePaise = effectiveQty > 0 ? divideRoundHalfUp(totalMoneyPaise, effectiveQty) : 0;
+  const perSareeBatchTotalPaise = !hasCalculationIssue ? perSareeUnitTotalPaise * effectiveQty : 0;
+  const totalMoneyPaise = !hasCalculationIssue ? setupTotalPaise + perSareeBatchTotalPaise : 0;
+  const costOfOneSareePaise = !hasCalculationIssue && effectiveQty > 0
+    ? divideRoundHalfUp(totalMoneyPaise, effectiveQty)
+    : 0;
+  const setupSharePerSareePaise = !hasCalculationIssue && effectiveQty > 0
+    ? divideRoundHalfUp(setupTotalPaise, effectiveQty)
+    : 0;
 
   // Compute sorted expense breakdown (descending contribution, preserving original order on tie)
   const allItems = [...normalizedSetup, ...normalizedPerSaree].map((item) => {
-    const sharePercent = totalMoneyPaise > 0 && effectiveQty > 0
-      ? (item.contributionPaise / totalMoneyPaise) * 100
-      : (totalMoneyPaise > 0 && item.kind === 'setup' ? (item.contributionPaise / totalMoneyPaise) * 100 : 0);
+    const activeContributionPaise = hasCalculationIssue
+      ? (item.kind === 'setup' ? item.amountPaise : 0)
+      : item.contributionPaise;
+    const sharePercent = !hasCalculationIssue && totalMoneyPaise > 0
+      ? (activeContributionPaise / totalMoneyPaise) * 100
+      : 0;
     return {
       ...item,
+      contributionPaise: activeContributionPaise,
+      contributionRupees: activeContributionPaise / 100,
       sharePercent
     };
   });
 
-  const positiveItems = allItems.filter((item) => item.contributionPaise > 0);
+  const positiveItems = !hasCalculationIssue
+    ? allItems.filter((item) => item.contributionPaise > 0)
+    : [];
   const maxContributionPaise = positiveItems.reduce(
     (max, item) => (item.contributionPaise > max ? item.contributionPaise : max),
     0
@@ -373,35 +394,80 @@ export function calculateMoneyBatch({
       isBiggestTie: maxContributionPaise > 0 && item.contributionPaise === maxContributionPaise && tieCount > 1
     }));
 
-  const setupSharePercent = totalMoneyPaise > 0 ? (setupTotalPaise / totalMoneyPaise) * 100 : 0;
-  const perSareeSharePercent = totalMoneyPaise > 0 ? (perSareeBatchTotalPaise / totalMoneyPaise) * 100 : 0;
+  const setupSharePercent = !hasCalculationIssue && totalMoneyPaise > 0 ? (setupTotalPaise / totalMoneyPaise) * 100 : 0;
+  const perSareeSharePercent = !hasCalculationIssue && totalMoneyPaise > 0 ? (perSareeBatchTotalPaise / totalMoneyPaise) * 100 : 0;
 
-  // Selling price calculator (markup on cost)
+  // Selling price calculator:
+  // 1) Markup on Cost: SP = Cost * (1 + pct/100)
+  // 2) Margin on Selling Price: SP = Cost / (1 - pct/100), so Profit = pct% of SP
   const profitValidation = validateProfitPercentInput(profitPercent);
   let sellingPricePaise = null;
   let profitPerSareePaise = null;
-  if (profitValidation.valid && profitValidation.hasValue && effectiveQty > 0 && totalMoneyPaise > 0) {
+  let markupBatchRevenuePaise = null;
+  let markupBatchProfitPaise = null;
+  let effectiveSellingMarginPercent = null;
+
+  let marginSellingPricePaise = null;
+  let marginProfitPerSareePaise = null;
+  let marginBatchRevenuePaise = null;
+  let marginBatchProfitPaise = null;
+  let marginSupported = true;
+
+  if (!hasCalculationIssue && profitValidation.valid && profitValidation.hasValue && effectiveQty > 0 && totalMoneyPaise > 0) {
     sellingPricePaise = divideRoundHalfUp(
       costOfOneSareePaise * (10000 + profitValidation.basisPoints),
       10000
     );
     profitPerSareePaise = sellingPricePaise - costOfOneSareePaise;
-  } else if (profitValidation.valid && profitValidation.hasValue && effectiveQty > 0) {
+    markupBatchRevenuePaise = sellingPricePaise * effectiveQty;
+    markupBatchProfitPaise = markupBatchRevenuePaise - totalMoneyPaise;
+    effectiveSellingMarginPercent = sellingPricePaise > 0
+      ? (profitPerSareePaise / sellingPricePaise) * 100
+      : 0;
+
+    if (profitValidation.basisPoints < 10000) {
+      marginSupported = true;
+      marginSellingPricePaise = divideRoundHalfUp(
+        costOfOneSareePaise * 10000,
+        10000 - profitValidation.basisPoints
+      );
+      marginProfitPerSareePaise = marginSellingPricePaise - costOfOneSareePaise;
+      marginBatchRevenuePaise = marginSellingPricePaise * effectiveQty;
+      marginBatchProfitPaise = marginBatchRevenuePaise - totalMoneyPaise;
+    } else {
+      marginSupported = false;
+    }
+  } else if (!hasCalculationIssue && profitValidation.valid && profitValidation.hasValue && effectiveQty > 0) {
     sellingPricePaise = 0;
     profitPerSareePaise = 0;
+    markupBatchRevenuePaise = 0;
+    markupBatchProfitPaise = 0;
+    effectiveSellingMarginPercent = 0;
+    if (profitValidation.basisPoints < 10000) {
+      marginSupported = true;
+      marginSellingPricePaise = 0;
+      marginProfitPerSareePaise = 0;
+      marginBatchRevenuePaise = 0;
+      marginBatchProfitPaise = 0;
+    } else {
+      marginSupported = false;
+    }
   }
 
   const biggestExpenses = sortedBreakdown.filter((item) => item.isBiggestExpense);
-  const hasAnyPositiveCost = totalMoneyPaise > 0;
+  const hasAnyPositiveCost = !hasCalculationIssue && totalMoneyPaise > 0;
 
   const plainEnglishSummary = !qtyValidation.valid
     ? qtyValidation.error
-    : !hasAnyPositiveCost
-      ? 'Add your first cost to see how much money you need.'
-      : `To make ${formatIndianInteger(effectiveQty)} ${effectiveQty === 1 ? 'saree' : 'sarees'}, you need ${formatPaiseForSentence(totalMoneyPaise, '₹')}. Each saree costs you ${formatPaiseForSentence(costOfOneSareePaise, '₹')}.`;
+    : hasLineError
+      ? 'Fix the highlighted expense amount below to calculate exact batch totals.'
+      : !hasAnyPositiveCost
+        ? 'Add your first cost to see how much money you need.'
+        : `To make ${formatIndianInteger(effectiveQty)} ${effectiveQty === 1 ? 'saree' : 'sarees'}, you need ${formatPaiseForSentence(totalMoneyPaise, '₹')}. Each saree costs you ${formatPaiseForSentence(costOfOneSareePaise, '₹')}.`;
 
   return {
     isValid: qtyValidation.valid && !hasLineError && profitValidation.valid,
+    hasCalculationIssue,
     quantityValidation: qtyValidation,
     profitValidation,
     quantity: effectiveQty,
@@ -413,6 +479,8 @@ export function calculateMoneyBatch({
     perSareeUnitTotalRupees: perSareeUnitTotalPaise / 100,
     perSareeBatchTotalPaise,
     perSareeBatchTotalRupees: perSareeBatchTotalPaise / 100,
+    setupSharePerSareePaise,
+    setupSharePerSareeRupees: setupSharePerSareePaise / 100,
     totalMoneyPaise,
     totalMoneyRupees: totalMoneyPaise / 100,
     costOfOneSareePaise,
@@ -428,6 +496,20 @@ export function calculateMoneyBatch({
     sellingPriceRupees: sellingPricePaise !== null ? sellingPricePaise / 100 : null,
     profitPerSareePaise,
     profitPerSareeRupees: profitPerSareePaise !== null ? profitPerSareePaise / 100 : null,
+    markupBatchRevenuePaise,
+    markupBatchRevenueRupees: markupBatchRevenuePaise !== null ? markupBatchRevenuePaise / 100 : null,
+    markupBatchProfitPaise,
+    markupBatchProfitRupees: markupBatchProfitPaise !== null ? markupBatchProfitPaise / 100 : null,
+    effectiveSellingMarginPercent,
+    marginSellingPricePaise,
+    marginSellingPriceRupees: marginSellingPricePaise !== null ? marginSellingPricePaise / 100 : null,
+    marginProfitPerSareePaise,
+    marginProfitPerSareeRupees: marginProfitPerSareePaise !== null ? marginProfitPerSareePaise / 100 : null,
+    marginBatchRevenuePaise,
+    marginBatchRevenueRupees: marginBatchRevenuePaise !== null ? marginBatchRevenuePaise / 100 : null,
+    marginBatchProfitPaise,
+    marginBatchProfitRupees: marginBatchProfitPaise !== null ? marginBatchProfitPaise / 100 : null,
+    marginSupported,
     plainEnglishSummary
   };
 }

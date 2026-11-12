@@ -190,6 +190,58 @@ async function runTests() {
     'Rolling share = 7.6923...%', worked.breakdown[2].sharePercent.toFixed(4));
   assert(worked.sellingPricePaise === 84500 && worked.profitPerSareePaise === 19500,
     '30% markup on cost Rs 650 -> selling price Rs 845.00, profit Rs 195.00');
+  assert(
+    worked.setupSharePerSareePaise === 10000 &&
+    worked.markupBatchRevenuePaise === 2535000 &&
+    worked.markupBatchProfitPaise === 585000,
+    'Setup share per saree = Rs 100, Markup batch revenue = Rs 25,350, batch profit = Rs 5,850'
+  );
+  assert(
+    worked.marginSupported &&
+    worked.marginSellingPricePaise === 92857 &&
+    worked.marginProfitPerSareePaise === 27857 &&
+    worked.marginBatchRevenuePaise === 2785710 &&
+    worked.marginBatchProfitPaise === 835710,
+    '30% margin on selling price -> Rs 928.57 selling price, Rs 278.57 profit/saree, Rs 8,357.10 batch profit'
+  );
+
+  // Currency prefix normalization & invalid input guard (no bogus partial totals)
+  assert(
+    parseRupeesToPaise('₹ 1,500.50').paise === 150050 &&
+    parseRupeesToPaise('Rs. 500').paise === 50000 &&
+    parseRupeesToPaise('.50').paise === 50,
+    'Parses ₹, Rs, commas, and leading decimals safely without silent zeroing'
+  );
+  const invalidQtyBatch = calculateMoneyBatch({
+    quantity: '0',
+    setupLines: [{ name: 'Setup', amount: '3000' }],
+    perSareeLines: [{ name: 'Material', amount: '500' }]
+  });
+  assert(
+    invalidQtyBatch.hasCalculationIssue &&
+    invalidQtyBatch.totalMoneyPaise === 0 &&
+    invalidQtyBatch.setupSharePercent === 0,
+    'Invalid/zero quantity blocks misleading partial setup-only total'
+  );
+  const invalidLineBatch = calculateMoneyBatch({
+    quantity: 30,
+    setupLines: [{ name: 'Setup', amount: '3000' }],
+    perSareeLines: [{ name: 'Material', amount: 'abc' }]
+  });
+  assert(
+    invalidLineBatch.hasCalculationIssue && invalidLineBatch.totalMoneyPaise === 0,
+    'Invalid expense line pauses total rather than silently undercounting'
+  );
+  const highMarkup = calculateMoneyBatch({
+    quantity: 10,
+    setupLines: [],
+    perSareeLines: [{ name: 'Material', amount: '500' }],
+    profitPercent: '100'
+  });
+  assert(
+    highMarkup.sellingPricePaise === 100000 && !highMarkup.marginSupported,
+    '100% markup doubles cost cleanly while guarding impossible 100% margin on price'
+  );
 
   // Quantity = 1
   const q1 = calculateMoneyBatch({
@@ -298,8 +350,15 @@ async function runTests() {
     ],
     profitPercent: '30'
   });
-  assert(csvOut.includes("'=TestBatch") && csvOut.includes(',15000.00,76.92') && csvOut.includes('19500.00'),
-    'CSV neutralizes batch formula injection, preserves numeric amounts & totals');
+  assert(
+    csvOut.includes("'=TestBatch") &&
+    csvOut.includes(',15000.00,76.92') &&
+    csvOut.includes('19500.00') &&
+    csvOut.includes('5850.00') &&
+    csvOut.includes('928.57') &&
+    csvOut.includes('8357.10'),
+    'CSV neutralizes batch formula injection, preserves numeric amounts, markup, margin & batch profits'
+  );
 
   const pdfSingle = buildMoneyPlannerPdfBytes({
     batchName: 'December Mulmul Collection',
@@ -318,8 +377,10 @@ async function runTests() {
     pdfTextSingle.includes('Rs 19,500.00') &&
     pdfTextSingle.includes('Rs 650.00') &&
     pdfTextSingle.includes('[BIGGEST EXPENSE]') &&
-    pdfTextSingle.includes('Rs 845.00'),
-    'PDF embeds RODHE summary, Rs totals, Biggest Expense highlight & estimated selling price'
+    pdfTextSingle.includes('Rs 845.00') &&
+    pdfTextSingle.includes('Rs 928.57') &&
+    pdfTextSingle.includes('Rs 8,357.10'),
+    'PDF embeds RODHE summary, Rs totals, Biggest Expense highlight, markup & margin selling prices'
   );
   assert(!pdfTextSingle.includes('rodhesaree@gmail.com') && !pdfTextSingle.includes('11111111-1111'),
     'PDF excludes internal admin email and UUIDs');
@@ -650,8 +711,29 @@ async function runTests() {
     await cdp.waitFor("document.querySelector('#mp-profit-percent')");
     await setField('#mp-profit-percent', '30');
     const sellingResult = await cdp.eval(`return document.querySelector('[data-testid="selling-price-result"]')?.textContent || '';`);
-    assert(sellingResult.includes('845.00') && sellingResult.includes('195.00'),
-      'Selling price calculator renders "Sell each saree at ₹845.00 to earn ₹195.00 profit per saree."');
+    const marginResult = await cdp.eval(`return document.querySelector('[data-testid="margin-selling-price-result"]')?.textContent || '';`);
+    assert(
+      sellingResult.includes('845.00') &&
+      sellingResult.includes('195.00') &&
+      sellingResult.includes('5,850.00') &&
+      marginResult.includes('928.57') &&
+      marginResult.includes('278.57') &&
+      marginResult.includes('8,357.10'),
+      'Selling price calculator renders BOTH Markup (₹845.00) and Margin (₹928.57) with batch profits'
+    );
+
+    // Check invalid qty pauses totals with "—" instead of showing setup-only ₹3,000, then restore 30
+    await setField('#mp-batch-quantity', '');
+    await delay(80);
+    const blankQtyPaused = await cdp.eval(`
+      return {
+        total: document.querySelector('[data-testid="total-money-needed"]')?.textContent?.trim(),
+        perSaree: document.querySelector('[data-testid="cost-of-one-saree"]')?.textContent?.trim()
+      };
+    `);
+    assert(blankQtyPaused.total === '—' && blankQtyPaused.perSaree === '—', 'Cleared quantity pauses results with "—" instead of partial Rs 3,000');
+    await setField('#mp-batch-quantity', '30');
+    await delay(80);
 
     await cdp.screenshot('qa-money-planner-desktop-1440.png');
 
