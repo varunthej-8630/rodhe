@@ -18,6 +18,7 @@ import { Toast } from './components/Toast';
 import { Footer } from './components/Footer';
 import { applyRouteSeoMeta, getPageMeta } from './services/seoService';
 import { trackPageView } from './services/analyticsService';
+import { parseRouteFromLocation } from './utils/router';
 
 // Code-split secondary pages, checkout/account modals, and administrative views for faster initial LCP
 const CollectionPage = lazy(() => import('./components/CollectionPage').then((m) => ({ default: m.CollectionPage })));
@@ -56,104 +57,23 @@ const MainLayout = () => {
     pendingUpiOrder
   } = useShop();
 
-  // URL route sync: checks query parameters (?product=..., ?page=...), paths, and hash routes
+  // Browser Back / Forward & manual hash navigation sync (state-only: never mutates history stack)
   useEffect(() => {
     const syncRouteFromUrl = () => {
       try {
-        const rawPath = window.location.pathname || '/';
-        const path = rawPath.length > 1 ? rawPath.replace(/\/+$/, '').toLowerCase() : '/';
-        const hash = window.location.hash.toLowerCase();
-        const searchParams = new URLSearchParams(window.location.search);
-
-        const productQuery = searchParams.get('product');
-        const idQuery = searchParams.get('id');
-        const pageQuery = searchParams.get('page');
-        const craftQuery = searchParams.get('craft');
-        const tabQuery = searchParams.get('tab');
-
-        if (productQuery) {
-          navigateTo('product', productQuery);
-          return;
+        const route = parseRouteFromLocation(window.location);
+        if (route.craft && typeof setSelectedCraft === 'function') {
+          setSelectedCraft(route.craft);
         }
-
-        if (pageQuery) {
-          const normalizedPage = pageQuery.toLowerCase();
-          const policyTabMap = {
-            'shipping-delivery': 'shipping',
-            'returns-exchanges': 'returns',
-            'privacy-policy': 'privacy',
-            'terms-of-service': 'terms',
-            shipping: 'shipping',
-            returns: 'returns',
-            privacy: 'privacy',
-            terms: 'terms',
-            care: 'care'
-          };
-          if (normalizedPage === 'product' && (idQuery || productQuery)) {
-            navigateTo('product', idQuery || productQuery);
-          } else if (
-            ['policies', 'shipping-delivery', 'returns-exchanges', 'privacy-policy', 'terms-of-service'].includes(normalizedPage)
-          ) {
-            const resolvedTab =
-              normalizedPage === 'policies'
-                ? policyTabMap[(tabQuery || 'shipping').toLowerCase()] || 'shipping'
-                : policyTabMap[normalizedPage];
-            navigateTo('policies', resolvedTab);
-          } else if (normalizedPage === 'shop' || normalizedPage === 'collections') {
-            if (craftQuery && typeof setSelectedCraft === 'function') {
-              const normalizedCraft = craftQuery.toLowerCase() === 'indigo' ? 'tie-dye' : craftQuery;
-              setSelectedCraft(normalizedCraft);
-            }
-            navigateTo('shop');
-          } else if (['story', 'contact', 'home'].includes(normalizedPage)) {
-            navigateTo(normalizedPage);
-          } else {
-            navigateTo('not-found');
-          }
-          return;
-        }
-
-        if (path === '/admin' || hash.includes('admin')) {
-          navigateTo('admin');
-        } else if (path === '/shop' || path === '/collections' || hash.includes('shop') || hash.includes('collection')) {
-          navigateTo('shop');
-        } else if (path === '/story' || hash.includes('story') || hash.includes('craft')) {
-          navigateTo('story');
-        } else if (path === '/contact' || hash.includes('contact') || hash.includes('concierge')) {
-          navigateTo('contact');
-        } else if (hash.includes('privacy')) {
-          navigateTo('policies', 'privacy');
-        } else if (hash.includes('terms')) {
-          navigateTo('policies', 'terms');
-        } else if (hash.includes('shipping')) {
-          navigateTo('policies', 'shipping');
-        } else if (hash.includes('returns') || hash.includes('exchange')) {
-          navigateTo('policies', 'returns');
-        } else if (hash.includes('care')) {
-          navigateTo('policies', 'care');
-        } else if (path === '/policies' || hash.includes('policy')) {
-          navigateTo('policies', 'shipping');
-        } else if (hash.includes('product')) {
-          const match = window.location.hash.match(/product\/([a-zA-Z0-9_-]+)/i);
-          if (match && match[1]) {
-            navigateTo('product', match[1]);
-          } else {
-            navigateTo('shop');
-          }
-        } else if (path !== '/' && path !== '/index.html') {
-          navigateTo('not-found');
-        } else if (hash && hash !== '#' && hash !== '#/' && hash !== '#home') {
-          navigateTo('not-found');
-        }
-      } catch (e) {}
+        navigateTo(route.page, route.productId, { syncOnly: true });
+      } catch {}
     };
 
-    syncRouteFromUrl();
-    window.addEventListener('hashchange', syncRouteFromUrl);
     window.addEventListener('popstate', syncRouteFromUrl);
+    window.addEventListener('hashchange', syncRouteFromUrl);
     return () => {
-      window.removeEventListener('hashchange', syncRouteFromUrl);
       window.removeEventListener('popstate', syncRouteFromUrl);
+      window.removeEventListener('hashchange', syncRouteFromUrl);
     };
   }, [navigateTo, setSelectedCraft]);
 

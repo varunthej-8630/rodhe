@@ -193,11 +193,18 @@ export const normalizeProduct = (p) => {
   const rawOrig = p.originalPrice ?? p.original_price ?? seedMatch?.originalPrice ?? null;
   const resolvedOriginalPrice = rawOrig && Number(rawOrig) > resolvedSellingPrice ? Number(rawOrig) : null;
 
+  // Sort joined Supabase product_images by display_order so primary/secondary/gallery order is deterministic
+  const sortedProductImages = Array.isArray(p.product_images)
+    ? [...p.product_images]
+        .filter(img => img && (img.image_url || img.url))
+        .sort((a, b) => (Number(a.display_order ?? 0)) - (Number(b.display_order ?? 0)))
+    : [];
+
   // Images resolution: check primaryImage, primary_image, product_images table, seedMatch, or craft defaults
-  let primaryImg = p.primaryImage || p.primary_image;
-  if (!primaryImg && Array.isArray(p.product_images) && p.product_images.length > 0) {
-    const primaryEntry = p.product_images.find(img => img.is_primary) || p.product_images[0];
-    primaryImg = primaryEntry?.image_url || primaryEntry?.url;
+  let primaryImg = (p.primaryImage || p.primary_image || '').trim();
+  if (!primaryImg && sortedProductImages.length > 0) {
+    const primaryEntry = sortedProductImages.find(img => img.is_primary) || sortedProductImages[0];
+    primaryImg = (primaryEntry?.image_url || primaryEntry?.url || '').trim();
   }
   if (!primaryImg && seedMatch?.primaryImage) {
     primaryImg = seedMatch.primaryImage;
@@ -206,28 +213,52 @@ export const normalizeProduct = (p) => {
     primaryImg = defaults.primary;
   }
 
-  let secondaryImg = p.secondaryImage || p.secondary_image;
-  if (!secondaryImg && Array.isArray(p.product_images) && p.product_images.length > 1) {
-    const secEntry = p.product_images.find(img => img.is_secondary) || p.product_images[1];
-    secondaryImg = secEntry?.image_url || secEntry?.url;
-  }
-  if (!secondaryImg && seedMatch?.secondaryImage) {
+  const isCustomUploadedPrimary = Boolean(
+    primaryImg && (primaryImg.startsWith('http://') || primaryImg.startsWith('https://') || primaryImg.startsWith('data:'))
+  );
+  const hasExplicitSecondaryProp =
+    Object.prototype.hasOwnProperty.call(p, 'secondaryImage') ||
+    Object.prototype.hasOwnProperty.call(p, 'secondary_image');
+  const hasExplicitGalleryProp = Array.isArray(p.gallery);
+
+  let secondaryImg = '';
+  if (hasExplicitSecondaryProp) {
+    secondaryImg = String(p.secondaryImage ?? p.secondary_image ?? '').trim();
+  } else if (sortedProductImages.length > 0) {
+    const explicitSec = sortedProductImages.find(img => img.is_secondary);
+    const secondDistinct = sortedProductImages.find(img => (img.image_url || img.url || '').trim() !== primaryImg);
+    secondaryImg = (explicitSec?.image_url || explicitSec?.url || secondDistinct?.image_url || secondDistinct?.url || '').trim();
+  } else if (hasExplicitGalleryProp) {
+    const cleanGallery = p.gallery.map(u => (typeof u === 'string' ? u.trim() : '')).filter(Boolean);
+    secondaryImg = cleanGallery.find(u => u !== primaryImg) || '';
+  } else if (seedMatch?.secondaryImage && !isCustomUploadedPrimary) {
     secondaryImg = seedMatch.secondaryImage;
   }
-  if (!secondaryImg) {
-    secondaryImg = defaults.secondary;
-  }
 
-  let gallery = Array.isArray(p.gallery) && p.gallery.length > 0
-    ? p.gallery
-    : Array.isArray(p.product_images) && p.product_images.length > 0
-    ? p.product_images.map(img => img.image_url || img.url).filter(Boolean)
-    : seedMatch?.gallery || [
-        primaryImg,
-        secondaryImg,
-        '/assets/Handcrafted Indigo Block Printing.png',
-        '/assets/Carved Wooden Block Printing Stamp Collection.png'
-      ];
+  let gallery = [];
+  if (hasExplicitGalleryProp) {
+    const cleanGallery = p.gallery.map(u => (typeof u === 'string' ? u.trim() : '')).filter(Boolean);
+    const ordered = [];
+    if (primaryImg) ordered.push(primaryImg);
+    if (secondaryImg && secondaryImg !== primaryImg) ordered.push(secondaryImg);
+    cleanGallery.forEach(url => {
+      if (!ordered.includes(url)) ordered.push(url);
+    });
+    gallery = ordered;
+  } else if (sortedProductImages.length > 0) {
+    const dbUrls = sortedProductImages.map(img => (img.image_url || img.url || '').trim()).filter(Boolean);
+    const ordered = [];
+    if (primaryImg) ordered.push(primaryImg);
+    if (secondaryImg && secondaryImg !== primaryImg) ordered.push(secondaryImg);
+    dbUrls.forEach(url => {
+      if (!ordered.includes(url)) ordered.push(url);
+    });
+    gallery = ordered;
+  } else if (seedMatch?.gallery && !isCustomUploadedPrimary) {
+    gallery = seedMatch.gallery.filter(Boolean);
+  } else {
+    gallery = Array.from(new Set([primaryImg, secondaryImg].filter(Boolean)));
+  }
 
   const assignedId = String(p.id || p.slug || seedMatch?.id || `rodhe-${p.sku || Date.now()}`);
   const assignedSlug = String(p.slug || seedMatch?.slug || p.id || 'saree');
@@ -487,54 +518,110 @@ export const storeService = {
 
     // Sync to Supabase if configured with clean snake_case payload
     if (isSupabaseConfigured && supabase) {
-      try {
-        const dbPayload = {
-          slug: normalized.slug,
-          sku: normalized.sku,
-          name: normalized.name,
-          tagline: normalized.tagline || '',
-          description: normalized.description || '',
-          craft_story: normalized.craftStory || '',
-          craft: normalized.craft || 'Handloom',
-          craft_category: normalized.craftCategory || 'mulmul',
-          fabric: normalized.fabric || 'Pure Cotton',
-          fabric_type: normalized.fabricType || 'mulmul',
-          color: normalized.color || 'Natural',
-          color_family: normalized.colorFamily || 'earth',
-          color_hex: normalized.colorHex || '#8B4513',
-          selling_price: Number(normalized.price || normalized.selling_price || 0),
-          original_price: normalized.originalPrice ? Number(normalized.originalPrice) : null,
-          dimensions: normalized.dimensions || '',
-          blouse_piece: normalized.blousePiece || '',
-          wash_care: normalized.washCare || '',
-          stock_count: Number(normalized.stockCount ?? 10),
-          in_stock: Boolean(normalized.inStock),
-          status: normalized.status || 'published',
-          is_featured: Boolean(normalized.isFeatured),
-          is_bestseller: Boolean(normalized.isBestseller),
-          is_most_coveted: Boolean(normalized.isMostCoveted),
-          is_new_arrival: Boolean(normalized.isNewArrival),
-          primary_image: normalized.primaryImage || normalized.primary_image || ''
-        };
-
-        const { data: upsertData, error: upsertErr } = await supabase
-          .from('products')
-          .upsert(dbPayload, { onConflict: 'slug' })
-          .select();
-
-        if (upsertErr) {
-          console.warn('Supabase product upsert notice:', upsertErr.message);
-        } else if (upsertData && upsertData[0]?.id) {
-          // Sync database UUID back to local store
-          normalized.id = upsertData[0].id;
-          const idx = updated.findIndex(p => p.slug === normalized.slug);
-          if (idx >= 0) {
-            updated[idx].id = upsertData[0].id;
-            setLocalData(STORAGE_KEYS.PRODUCTS, updated);
-          }
+      const isExistingUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(normalized.id || ''));
+      const primaryUrl = (normalized.primaryImage || normalized.primary_image || '').trim();
+      const secondaryUrl = (normalized.secondaryImage || normalized.secondary_image || '').trim();
+      const orderedGallery = [];
+      if (primaryUrl) orderedGallery.push(primaryUrl);
+      if (secondaryUrl && secondaryUrl !== primaryUrl) orderedGallery.push(secondaryUrl);
+      (Array.isArray(normalized.gallery) ? normalized.gallery : []).forEach(url => {
+        const trimmed = typeof url === 'string' ? url.trim() : '';
+        if (trimmed && !orderedGallery.includes(trimmed)) {
+          orderedGallery.push(trimmed);
         }
-      } catch (e) {
-        console.warn('Supabase upsert notice:', e);
+      });
+
+      const dbPayload = {
+        ...(isExistingUuid ? { id: normalized.id } : {}),
+        slug: normalized.slug,
+        sku: normalized.sku,
+        name: normalized.name,
+        tagline: normalized.tagline || '',
+        description: normalized.description || '',
+        craft_story: normalized.craftStory || '',
+        craft: normalized.craft || 'Handloom',
+        craft_category: normalized.craftCategory || 'mulmul',
+        fabric: normalized.fabric || 'Pure Cotton',
+        fabric_type: normalized.fabricType || 'mulmul',
+        color: normalized.color || 'Natural',
+        color_family: normalized.colorFamily || 'earth',
+        color_hex: normalized.colorHex || '#8B4513',
+        selling_price: Number(normalized.price || normalized.selling_price || 0),
+        original_price: normalized.originalPrice ? Number(normalized.originalPrice) : null,
+        dimensions: normalized.dimensions || '',
+        blouse_piece: normalized.blousePiece || '',
+        wash_care: normalized.washCare || '',
+        badge: normalized.badge || null,
+        stock_count: Number(normalized.stockCount ?? 10),
+        in_stock: Boolean(normalized.inStock),
+        status: normalized.status || 'published',
+        is_featured: Boolean(normalized.isFeatured),
+        is_bestseller: Boolean(normalized.isBestseller),
+        is_most_coveted: Boolean(normalized.isMostCoveted),
+        is_new_arrival: Boolean(normalized.isNewArrival),
+        primary_image: primaryUrl
+      };
+
+      const { data: upsertData, error: upsertErr } = await supabase
+        .from('products')
+        .upsert(dbPayload, { onConflict: isExistingUuid ? 'id' : 'slug' })
+        .select();
+
+      if (upsertErr) {
+        console.error('Supabase product upsert error:', upsertErr.message);
+        throw new Error(`Failed to save saree to database: ${upsertErr.message}`);
+      }
+
+      const dbProductId = upsertData?.[0]?.id || (isExistingUuid ? normalized.id : null);
+      if (dbProductId) {
+        // Persist primary, secondary, and gallery images into public.product_images
+        const { error: delImgErr } = await supabase
+          .from('product_images')
+          .delete()
+          .eq('product_id', dbProductId);
+
+        if (delImgErr) {
+          console.error('Supabase product_images cleanup error:', delImgErr.message);
+          throw new Error(`Failed to update saree gallery images: ${delImgErr.message}`);
+        }
+
+        let savedProductImages = [];
+        if (orderedGallery.length > 0) {
+          const imageRows = orderedGallery.map((url, idx) => ({
+            product_id: dbProductId,
+            image_url: url,
+            alt_text: `${normalized.name || 'Saree'} — View ${idx + 1}`,
+            is_primary: url === primaryUrl || idx === 0,
+            is_secondary: Boolean(secondaryUrl) && url === secondaryUrl && url !== primaryUrl,
+            display_order: idx
+          }));
+
+          const { data: insertedImgs, error: insImgErr } = await supabase
+            .from('product_images')
+            .insert(imageRows)
+            .select();
+
+          if (insImgErr) {
+            console.error('Supabase product_images insert error:', insImgErr.message);
+            throw new Error(`Failed to save secondary/gallery images to database: ${insImgErr.message}`);
+          }
+          savedProductImages = insertedImgs || imageRows;
+        }
+
+        // Sync authoritative database UUID and persisted gallery back to local cache
+        normalized.id = dbProductId;
+        normalized.primaryImage = primaryUrl;
+        normalized.primary_image = primaryUrl;
+        normalized.secondaryImage = secondaryUrl;
+        normalized.secondary_image = secondaryUrl;
+        normalized.gallery = orderedGallery;
+        normalized.product_images = savedProductImages;
+
+        const idx = updated.findIndex(p => p.id === dbProductId || p.slug === normalized.slug);
+        if (idx >= 0) {
+          updated[idx] = { ...updated[idx], ...normalized };
+          setLocalData(STORAGE_KEYS.PRODUCTS, updated);
+        }
       }
     }
 

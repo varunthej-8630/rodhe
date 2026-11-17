@@ -8,40 +8,45 @@ export const AdminProductForm = ({ product, onSaveComplete, onCancel }) => {
   const isEditing = Boolean(product && product.id);
   const { refreshProducts } = useShop();
 
-  const [formData, setFormData] = useState(() => ({
-    id: product?.id || `rodhe-saree-${Date.now()}`,
-    name: product?.name || '',
-    slug: product?.slug || '',
-    sku: product?.sku || `RODHE-SAR-${Math.floor(100 + Math.random() * 900)}`,
-    tagline: product?.tagline || '',
-    description: product?.description || '',
-    craftStory: product?.craftStory || '',
-    craft: product?.craft || 'Handblock Print',
-    craftCategory: product?.craftCategory || 'handblock',
-    fabric: product?.fabric || '100% Organic Mulmul Cotton',
-    fabricType: product?.fabricType || 'mulmul',
-    color: product?.color || 'Indigo Blue',
-    colorFamily: product?.colorFamily || 'indigo',
-    colorHex: product?.colorHex || '#26425A',
-    originalPrice: product?.originalPrice ? Number(product.originalPrice) : null,
-    price: Number(product?.price ?? product?.sellingPrice ?? product?.selling_price ?? 1250) || 1250,
-    dimensions: product?.dimensions || 'Length: 6.5 meters (including 80 cm blouse piece) • Width: 46 inches • Weight: 390 g',
-    blousePiece: product?.blousePiece || 'Included — Running matching fabric with woven zari border',
-    washCare: product?.washCare || 'Dry clean recommended for the first wash. Subsequent gentle cold water hand wash.',
-    badge: product?.badge || '',
-    stockCount: product?.stockCount ?? 8,
-    isBestseller: Boolean(product?.isBestseller),
-    isMostCoveted: Boolean(product?.isMostCoveted),
-    isNewArrival: Boolean(product?.isNewArrival ?? true),
-    featured: Boolean(product?.featured ?? true),
-    status: product?.status || 'published',
-    primaryImage: product?.primaryImage || '/assets/products/saree_indigo_shibori.jpg',
-    secondaryImage: product?.secondaryImage || '/assets/products/saree_indigo_shibori_detail.jpg',
-    gallery: product?.gallery || [
-      product?.primaryImage || '/assets/products/saree_indigo_shibori.jpg',
-      product?.secondaryImage || '/assets/products/saree_indigo_shibori_detail.jpg'
-    ]
-  }));
+  const [formData, setFormData] = useState(() => {
+    const initialPrimary = (product?.primaryImage || product?.primary_image || '').trim();
+    const initialSecondary = (product?.secondaryImage || product?.secondary_image || '').trim();
+    const initialGallery = Array.isArray(product?.gallery)
+      ? Array.from(new Set(product.gallery.map(u => (typeof u === 'string' ? u.trim() : '')).filter(Boolean)))
+      : Array.from(new Set([initialPrimary, initialSecondary].filter(Boolean)));
+
+    return {
+      id: product?.id || `rodhe-saree-${Date.now()}`,
+      name: product?.name || '',
+      slug: product?.slug || '',
+      sku: product?.sku || `RODHE-SAR-${Math.floor(100 + Math.random() * 900)}`,
+      tagline: product?.tagline || '',
+      description: product?.description || '',
+      craftStory: product?.craftStory || '',
+      craft: product?.craft || 'Handblock Print',
+      craftCategory: product?.craftCategory || 'handblock',
+      fabric: product?.fabric || '100% Organic Mulmul Cotton',
+      fabricType: product?.fabricType || 'mulmul',
+      color: product?.color || 'Indigo Blue',
+      colorFamily: product?.colorFamily || 'indigo',
+      colorHex: product?.colorHex || '#26425A',
+      originalPrice: product?.originalPrice ? Number(product.originalPrice) : null,
+      price: Number(product?.price ?? product?.sellingPrice ?? product?.selling_price ?? 1250) || 1250,
+      dimensions: product?.dimensions || 'Length: 6.5 meters (including 80 cm blouse piece) • Width: 46 inches • Weight: 390 g',
+      blousePiece: product?.blousePiece || 'Included — Running matching fabric with woven zari border',
+      washCare: product?.washCare || 'Dry clean recommended for the first wash. Subsequent gentle cold water hand wash.',
+      badge: product?.badge || '',
+      stockCount: product?.stockCount ?? 8,
+      isBestseller: Boolean(product?.isBestseller),
+      isMostCoveted: Boolean(product?.isMostCoveted),
+      isNewArrival: Boolean(product?.isNewArrival ?? true),
+      featured: Boolean(product?.featured ?? true),
+      status: product?.status || 'published',
+      primaryImage: initialPrimary,
+      secondaryImage: initialSecondary,
+      gallery: initialGallery
+    };
+  });
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -63,21 +68,33 @@ export const AdminProductForm = ({ product, onSaveComplete, onCancel }) => {
   const handleSubmit = async (e, forcedStatus = null) => {
     if (e && e.preventDefault) e.preventDefault();
     if (isSaving) return;
+
+    const cleanGallery = (formData.gallery || [])
+      .map(u => (typeof u === 'string' ? u.trim() : ''))
+      .filter(Boolean);
+    const resolvedPrimary = (formData.primaryImage || '').trim() || cleanGallery[0] || '';
+    const resolvedSecondary = (formData.secondaryImage || '').trim();
+
+    if (!resolvedPrimary) {
+      alert('Please upload a Primary Saree Image before saving.');
+      return;
+    }
+
     setIsSaving(true);
     try {
       const allGallery = Array.from(new Set([
-        formData.primaryImage,
-        formData.secondaryImage,
-        ...(formData.gallery || [])
-      ])).filter(Boolean);
+        resolvedPrimary,
+        resolvedSecondary,
+        ...cleanGallery
+      ].filter(Boolean)));
 
       const targetStatus = forcedStatus || formData.status || 'published';
 
       const payload = {
         ...formData,
         status: targetStatus,
-        primaryImage: formData.primaryImage || allGallery[0] || '/assets/products/saree_ivory_mulmul.jpg',
-        secondaryImage: formData.secondaryImage || allGallery[1] || allGallery[0] || '/assets/products/saree_ivory_mulmul.jpg',
+        primaryImage: resolvedPrimary,
+        secondaryImage: resolvedSecondary,
         gallery: allGallery
       };
       await storeService.saveProduct(payload);
@@ -421,11 +438,23 @@ export const AdminProductForm = ({ product, onSaveComplete, onCancel }) => {
               required={true}
               helperText="Main drape photograph shown on collection grids and product page"
               value={formData.primaryImage}
-              onChange={(newUrl) => setFormData(prev => ({
-                ...prev,
-                primaryImage: newUrl,
-                gallery: Array.from(new Set([newUrl, ...(prev.gallery || [])]))
-              }))}
+              onChange={(newUrl) => {
+                const trimmed = (newUrl || '').trim();
+                setFormData(prev => {
+                  const prevGallery = (prev.gallery || []).map(u => (typeof u === 'string' ? u.trim() : '')).filter(Boolean);
+                  const withoutOldPrimary = prev.primaryImage && prev.primaryImage !== prev.secondaryImage
+                    ? prevGallery.filter(url => url !== prev.primaryImage)
+                    : prevGallery;
+                  const nextGallery = trimmed
+                    ? Array.from(new Set([trimmed, ...withoutOldPrimary]))
+                    : withoutOldPrimary;
+                  return {
+                    ...prev,
+                    primaryImage: trimmed,
+                    gallery: nextGallery
+                  };
+                });
+              }}
             />
 
             <ImageUploadField
@@ -433,11 +462,27 @@ export const AdminProductForm = ({ product, onSaveComplete, onCancel }) => {
               required={false}
               helperText="Close-up detail shot of zari border, pallu tassels, or weave craft"
               value={formData.secondaryImage}
-              onChange={(newUrl) => setFormData(prev => ({
-                ...prev,
-                secondaryImage: newUrl,
-                gallery: Array.from(new Set([...(prev.gallery || []), newUrl]))
-              }))}
+              onChange={(newUrl) => {
+                const trimmed = (newUrl || '').trim();
+                setFormData(prev => {
+                  const prevGallery = (prev.gallery || []).map(u => (typeof u === 'string' ? u.trim() : '')).filter(Boolean);
+                  const withoutOldSecondary = prev.secondaryImage && prev.secondaryImage !== prev.primaryImage
+                    ? prevGallery.filter(url => url !== prev.secondaryImage)
+                    : prevGallery;
+                  let nextGallery;
+                  if (trimmed) {
+                    const rest = withoutOldSecondary.filter(url => url !== prev.primaryImage && url !== trimmed);
+                    nextGallery = Array.from(new Set([prev.primaryImage, trimmed, ...rest].filter(Boolean)));
+                  } else {
+                    nextGallery = withoutOldSecondary;
+                  }
+                  return {
+                    ...prev,
+                    secondaryImage: trimmed,
+                    gallery: nextGallery
+                  };
+                });
+              }}
             />
           </div>
 
@@ -446,7 +491,7 @@ export const AdminProductForm = ({ product, onSaveComplete, onCancel }) => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h4 style={{ fontSize: '0.88rem', fontWeight: 600, color: '#4B3024', margin: 0 }}>
-                  Product Gallery & Drapes ({(formData.gallery || []).length} photos)
+                  Product Gallery & Drapes ({(formData.gallery || []).filter(Boolean).length} photos)
                 </h4>
                 <p style={{ fontSize: '0.74rem', color: '#8F7263', margin: '0.15rem 0 0 0' }}>
                   Reorder or select which photo acts as the primary drape.
@@ -455,13 +500,13 @@ export const AdminProductForm = ({ product, onSaveComplete, onCancel }) => {
             </div>
 
             {/* Gallery Thumbnails */}
-            {(formData.gallery || []).length > 0 && (
+            {(formData.gallery || []).filter(Boolean).length > 0 && (
               <div style={{ display: 'flex', gap: '0.85rem', flexWrap: 'wrap' }}>
-                {(formData.gallery || []).map((imgUrl, idx) => {
+                {(formData.gallery || []).filter(Boolean).map((imgUrl, idx) => {
                   const isPrimary = imgUrl === formData.primaryImage;
                   return (
                     <div
-                      key={idx}
+                      key={`${imgUrl}-${idx}`}
                       style={{
                         position: 'relative',
                         width: '90px',
@@ -497,7 +542,19 @@ export const AdminProductForm = ({ product, onSaveComplete, onCancel }) => {
                       ) : (
                         <button
                           type="button"
-                          onClick={() => setFormData(prev => ({ ...prev, primaryImage: imgUrl }))}
+                          onClick={() => setFormData(prev => {
+                            const prevGallery = (prev.gallery || []).filter(Boolean);
+                            const rest = prevGallery.filter(u => u !== imgUrl);
+                            const nextSecondary = prev.secondaryImage === imgUrl
+                              ? (prev.primaryImage && prev.primaryImage !== imgUrl ? prev.primaryImage : '')
+                              : prev.secondaryImage;
+                            return {
+                              ...prev,
+                              primaryImage: imgUrl,
+                              secondaryImage: nextSecondary,
+                              gallery: Array.from(new Set([imgUrl, ...rest]))
+                            };
+                          })}
                           style={{
                             position: 'absolute',
                             bottom: 0,
@@ -518,11 +575,15 @@ export const AdminProductForm = ({ product, onSaveComplete, onCancel }) => {
                       )}
                       <button
                         type="button"
-                        onClick={() => setFormData(prev => ({
-                          ...prev,
-                          gallery: prev.gallery.filter((_, i) => i !== idx),
-                          primaryImage: prev.primaryImage === imgUrl ? (prev.gallery.find((_, i) => i !== idx) || '') : prev.primaryImage
-                        }))}
+                        onClick={() => setFormData(prev => {
+                          const nextGallery = (prev.gallery || []).filter(Boolean).filter(u => u !== imgUrl);
+                          return {
+                            ...prev,
+                            gallery: nextGallery,
+                            primaryImage: prev.primaryImage === imgUrl ? (nextGallery[0] || '') : prev.primaryImage,
+                            secondaryImage: prev.secondaryImage === imgUrl ? '' : prev.secondaryImage
+                          };
+                        })}
                         title="Remove image from gallery"
                         style={{
                           position: 'absolute',
@@ -558,10 +619,11 @@ export const AdminProductForm = ({ product, onSaveComplete, onCancel }) => {
                 helperText="Upload additional drape, blouse, or artisan weaving photos"
                 value=""
                 onChange={(extraUrl) => {
-                  if (extraUrl) {
+                  const trimmed = (extraUrl || '').trim();
+                  if (trimmed && (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/') || trimmed.startsWith('data:'))) {
                     setFormData(prev => ({
                       ...prev,
-                      gallery: Array.from(new Set([...(prev.gallery || []), extraUrl]))
+                      gallery: Array.from(new Set([...(prev.gallery || []).filter(Boolean), trimmed]))
                     }));
                   }
                 }}

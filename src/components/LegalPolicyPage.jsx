@@ -108,7 +108,10 @@ export const LegalPolicyPage = ({ initialTab = 'shipping' }) => {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  navigateTo('policies', tab.id);
+                }}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',

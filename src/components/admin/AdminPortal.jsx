@@ -210,6 +210,7 @@ export const AdminPortal = ({ onNavigateToStorefront }) => {
       {activeTab === 'products' && (
         isCreatingProduct || editingProduct ? (
           <AdminProductForm
+            key={editingProduct?.id || 'new-product'}
             product={editingProduct}
             onSaveComplete={handleProductSaved}
             onCancel={() => {

@@ -32,9 +32,11 @@ export const ProductDetailPage = ({ productId }) => {
 
   const primaryImage = product?.primaryImage || product?.primary_image || '/assets/products/saree_ivory_mulmul.jpg';
   const images = product
-    ? ((Array.isArray(product.gallery) && product.gallery.length > 0)
-        ? product.gallery
-        : [primaryImage, product.secondaryImage || primaryImage].filter(Boolean))
+    ? Array.from(new Set(
+        (Array.isArray(product.gallery) && product.gallery.filter(Boolean).length > 0)
+          ? [primaryImage, product.secondaryImage || product.secondary_image, ...product.gallery].filter(Boolean)
+          : [primaryImage, product.secondaryImage || product.secondary_image].filter(Boolean)
+      ))
     : [];
   const relatedProducts = product
     ? PRODUCTS.filter((p) => !isSameProduct(p, product) && (!p.status || p.status === 'published') && p.craftCategory === product.craftCategory).slice(0, 3)

@@ -35,9 +35,11 @@ export const ProductQuickViewModal = () => {
   const product = quickViewProduct;
   const isFavorited = isInWishlist(product);
   const primaryImage = product.primaryImage || product.primary_image || '/assets/products/saree_ivory_mulmul.jpg';
-  const images = (Array.isArray(product.gallery) && product.gallery.length > 0)
-    ? product.gallery
-    : [primaryImage, product.secondaryImage || primaryImage].filter(Boolean);
+  const images = Array.from(new Set(
+    (Array.isArray(product.gallery) && product.gallery.filter(Boolean).length > 0)
+      ? [primaryImage, product.secondaryImage || product.secondary_image, ...product.gallery].filter(Boolean)
+      : [primaryImage, product.secondaryImage || product.secondary_image].filter(Boolean)
+  ));
   const unitPrice = Number(product.price ?? product.sellingPrice ?? product.selling_price ?? 0) || 0;
   const originalPrice = product.originalPrice ? (Number(product.originalPrice) || null) : (product.original_price ? (Number(product.original_price) || null) : null);
   const stockLimit = typeof product.stockCount === 'number' ? product.stockCount : Number(product.stock_count ?? 10);

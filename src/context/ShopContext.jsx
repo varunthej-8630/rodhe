@@ -12,6 +12,7 @@ import {
   trackRemoveFromCart,
   trackAddToWishlist
 } from '../services/analyticsService';
+import { parseRouteFromLocation, buildUrlForRoute } from '../utils/router';
 
 const ShopContext = createContext();
 
@@ -47,9 +48,15 @@ export function isSameProduct(a, b) {
 }
 
 export const ShopProvider = ({ children }) => {
+  // Parse initial route synchronously from browser URL so refresh preserves exact page with zero flash/redirect to home
+  const initialRoute = useMemo(() => {
+    if (typeof window === 'undefined') return { page: 'home', productId: null, craft: null };
+    return parseRouteFromLocation(window.location);
+  }, []);
+
   // Navigation / Page State
-  const [currentPage, setCurrentPage] = useState('home');
-  const [selectedProductId, setSelectedProductId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(() => initialRoute.page);
+  const [selectedProductId, setSelectedProductId] = useState(() => initialRoute.productId);
 
   // Dynamic Products & Store Settings
   const [products, setProducts] = useState(STATIC_PRODUCTS);
@@ -501,7 +508,7 @@ export const ShopProvider = ({ children }) => {
   }, []);
 
   // Filters State
-  const [selectedCraft, setSelectedCraft] = useState('all');
+  const [selectedCraft, setSelectedCraft] = useState(() => initialRoute.craft || 'all');
   const [selectedColor, setSelectedColor] = useState('all');
   const [selectedFabric, setSelectedFabric] = useState('all');
   const [priceMax, setPriceMax] = useState(2000);
@@ -834,56 +841,39 @@ export const ShopProvider = ({ children }) => {
     showToast('Promo code removed.', 'info');
   };
 
-  // Navigation Helper
-  const navigateTo = useCallback((page, productId = null) => {
+  // Navigation Helper (maintains proper History API pushState stack without corrupting Back/Forward)
+  const navigateTo = useCallback((page, productId = null, options = {}) => {
+    const { replace = false, syncOnly = false } = options || {};
+    const nextProductId = productId ?? null;
+
     setCurrentPage(page);
-    if (productId) {
-      setSelectedProductId(productId);
+    setSelectedProductId(nextProductId);
+
+    if (syncOnly) {
+      // Browser Back / Forward navigation: sync React state only — never mutate history stack
+      setIsSearchOpen(false);
+      setQuickViewProduct(null);
+      return;
     }
+
     try {
       if (typeof window !== 'undefined') {
-        if (
-          page !== 'not-found' &&
-          window.location.pathname &&
-          window.location.pathname !== '/' &&
-          window.location.pathname !== '/index.html'
-        ) {
-          history.replaceState(null, '', '/');
-        }
-        if (page === 'admin') {
-          if (!window.location.hash.includes('admin')) {
-            window.location.hash = 'admin';
-          }
-        } else if (page === 'shop' || page === 'collections') {
-          if (!window.location.hash.includes('collections') && !window.location.hash.includes('shop')) {
-            window.location.hash = 'collections';
-          }
-        } else if (page === 'product' && productId) {
-          window.location.hash = `product/${productId}`;
-        } else if (page === 'story') {
-          window.location.hash = 'story';
-        } else if (page === 'contact') {
-          window.location.hash = 'contact';
-        } else if (page === 'policies') {
-          window.location.hash = productId ? `policies-${productId}` : 'policies';
-        } else if (page === 'home') {
-          let newUrl = '/';
-          if (window.location.search) {
-            const searchParams = new URLSearchParams(window.location.search);
-            searchParams.delete('page');
-            searchParams.delete('product');
-            searchParams.delete('craft');
-            searchParams.delete('id');
-            searchParams.delete('tab');
-            const remaining = searchParams.toString();
-            if (remaining) {
-              newUrl += `?${remaining}`;
+        const targetUrl = buildUrlForRoute(page, nextProductId, window.location.search);
+        if (targetUrl) {
+          const currentUrl =
+            `${window.location.pathname || '/'}${window.location.search || ''}${window.location.hash || ''}`;
+          if (targetUrl !== currentUrl) {
+            const historyState = { page, productId: nextProductId };
+            if (replace) {
+              window.history.replaceState(historyState, '', targetUrl);
+            } else {
+              window.history.pushState(historyState, '', targetUrl);
             }
           }
-          history.replaceState(null, '', newUrl);
         }
       }
     } catch {}
+
     if (typeof window !== 'undefined') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }

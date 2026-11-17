@@ -163,6 +163,7 @@ export const ImageUploadField = ({
               }}
             >
               <img
+                key={value}
                 src={value}
                 alt="Saree Preview"
                 style={{
@@ -170,6 +171,9 @@ export const ImageUploadField = ({
                   height: '100%',
                   objectFit: 'cover',
                   display: 'block'
+                }}
+                onLoad={(e) => {
+                  e.currentTarget.style.display = 'block';
                 }}
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
@@ -225,8 +229,17 @@ export const ImageUploadField = ({
                   onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#B88D4A')}
                   onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(184, 141, 74, 0.45)')}
                 >
-                  <RefreshCw size={13} color="#B88D4A" />
-                  <span>Replace Image</span>
+                  {isUploading ? (
+                    <>
+                      <Loader2 size={13} color="#B88D4A" className="spin-animation" style={{ animation: 'spin 1s linear infinite' }} />
+                      <span>Uploading ({uploadProgress}%)...</span>
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw size={13} color="#B88D4A" />
+                      <span>Replace Image</span>
+                    </>
+                  )}
                 </button>
 
                 <button
