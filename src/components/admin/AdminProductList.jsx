@@ -218,6 +218,15 @@ export const AdminProductList = ({ onEditProduct, onNewProduct }) => {
     }
   };
 
+  const handleResetCatalog = async () => {
+    if (window.confirm('Restore all 50 authentic sarees to your inventory? Any locally removed test items will be restored.')) {
+      storeService.resetCatalog();
+      setSelectedIds([]);
+      if (refreshProducts) await refreshProducts();
+      await loadProducts();
+    }
+  };
+
   const selectedProducts = products.filter((p) => selectedIds.includes(p.id));
 
   return (
@@ -341,26 +350,50 @@ export const AdminProductList = ({ onEditProduct, onNewProduct }) => {
           </select>
         </div>
 
-        {/* Add Saree Action */}
-        <button
-          onClick={onNewProduct}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.45rem',
-            padding: '0.65rem 1.15rem',
-            backgroundColor: '#4B3024',
-            color: '#FAF6EE',
-            border: 'none',
-            borderRadius: '3px',
-            fontSize: '0.82rem',
-            fontWeight: 600,
-            cursor: 'pointer'
-          }}
-        >
-          <Plus size={15} />
-          <span>Add New Saree</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={handleResetCatalog}
+            title="Restore all 50 authentic sarees to your inventory"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              padding: '0.65rem 1rem',
+              backgroundColor: '#FAF6EE',
+              color: '#4B3024',
+              border: '1px solid rgba(75, 48, 36, 0.25)',
+              borderRadius: '3px',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
+            <RefreshCw size={13} />
+            <span>Restore All 50 Sarees</span>
+          </button>
+
+          {/* Add Saree Action */}
+          <button
+            onClick={onNewProduct}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              padding: '0.65rem 1.15rem',
+              backgroundColor: '#4B3024',
+              color: '#FAF6EE',
+              border: 'none',
+              borderRadius: '3px',
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
+            <Plus size={15} />
+            <span>Add New Saree</span>
+          </button>
+        </div>
       </div>
 
       {/* Bulk Action Bar (Appears when 1 or more sarees are selected) */}
