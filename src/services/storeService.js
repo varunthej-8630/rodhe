@@ -629,6 +629,22 @@ export const storeService = {
     return true;
   },
 
+  async deleteProductsBulk(productIds) {
+    if (!Array.isArray(productIds) || productIds.length === 0) return true;
+    for (const id of productIds) {
+      await this.deleteProduct(id);
+    }
+    return true;
+  },
+
+  async archiveProductsBulk(productIds) {
+    if (!Array.isArray(productIds) || productIds.length === 0) return true;
+    for (const id of productIds) {
+      await this.archiveProduct(id);
+    }
+    return true;
+  },
+
   // --------------------------------------------------------------------------
   // MEDIA / IMAGE UPLOADS
   // --------------------------------------------------------------------------

@@ -27,6 +27,10 @@ export const AdminProductList = ({ onEditProduct, onNewProduct }) => {
   const [sortBy, setSortBy] = useState('newest');
   const [deleteConfirmProduct, setDeleteConfirmProduct] = useState(null);
   const [updatingStockId, setUpdatingStockId] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [isBulkOperating, setIsBulkOperating] = useState(false);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [showBulkArchiveConfirm, setShowBulkArchiveConfirm] = useState(false);
 
   const loadProducts = async () => {
     const list = await storeService.getProducts();
@@ -163,6 +167,58 @@ export const AdminProductList = ({ onEditProduct, onNewProduct }) => {
     }
     return 0;
   });
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    const allFilteredIds = filtered.map((p) => p.id);
+    const isAllSelected =
+      allFilteredIds.length > 0 &&
+      allFilteredIds.every((id) => selectedIds.includes(id));
+    if (isAllSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !allFilteredIds.includes(id)));
+    } else {
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...allFilteredIds])));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedIds([]);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setIsBulkOperating(true);
+    try {
+      await storeService.deleteProductsBulk(selectedIds);
+      setSelectedIds([]);
+      setShowBulkDeleteConfirm(false);
+      if (refreshProducts) await refreshProducts();
+      await loadProducts();
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
+
+  const handleBulkArchive = async () => {
+    if (selectedIds.length === 0) return;
+    setIsBulkOperating(true);
+    try {
+      await storeService.archiveProductsBulk(selectedIds);
+      setSelectedIds([]);
+      setShowBulkArchiveConfirm(false);
+      if (refreshProducts) await refreshProducts();
+      await loadProducts();
+    } finally {
+      setIsBulkOperating(false);
+    }
+  };
+
+  const selectedProducts = products.filter((p) => selectedIds.includes(p.id));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -307,6 +363,111 @@ export const AdminProductList = ({ onEditProduct, onNewProduct }) => {
         </button>
       </div>
 
+      {/* Bulk Action Bar (Appears when 1 or more sarees are selected) */}
+      {selectedIds.length > 0 && (
+        <div
+          style={{
+            backgroundColor: '#4B3024',
+            color: '#FAF6EE',
+            padding: '0.85rem 1.35rem',
+            borderRadius: '4px',
+            border: '1px solid rgba(184, 141, 74, 0.4)',
+            boxShadow: '0 6px 20px rgba(42, 26, 19, 0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.85rem',
+            animation: 'fadeIn 0.2s ease'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 700, fontSize: '0.88rem', letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <CheckCircle2 size={16} color="#B88D4A" />
+              <span>{selectedIds.length} saree{selectedIds.length > 1 ? 's' : ''} selected</span>
+            </span>
+
+            <button
+              type="button"
+              onClick={handleSelectAll}
+              style={{
+                fontSize: '0.74rem',
+                color: '#EADAB5',
+                background: 'rgba(234, 218, 181, 0.1)',
+                border: '1px solid rgba(234, 218, 181, 0.3)',
+                borderRadius: '3px',
+                padding: '0.3rem 0.65rem',
+                cursor: 'pointer',
+                fontWeight: 600
+              }}
+            >
+              {filtered.length > 0 && filtered.every(p => selectedIds.includes(p.id)) ? 'Deselect All' : `Select All Visible (${filtered.length})`}
+            </button>
+
+            <button
+              type="button"
+              onClick={clearSelection}
+              style={{
+                fontSize: '0.74rem',
+                color: 'rgba(250, 246, 238, 0.7)',
+                background: 'none',
+                border: 'none',
+                textDecoration: 'underline',
+                cursor: 'pointer'
+              }}
+            >
+              Clear Selection
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <button
+              type="button"
+              onClick={() => setShowBulkArchiveConfirm(true)}
+              disabled={isBulkOperating}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.45rem 0.85rem',
+                backgroundColor: 'rgba(234, 218, 181, 0.15)',
+                border: '1px solid rgba(234, 218, 181, 0.4)',
+                borderRadius: '3px',
+                color: '#FAF6EE',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              <Archive size={13} />
+              <span>Archive ({selectedIds.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowBulkDeleteConfirm(true)}
+              disabled={isBulkOperating}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.45rem 0.95rem',
+                backgroundColor: '#C98278',
+                border: 'none',
+                borderRadius: '3px',
+                color: '#FAF6EE',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              <Trash2 size={13} />
+              <span>Delete ({selectedIds.length})</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Saree Catalog Table */}
       <div
         style={{
@@ -321,7 +482,32 @@ export const AdminProductList = ({ onEditProduct, onNewProduct }) => {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '950px' }}>
             <thead>
               <tr style={{ backgroundColor: '#F4ECE1', borderBottom: '1px solid rgba(75, 48, 36, 0.12)' }}>
-                <th style={{ padding: '0.9rem 1.25rem', fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6F4E3E', fontWeight: 600 }}>Saree</th>
+                <th style={{ width: '44px', padding: '0.9rem 0.6rem 0.9rem 1.25rem', textAlign: 'center' }}>
+                  <input
+                    type="checkbox"
+                    checked={filtered.length > 0 && filtered.every((p) => selectedIds.includes(p.id))}
+                    ref={(el) => {
+                      if (el) {
+                        el.indeterminate =
+                          selectedIds.length > 0 && !filtered.every((p) => selectedIds.includes(p.id));
+                      }
+                    }}
+                    onChange={handleSelectAll}
+                    style={{
+                      cursor: 'pointer',
+                      accentColor: '#4B3024',
+                      width: '16px',
+                      height: '16px',
+                      verticalAlign: 'middle'
+                    }}
+                    title={
+                      filtered.length > 0 && filtered.every((p) => selectedIds.includes(p.id))
+                        ? 'Deselect all'
+                        : 'Select all visible'
+                    }
+                  />
+                </th>
+                <th style={{ padding: '0.9rem 1rem', fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6F4E3E', fontWeight: 600 }}>Saree</th>
                 <th style={{ padding: '0.9rem 1rem', fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6F4E3E', fontWeight: 600 }}>SKU & Craft</th>
                 <th style={{ padding: '0.9rem 1rem', fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6F4E3E', fontWeight: 600 }}>Price (INR)</th>
                 <th style={{ padding: '0.9rem 1rem', fontSize: '0.72rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6F4E3E', fontWeight: 600 }}>Stock (Quick Edit)</th>
@@ -333,12 +519,13 @@ export const AdminProductList = ({ onEditProduct, onNewProduct }) => {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan="7" style={{ padding: '3.5rem', textAlign: 'center', color: '#8F7263', fontSize: '0.88rem' }}>
+                  <td colSpan="8" style={{ padding: '3.5rem', textAlign: 'center', color: '#8F7263', fontSize: '0.88rem' }}>
                     No sarees match your current filter criteria. Try clearing search or selecting "All".
                   </td>
                 </tr>
               ) : (
                 filtered.map((p) => {
+                  const isSelected = selectedIds.includes(p.id);
                   const selling = Number(p.price ?? p.sellingPrice ?? p.selling_price ?? 990) || 990;
                   const original = p.originalPrice ? (Number(p.originalPrice) || null) : (p.original_price ? (Number(p.original_price) || null) : null);
                   const discountPct = original && original > selling 
@@ -352,13 +539,35 @@ export const AdminProductList = ({ onEditProduct, onNewProduct }) => {
                       key={p.id || p.slug}
                       style={{
                         borderBottom: '1px solid rgba(75, 48, 36, 0.06)',
-                        transition: 'background-color 0.15s'
+                        transition: 'background-color 0.15s',
+                        backgroundColor: isSelected ? 'rgba(184, 141, 74, 0.12)' : 'transparent'
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FAF6EE')}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) e.currentTarget.style.backgroundColor = '#FAF6EE';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = isSelected ? 'rgba(184, 141, 74, 0.12)' : 'transparent';
+                      }}
                     >
+                      {/* Selection Checkbox */}
+                      <td style={{ width: '44px', padding: '0.9rem 0.6rem 0.9rem 1.25rem', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelect(p.id)}
+                          style={{
+                            cursor: 'pointer',
+                            accentColor: '#4B3024',
+                            width: '16px',
+                            height: '16px',
+                            verticalAlign: 'middle'
+                          }}
+                          aria-label={`Select ${p.name}`}
+                        />
+                      </td>
+
                       {/* Saree Info & Thumbnail */}
-                      <td style={{ padding: '0.9rem 1.25rem' }}>
+                      <td style={{ padding: '0.9rem 1rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
                           <img
                             src={p.primaryImage || p.primary_image || '/assets/products/saree_ivory_mulmul.jpg'}
@@ -714,6 +923,234 @@ export const AdminProductList = ({ onEditProduct, onNewProduct }) => {
                 }}
               >
                 Yes, Delete Saree
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {showBulkDeleteConfirm && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(42, 26, 19, 0.65)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            padding: '1rem'
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFDF9',
+              borderRadius: '4px',
+              maxWidth: '520px',
+              width: '100%',
+              padding: '2rem',
+              border: '1px solid rgba(75, 48, 36, 0.2)',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.25rem'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <div style={{ width: '38px', height: '38px', borderRadius: '50%', backgroundColor: 'rgba(201, 130, 120, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Trash2 size={20} color="#C98278" />
+              </div>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.35rem', color: '#4B3024', margin: 0 }}>
+                  Bulk Delete {selectedIds.length} Sarees
+                </h3>
+                <span style={{ fontSize: '0.74rem', color: '#8F7263' }}>Permanent Deletion Action</span>
+              </div>
+            </div>
+
+            <p style={{ fontSize: '0.86rem', color: '#6F4E3E', margin: 0, lineHeight: 1.5 }}>
+              Are you sure you want to permanently delete these <strong>{selectedIds.length} selected sarees</strong>? This action will remove them permanently from your Boutique CRM and the live storefront.
+            </p>
+
+            {/* Selected Sarees Preview List */}
+            <div
+              style={{
+                backgroundColor: '#FAF6EE',
+                border: '1px solid rgba(75, 48, 36, 0.12)',
+                borderRadius: '3px',
+                padding: '0.75rem 1rem',
+                maxHeight: '140px',
+                overflowY: 'auto'
+              }}
+            >
+              <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#4B3024', marginBottom: '0.45rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Sarees to be deleted:
+              </div>
+              <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.82rem', color: '#6F4E3E', lineHeight: 1.6 }}>
+                {selectedProducts.map((p) => (
+                  <li key={p.id}>
+                    <strong>{p.name}</strong> ({p.sku || 'No SKU'})
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteConfirm(false)}
+                disabled={isBulkOperating}
+                style={{
+                  padding: '0.6rem 1.15rem',
+                  backgroundColor: '#FAF6EE',
+                  border: '1px solid rgba(75, 48, 36, 0.2)',
+                  borderRadius: '3px',
+                  fontSize: '0.82rem',
+                  color: '#4B3024',
+                  fontWeight: 600,
+                  cursor: isBulkOperating ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkDelete}
+                disabled={isBulkOperating}
+                style={{
+                  padding: '0.6rem 1.35rem',
+                  backgroundColor: '#C98278',
+                  border: 'none',
+                  borderRadius: '3px',
+                  fontSize: '0.82rem',
+                  color: '#FAF6EE',
+                  fontWeight: 700,
+                  cursor: isBulkOperating ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem'
+                }}
+              >
+                {isBulkOperating ? <RefreshCw size={14} className="spin" /> : <Trash2 size={14} />}
+                <span>{isBulkOperating ? 'Deleting Sarees...' : `Yes, Delete All ${selectedIds.length} Sarees`}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Archive Confirmation Modal */}
+      {showBulkArchiveConfirm && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(42, 26, 19, 0.65)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            padding: '1rem'
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFDF9',
+              borderRadius: '4px',
+              maxWidth: '520px',
+              width: '100%',
+              padding: '2rem',
+              border: '1px solid rgba(75, 48, 36, 0.2)',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.25rem'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <div style={{ width: '38px', height: '38px', borderRadius: '50%', backgroundColor: 'rgba(184, 141, 74, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Archive size={20} color="#B88D4A" />
+              </div>
+              <div>
+                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.35rem', color: '#4B3024', margin: 0 }}>
+                  Bulk Archive {selectedIds.length} Sarees
+                </h3>
+                <span style={{ fontSize: '0.74rem', color: '#8F7263' }}>Preserves Order & Historical Data</span>
+              </div>
+            </div>
+
+            <p style={{ fontSize: '0.86rem', color: '#6F4E3E', margin: 0, lineHeight: 1.5 }}>
+              Are you sure you want to archive these <strong>{selectedIds.length} selected sarees</strong>? They will be hidden from public shopping and search, but can be restored anytime from the Archived status filter.
+            </p>
+
+            {/* Selected Sarees Preview List */}
+            <div
+              style={{
+                backgroundColor: '#FAF6EE',
+                border: '1px solid rgba(75, 48, 36, 0.12)',
+                borderRadius: '3px',
+                padding: '0.75rem 1rem',
+                maxHeight: '140px',
+                overflowY: 'auto'
+              }}
+            >
+              <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#4B3024', marginBottom: '0.45rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Sarees to be archived:
+              </div>
+              <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.82rem', color: '#6F4E3E', lineHeight: 1.6 }}>
+                {selectedProducts.map((p) => (
+                  <li key={p.id}>
+                    <strong>{p.name}</strong> ({p.sku || 'No SKU'})
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => setShowBulkArchiveConfirm(false)}
+                disabled={isBulkOperating}
+                style={{
+                  padding: '0.6rem 1.15rem',
+                  backgroundColor: '#FAF6EE',
+                  border: '1px solid rgba(75, 48, 36, 0.2)',
+                  borderRadius: '3px',
+                  fontSize: '0.82rem',
+                  color: '#4B3024',
+                  fontWeight: 600,
+                  cursor: isBulkOperating ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkArchive}
+                disabled={isBulkOperating}
+                style={{
+                  padding: '0.6rem 1.35rem',
+                  backgroundColor: '#B88D4A',
+                  border: 'none',
+                  borderRadius: '3px',
+                  fontSize: '0.82rem',
+                  color: '#FAF6EE',
+                  fontWeight: 700,
+                  cursor: isBulkOperating ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem'
+                }}
+              >
+                {isBulkOperating ? <RefreshCw size={14} className="spin" /> : <Archive size={14} />}
+                <span>{isBulkOperating ? 'Archiving Sarees...' : `Yes, Archive ${selectedIds.length} Sarees`}</span>
               </button>
             </div>
           </div>
