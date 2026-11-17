@@ -845,10 +845,14 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: clamp(0.5rem, 2.5vw, 1.5rem);
+  padding: clamp(0.35rem, 2vw, 1.5rem);
   animation: fadeIn 0.25s ease;
   overflow-y: auto;
+  overflow-x: hidden !important;
+  max-width: 100vw;
+  box-sizing: border-box;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .drawer-backdrop {
@@ -1120,7 +1124,26 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .modal-backdrop {
-    padding: 0.45rem;
+    padding: 0.35rem 0.25rem;
+    overflow-x: hidden !important;
+    justify-content: safe center;
+    align-items: flex-start;
+  }
+
+  .modal-backdrop > * {
+    margin: auto;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Prevent mobile browsers (iOS Safari, Android Chrome) from auto-zooming or panning on input focus */
+  .form-input,
+  input[type="text"],
+  input[type="tel"],
+  input[type="email"],
+  textarea,
+  select {
+    font-size: 16px !important;
   }
 }
 

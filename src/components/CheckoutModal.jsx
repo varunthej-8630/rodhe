@@ -558,6 +558,7 @@ export const CheckoutModal = () => {
         style={{
           width: 'min(980px, 100%)',
           maxWidth: '100%',
+          boxSizing: 'border-box',
           backgroundColor: '#FFFDF9',
           border: '1px solid rgba(184, 141, 74, 0.3)',
           boxShadow: '0 25px 60px rgba(42, 26, 19, 0.3)',
@@ -565,7 +566,9 @@ export const CheckoutModal = () => {
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          animation: 'slideUp 0.28s ease'
+          overflowX: 'hidden',
+          animation: 'slideUp 0.28s ease',
+          margin: 'auto'
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -1267,12 +1270,12 @@ export const CheckoutModal = () => {
                       </div>
                     )}
 
-                    <div style={{ display: 'flex', gap: '0.65rem', marginTop: '0.75rem', width: '100%', maxWidth: '100%' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
                       <button
                         type="button"
                         onClick={() => setStep(1)}
                         className="btn btn-outline"
-                        style={{ padding: '0.85rem 1rem', minHeight: '48px', flexShrink: 0 }}
+                        style={{ padding: '0.8rem 0.9rem', minHeight: '48px', flexShrink: 0, minWidth: '44px' }}
                         aria-label="Back to bag review"
                       >
                         <ArrowLeft size={16} />
@@ -1282,7 +1285,7 @@ export const CheckoutModal = () => {
                         onClick={validateAndProceedFromDetails}
                         disabled={isSavingStep}
                         className="btn btn-primary"
-                        style={{ flex: 1, minWidth: 0, minHeight: '48px', padding: '0.85rem 1rem' }}
+                        style={{ flex: 1, minWidth: 0, minHeight: '48px', padding: '0.8rem 0.85rem' }}
                       >
                         <span>{isSavingStep ? 'Saving Details...' : 'Continue to Final Review'}</span>
                         <ArrowRight size={16} style={{ flexShrink: 0 }} />
@@ -1369,7 +1372,7 @@ export const CheckoutModal = () => {
                         <span style={{ fontSize: '0.7rem', color: '#525B3A', fontWeight: 600 }}>Zero Gateway Fee</span>
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '0.6rem', marginBottom: '0.85rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 'clamp(0.35rem, 1.5vw, 0.6rem)', marginBottom: '0.85rem' }}>
                         {UPI_METHOD_LIST.map((m) => {
                           const isSelected = selectedUpiMethod === m.id;
                           return (
@@ -1379,18 +1382,20 @@ export const CheckoutModal = () => {
                               onClick={() => setSelectedUpiMethod(m.id)}
                               aria-pressed={isSelected}
                               style={{
-                                padding: '0.75rem 0.45rem',
+                                padding: 'clamp(0.55rem, 1.8vw, 0.75rem) 0.35rem',
                                 borderRadius: '4px',
                                 border: isSelected ? '2px solid #4B3024' : '1px solid rgba(75, 48, 36, 0.18)',
                                 backgroundColor: isSelected ? '#EADAB5' : '#FFFDF9',
                                 color: '#4B3024',
                                 cursor: 'pointer',
                                 textAlign: 'center',
-                                transition: 'all 0.2s ease'
+                                transition: 'all 0.2s ease',
+                                minWidth: 0,
+                                boxSizing: 'border-box'
                               }}
                             >
-                              <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>{m.name}</div>
-                              <div style={{ fontSize: '0.68rem', color: '#6F4E3E', marginTop: '0.15rem' }}>
+                              <div style={{ fontWeight: 700, fontSize: 'clamp(0.74rem, 2vw, 0.85rem)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.name}</div>
+                              <div style={{ fontSize: 'clamp(0.6rem, 1.6vw, 0.68rem)', color: '#6F4E3E', marginTop: '0.15rem', whiteSpace: 'nowrap' }}>
                                 QR & UPI ID
                               </div>
                             </button>
@@ -1403,12 +1408,12 @@ export const CheckoutModal = () => {
                         (Payee: <strong>{getUpiMethodConfig(selectedUpiMethod).payeeName}</strong>). Payment status remains <strong>Pending / Awaiting Verification</strong> until verified by our atelier team.
                       </p>
 
-                      <div style={{ display: 'flex', gap: '0.65rem', width: '100%', maxWidth: '100%' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
                         <button
                           type="button"
                           onClick={() => setStep(2)}
                           className="btn btn-outline"
-                          style={{ padding: '0.85rem 1rem', minHeight: '48px', flexShrink: 0 }}
+                          style={{ padding: '0.8rem 0.9rem', minHeight: '48px', flexShrink: 0, minWidth: '44px' }}
                           aria-label="Back to delivery details"
                         >
                           <ArrowLeft size={16} />
@@ -1422,11 +1427,12 @@ export const CheckoutModal = () => {
                             flex: 1,
                             minWidth: 0,
                             minHeight: '48px',
-                            padding: '0.85rem 1rem',
+                            padding: '0.8rem 0.75rem',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: '0.5rem'
+                            gap: '0.4rem',
+                            boxSizing: 'border-box'
                           }}
                         >
                           <Smartphone size={17} color="#EADAB5" style={{ flexShrink: 0 }} />
@@ -1587,23 +1593,34 @@ export const CheckoutModal = () => {
         <style>{`
           .checkout-modal-card {
             max-height: 94dvh !important;
+            width: 100% !important;
+            max-width: min(980px, 100%) !important;
+            min-width: 0 !important;
+            margin: auto !important;
+            overflow-x: hidden !important;
+            box-sizing: border-box !important;
           }
           .checkout-steps-bar {
-            padding: 0.6rem clamp(0.75rem, 3vw, 2rem);
+            padding: 0.55rem clamp(0.6rem, 2.5vw, 1.5rem);
             background-color: #FFFDF9;
             border-bottom: 1px solid rgba(75, 48, 36, 0.08);
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 0.35rem 0.65rem;
+            gap: 0.35rem 0.5rem;
             flex-shrink: 0;
+            width: 100%;
+            box-sizing: border-box;
+            overflow-x: hidden;
           }
           .checkout-step-pill {
             justify-content: flex-start;
             text-align: left;
             white-space: normal;
             line-height: 1.25;
+            min-width: 0;
+            word-break: break-word;
           }
-          @media (min-width: 600px) {
+          @media (min-width: 768px) {
             .checkout-steps-bar {
               display: flex;
               align-items: center;
@@ -1620,7 +1637,7 @@ export const CheckoutModal = () => {
           .checkout-main-content {
             flex-grow: 1;
             overflow-y: auto;
-            overflow-x: hidden;
+            overflow-x: hidden !important;
             width: 100%;
             max-width: 100%;
             box-sizing: border-box;
@@ -1631,20 +1648,23 @@ export const CheckoutModal = () => {
             grid-template-columns: minmax(0, 1fr);
             width: 100%;
             max-width: 100%;
+            box-sizing: border-box;
           }
           .checkout-left-col {
-            padding: clamp(0.95rem, 3.2vw, 1.85rem);
+            padding: clamp(0.85rem, 3vw, 1.85rem);
             min-width: 0;
             max-width: 100%;
             box-sizing: border-box;
+            overflow-x: hidden;
           }
           .checkout-summary-col {
-            padding: clamp(0.95rem, 3.2vw, 1.85rem);
+            padding: clamp(0.85rem, 3vw, 1.85rem);
             background-color: #FAF6EE;
             border-top: 1px solid rgba(75, 48, 36, 0.1);
             min-width: 0;
             max-width: 100%;
             box-sizing: border-box;
+            overflow-x: hidden;
           }
           @media (min-width: 768px) {
             .checkout-two-col-grid {
@@ -1655,25 +1675,33 @@ export const CheckoutModal = () => {
               border-left: 1px solid rgba(75, 48, 36, 0.08);
             }
           }
-          @media (max-width: 540px) {
+          .checkout-modal-card .btn {
+            white-space: normal !important;
+            word-break: break-word;
+            max-width: 100%;
+            box-sizing: border-box;
+          }
+          @media (max-width: 767px) {
             .checkout-modal-card .btn {
-              white-space: normal;
+              white-space: normal !important;
               text-align: center;
-              padding: 0.78rem 0.9rem;
-              font-size: 0.76rem;
-              letter-spacing: 0.07em;
-              line-height: 1.3;
-              min-width: 0;
+              padding: 0.75rem 0.65rem !important;
+              font-size: 0.76rem !important;
+              letter-spacing: 0.05em !important;
+              line-height: 1.25;
+              min-width: 0 !important;
             }
             .checkout-modal-card .btn-sm {
-              padding: 0.45rem 0.75rem;
-              font-size: 0.7rem;
+              padding: 0.45rem 0.65rem !important;
+              font-size: 0.7rem !important;
             }
           }
           .form-two-col {
             display: grid;
             grid-template-columns: minmax(0, 1fr);
             gap: 0.75rem;
+            width: 100%;
+            box-sizing: border-box;
           }
           @media (min-width: 520px) {
             .form-two-col {

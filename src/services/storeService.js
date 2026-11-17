@@ -10,6 +10,8 @@ import {
 
 // Storage keys for persistent local storage engine
 const STORAGE_KEYS = {
+  INITIALIZED: 'rodhe_db_initialized',
+  DELETED_PRODUCT_IDS: 'rodhe_db_deleted_product_ids',
   PRODUCTS: 'rodhe_db_products',
   COLLECTIONS: 'rodhe_db_collections',
   PROMOTIONS: 'rodhe_db_promotions',
@@ -20,6 +22,35 @@ const STORAGE_KEYS = {
   SIGNUPS: 'rodhe_db_signups',
   ORDERS: 'rodhe_db_orders',
   PAYMENT_LOGS: 'rodhe_db_payment_logs'
+};
+
+// Tombstone set helpers for permanent deletion resilience
+const getDeletedIds = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.DELETED_PRODUCT_IDS);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
+const addDeletedId = (idOrSlug) => {
+  if (!idOrSlug) return;
+  try {
+    const current = getDeletedIds();
+    const set = new Set(current);
+    set.add(String(idOrSlug));
+    localStorage.setItem(STORAGE_KEYS.DELETED_PRODUCT_IDS, JSON.stringify(Array.from(set)));
+  } catch {}
+};
+
+const removeDeletedId = (idOrSlug) => {
+  if (!idOrSlug) return;
+  try {
+    const current = getDeletedIds();
+    const filtered = current.filter(id => id !== String(idOrSlug));
+    localStorage.setItem(STORAGE_KEYS.DELETED_PRODUCT_IDS, JSON.stringify(filtered));
+  } catch {}
 };
 
 // Initial Seed Data for Store Settings
@@ -256,26 +287,28 @@ export const normalizeProduct = (p) => {
 
 // Self-initializing local database
 const initLocalStore = () => {
+  const isInitialized = typeof localStorage !== 'undefined' && localStorage.getItem(STORAGE_KEYS.INITIALIZED);
   const existing = getLocalData(STORAGE_KEYS.PRODUCTS, null);
-  const needsReseed = !existing || 
-    !Array.isArray(existing) || 
-    existing.length < SEED_PRODUCTS.length ||
-    !existing[0]?.price ||
-    !existing[0]?.primaryImage;
 
-  if (needsReseed) {
-    const formatted = SEED_PRODUCTS.map((p, idx) => normalizeProduct({
-      ...p,
-      sku: p.sku || `RDH-${String(idx + 1).padStart(3, '0')}`,
-      slug: p.slug || p.id,
-      status: 'published',
-      isMostCoveted: idx % 4 === 0,
-      isNewArrival: Boolean(p.isNew),
-      isBestseller: Boolean(p.isBestseller),
-      displayOrder: idx,
-      createdAt: new Date(Date.now() - (idx * 86400000)).toISOString()
-    }));
-    setLocalData(STORAGE_KEYS.PRODUCTS, formatted);
+  // ONLY seed if store was NEVER initialized AND no products exist in storage
+  if (!isInitialized || !existing || !Array.isArray(existing) || existing.length === 0) {
+    if (!existing || !Array.isArray(existing) || existing.length === 0) {
+      const formatted = SEED_PRODUCTS.map((p, idx) => normalizeProduct({
+        ...p,
+        sku: p.sku || `RDH-${String(idx + 1).padStart(3, '0')}`,
+        slug: p.slug || p.id,
+        status: 'published',
+        isMostCoveted: idx % 4 === 0,
+        isNewArrival: Boolean(p.isNew),
+        isBestseller: Boolean(p.isBestseller),
+        displayOrder: idx,
+        createdAt: new Date(Date.now() - (idx * 86400000)).toISOString()
+      }));
+      setLocalData(STORAGE_KEYS.PRODUCTS, formatted);
+    }
+    try {
+      localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
+    } catch {}
   }
   if (!localStorage.getItem(STORAGE_KEYS.COLLECTIONS)) {
     setLocalData(STORAGE_KEYS.COLLECTIONS, DEFAULT_COLLECTIONS);
@@ -324,13 +357,18 @@ export const storeService = {
   // PRODUCTS
   // --------------------------------------------------------------------------
   async getProducts(filters = {}) {
-    // 1. Get the local products baseline (authoritative for CRM additions & modifications)
+    const deletedIds = new Set(getDeletedIds());
+
+    // 1. Get the local products baseline
     const localRaw = getLocalData(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS);
     let items = (Array.isArray(localRaw) && localRaw.length > 0)
       ? localRaw.map(normalizeProduct).filter(Boolean)
       : SEED_PRODUCTS.map(normalizeProduct);
 
-    // 2. Try Supabase with a 2.5-second timeout to avoid page hang and merge with local items
+    // Filter out any tombstoned products immediately
+    items = items.filter(p => !deletedIds.has(String(p.id)) && !deletedIds.has(String(p.slug)));
+
+    // 2. Try Supabase with a 3-second timeout; when Supabase returns products, it is authoritative
     if (isSupabaseConfigured && supabase) {
       try {
         const queryPromise = (async () => {
@@ -342,25 +380,16 @@ export const storeService = {
           return await query;
         })();
 
-        const { data, error } = await withSupabaseTimeout(queryPromise, 2500, 'Supabase products');
+        const { data, error } = await withSupabaseTimeout(queryPromise, 3000, 'Supabase products');
         if (!error && Array.isArray(data) && data.length > 0) {
-          const remoteNormalized = data.map(normalizeProduct).filter(Boolean);
+          const remoteNormalized = data
+            .map(normalizeProduct)
+            .filter(Boolean)
+            .filter(p => !deletedIds.has(String(p.id)) && !deletedIds.has(String(p.slug)));
 
-          // Intelligent merge: local modifications (CRM edits) override, new remote products added
-          const mergedMap = new Map();
-
-          // Load remote first
-          remoteNormalized.forEach(p => {
-            mergedMap.set(p.slug || p.sku || p.id, p);
-          });
-
-          // Overlay local items (preserves user edits made in CRM)
-          items.forEach(localP => {
-            const key = localP.slug || localP.sku || localP.id;
-            mergedMap.set(key, { ...mergedMap.get(key), ...localP });
-          });
-
-          items = Array.from(mergedMap.values());
+          // Supabase is authoritative
+          items = remoteNormalized;
+          setLocalData(STORAGE_KEYS.PRODUCTS, items);
         }
       } catch (e) {
         console.warn('Supabase product query notice:', e);
@@ -418,7 +447,12 @@ export const storeService = {
 
   async saveProduct(product) {
     const normalized = normalizeProduct(product);
-    const products = getLocalData(STORAGE_KEYS.PRODUCTS, []).map(normalizeProduct);
+    
+    // Remove from tombstones on intentional save/re-addition
+    if (normalized.id) removeDeletedId(normalized.id);
+    if (normalized.slug) removeDeletedId(normalized.slug);
+
+    const products = getLocalData(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS).map(normalizeProduct);
     const existingIndex = products.findIndex(p => p.id === normalized.id || p.slug === normalized.slug || (p.sku && p.sku === normalized.sku));
     let updated;
 
@@ -438,31 +472,46 @@ export const storeService = {
           slug: normalized.slug,
           sku: normalized.sku,
           name: normalized.name,
-          tagline: normalized.tagline,
-          description: normalized.description,
-          craft_story: normalized.craftStory,
-          craft: normalized.craft,
-          craft_category: normalized.craftCategory,
-          fabric: normalized.fabric,
-          fabric_type: normalized.fabricType,
-          color: normalized.color,
-          color_family: normalized.colorFamily,
-          color_hex: normalized.colorHex,
-          selling_price: normalized.price,
-          original_price: normalized.originalPrice,
-          dimensions: normalized.dimensions,
-          blouse_piece: normalized.blousePiece,
-          wash_care: normalized.washCare,
-          stock_count: normalized.stockCount,
-          in_stock: normalized.inStock,
+          tagline: normalized.tagline || '',
+          description: normalized.description || '',
+          craft_story: normalized.craftStory || '',
+          craft: normalized.craft || 'Handloom',
+          craft_category: normalized.craftCategory || 'mulmul',
+          fabric: normalized.fabric || 'Pure Cotton',
+          fabric_type: normalized.fabricType || 'mulmul',
+          color: normalized.color || 'Natural',
+          color_family: normalized.colorFamily || 'earth',
+          color_hex: normalized.colorHex || '#8B4513',
+          selling_price: Number(normalized.price || normalized.selling_price || 0),
+          original_price: normalized.originalPrice ? Number(normalized.originalPrice) : null,
+          dimensions: normalized.dimensions || '',
+          blouse_piece: normalized.blousePiece || '',
+          wash_care: normalized.washCare || '',
+          stock_count: Number(normalized.stockCount ?? 10),
+          in_stock: Boolean(normalized.inStock),
           status: normalized.status || 'published',
-          is_bestseller: normalized.isBestseller,
-          is_most_coveted: normalized.isMostCoveted,
-          is_new_arrival: normalized.isNewArrival
+          is_featured: Boolean(normalized.isFeatured),
+          is_bestseller: Boolean(normalized.isBestseller),
+          is_most_coveted: Boolean(normalized.isMostCoveted),
+          is_new_arrival: Boolean(normalized.isNewArrival),
+          primary_image: normalized.primaryImage || normalized.primary_image || ''
         };
-        const { error: upsertErr } = await supabase.from('products').upsert(dbPayload, { onConflict: 'slug' });
+
+        const { data: upsertData, error: upsertErr } = await supabase
+          .from('products')
+          .upsert(dbPayload, { onConflict: 'slug' })
+          .select();
+
         if (upsertErr) {
-          console.warn('Supabase product upsert notice (saved locally):', upsertErr.message);
+          console.warn('Supabase product upsert notice:', upsertErr.message);
+        } else if (upsertData && upsertData[0]?.id) {
+          // Sync database UUID back to local store
+          normalized.id = upsertData[0].id;
+          const idx = updated.findIndex(p => p.slug === normalized.slug);
+          if (idx >= 0) {
+            updated[idx].id = upsertData[0].id;
+            setLocalData(STORAGE_KEYS.PRODUCTS, updated);
+          }
         }
       } catch (e) {
         console.warn('Supabase upsert notice:', e);
@@ -473,14 +522,109 @@ export const storeService = {
   },
 
   async deleteProduct(productId) {
-    const products = getLocalData(STORAGE_KEYS.PRODUCTS, []).map(normalizeProduct);
-    const filtered = products.filter(p => p.id !== productId && p.slug !== productId);
+    if (!productId) return false;
+
+    // 1. Capture target product details from local store
+    const products = getLocalData(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS).map(normalizeProduct);
+    const target = products.find(p => p.id === productId || p.slug === productId || p.sku === productId);
+    const targetId = target?.id || productId;
+    const targetSlug = target?.slug;
+
+    // 2. Filter from local store
+    const filtered = products.filter(p => p.id !== productId && p.slug !== productId && (!targetSlug || p.slug !== targetSlug));
     setLocalData(STORAGE_KEYS.PRODUCTS, filtered);
+
+    // 3. Mark in tombstone set so it can NEVER be resurrected by offline seeds or stale caches
+    addDeletedId(productId);
+    if (targetId) addDeletedId(targetId);
+    if (targetSlug) addDeletedId(targetSlug);
+
+    // 4. Perform authoritative deletion in Supabase PostgreSQL
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(productId));
+
+        // Try calling atomic safe delete RPC first if available
+        try {
+          const { data: rpcRes, error: rpcErr } = await supabase.rpc('delete_product_safe', { p_identifier: String(productId) });
+          if (!rpcErr && rpcRes?.success) {
+            return true;
+          }
+        } catch {}
+
+        // Fallback to direct DELETE with safe typed UUID vs slug check
+        let query = supabase.from('products').delete();
+        if (isUuid) {
+          query = query.eq('id', productId);
+        } else {
+          query = query.eq('slug', targetSlug || productId);
+        }
+        const { error: delErr } = await query;
+        if (delErr) {
+          console.warn('Supabase product delete notice:', delErr.message);
+        }
+      } catch (e) {
+        console.warn('Supabase deleteProduct error:', e);
+      }
+    }
+    return true;
+  },
+
+  async archiveProduct(productId) {
+    if (!productId) return false;
+    const products = getLocalData(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS).map(normalizeProduct);
+    const target = products.find(p => p.id === productId || p.slug === productId);
+    if (target) {
+      target.status = 'archived';
+      target.updatedAt = new Date().toISOString();
+      setLocalData(STORAGE_KEYS.PRODUCTS, products);
+    }
 
     if (isSupabaseConfigured && supabase) {
       try {
-        await supabase.from('products').delete().or(`id.eq.${productId},slug.eq.${productId}`);
-      } catch (e) {}
+        // Try archive RPC first
+        try {
+          const { data: rpcRes, error: rpcErr } = await supabase.rpc('archive_product', { p_identifier: String(productId) });
+          if (!rpcErr && rpcRes?.success) return true;
+        } catch {}
+
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(productId));
+        let query = supabase.from('products').update({ status: 'archived', updated_at: new Date().toISOString() });
+        if (isUuid) query = query.eq('id', productId);
+        else query = query.eq('slug', target?.slug || productId);
+        await query;
+      } catch (e) {
+        console.warn('Supabase archive notice:', e);
+      }
+    }
+    return true;
+  },
+
+  async restoreProduct(productId, targetStatus = 'published') {
+    if (!productId) return false;
+    const products = getLocalData(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS).map(normalizeProduct);
+    const target = products.find(p => p.id === productId || p.slug === productId);
+    if (target) {
+      target.status = targetStatus;
+      target.updatedAt = new Date().toISOString();
+      setLocalData(STORAGE_KEYS.PRODUCTS, products);
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        try {
+          const { data: rpcRes, error: rpcErr } = await supabase.rpc('restore_product', { p_identifier: String(productId), p_target_status: targetStatus });
+          if (!rpcErr && rpcRes?.success) return true;
+        } catch {}
+
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(productId));
+        let query = supabase.from('products').update({ status: targetStatus, updated_at: new Date().toISOString() });
+        if (isUuid) query = query.eq('id', productId);
+        else query = query.eq('slug', target?.slug || productId);
+        await query;
+      } catch (e) {
+        console.warn('Supabase restore notice:', e);
+      }
     }
     return true;
   },

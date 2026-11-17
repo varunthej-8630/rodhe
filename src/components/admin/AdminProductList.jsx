@@ -103,7 +103,19 @@ export const AdminProductList = ({ onEditProduct, onNewProduct }) => {
     await storeService.deleteProduct(id);
     setDeleteConfirmProduct(null);
     if (refreshProducts) await refreshProducts();
-    loadProducts();
+    await loadProducts();
+  };
+
+  const handleArchive = async (id) => {
+    await storeService.archiveProduct(id);
+    if (refreshProducts) await refreshProducts();
+    await loadProducts();
+  };
+
+  const handleRestore = async (id) => {
+    await storeService.restoreProduct(id, 'published');
+    if (refreshProducts) await refreshProducts();
+    await loadProducts();
   };
 
   // Filter & Search
@@ -207,6 +219,7 @@ export const AdminProductList = ({ onEditProduct, onNewProduct }) => {
             <option value="all">All Statuses</option>
             <option value="published">Published</option>
             <option value="draft">Draft</option>
+            <option value="archived">Archived</option>
           </select>
 
           {/* Stock Filter */}

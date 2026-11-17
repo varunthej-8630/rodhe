@@ -60,8 +60,9 @@ export const AdminProductForm = ({ product, onSaveComplete, onCancel }) => {
     ? Math.round(((formData.originalPrice - formData.price) / formData.originalPrice) * 100) 
     : 0;
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e, forcedStatus = null) => {
     if (e && e.preventDefault) e.preventDefault();
+    if (isSaving) return;
     setIsSaving(true);
     try {
       const allGallery = Array.from(new Set([
@@ -70,8 +71,11 @@ export const AdminProductForm = ({ product, onSaveComplete, onCancel }) => {
         ...(formData.gallery || [])
       ])).filter(Boolean);
 
+      const targetStatus = forcedStatus || formData.status || 'published';
+
       const payload = {
         ...formData,
+        status: targetStatus,
         primaryImage: formData.primaryImage || allGallery[0] || '/assets/products/saree_ivory_mulmul.jpg',
         secondaryImage: formData.secondaryImage || allGallery[1] || allGallery[0] || '/assets/products/saree_ivory_mulmul.jpg',
         gallery: allGallery
@@ -89,6 +93,14 @@ export const AdminProductForm = ({ product, onSaveComplete, onCancel }) => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleSaveAsDraft = (e) => {
+    handleSubmit(e, 'draft');
+  };
+
+  const handleSaveAndPublish = (e) => {
+    handleSubmit(e, 'published');
   };
 
   return (
@@ -119,10 +131,11 @@ export const AdminProductForm = ({ product, onSaveComplete, onCancel }) => {
           {isEditing ? `Edit Saree: ${formData.name || 'Untitled'}` : 'Add New Handcrafted Saree'}
         </h2>
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button
             type="button"
-            onClick={() => setFormData(prev => ({ ...prev, status: 'draft' }))}
+            onClick={handleSaveAsDraft}
+            disabled={isSaving}
             style={{
               padding: '0.6rem 1rem',
               backgroundColor: '#FAF6EE',
@@ -131,15 +144,15 @@ export const AdminProductForm = ({ product, onSaveComplete, onCancel }) => {
               fontSize: '0.8rem',
               fontWeight: 600,
               color: '#4B3024',
-              cursor: 'pointer'
+              cursor: isSaving ? 'not-allowed' : 'pointer'
             }}
           >
-            Save as Draft
+            {isSaving ? 'Saving...' : 'Save as Draft'}
           </button>
 
           <button
             type="button"
-            onClick={handleSubmit}
+            onClick={handleSaveAndPublish}
             disabled={isSaving}
             style={{
               display: 'inline-flex',
@@ -328,6 +341,21 @@ export const AdminProductForm = ({ product, onSaveComplete, onCancel }) => {
                 <option value="gold">Muted Gold</option>
                 <option value="rose">Soft Rose</option>
                 <option value="madder">Madder Red</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 600, textTransform: 'uppercase', color: '#4B3024', marginBottom: '0.4rem' }}>
+                Publication Status *
+              </label>
+              <select
+                value={formData.status || 'published'}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                style={{ width: '100%', padding: '0.7rem', border: '1px solid rgba(75, 48, 36, 0.2)', borderRadius: '3px', backgroundColor: '#FFFDF9', fontWeight: 600, color: formData.status === 'draft' ? '#B88D4A' : formData.status === 'archived' ? '#8F7263' : '#525B3A' }}
+              >
+                <option value="published">Published (Visible in Store)</option>
+                <option value="draft">Draft (Hidden Unpublished)</option>
+                <option value="archived">Archived (Safely Preserved)</option>
               </select>
             </div>
 
